@@ -1,5 +1,6 @@
 use std::{
-    io::{self},
+    fmt::{self, Display},
+    io::{self, stdout, Write},
     time::Duration,
 };
 
@@ -9,6 +10,7 @@ use crossterm::{
     execute,
     style::{style, Attribute, Color, PrintStyledContent, Stylize},
     terminal::{disable_raw_mode, enable_raw_mode, Clear},
+    QueueableCommand,
 };
 
 struct GameState {
@@ -19,6 +21,54 @@ impl GameState {
     fn new() -> GameState {
         GameState { initialized: false }
     }
+}
+
+#[derive(Debug)]
+enum GoodType {
+    SUGAR,
+    TOBACCO,
+    TEA,
+    COTTON,
+    SILK,
+    COFFEE,
+}
+
+const GOOD_TYPES: &'static [GoodType] = &[
+    GoodType::SUGAR,
+    GoodType::TOBACCO,
+    GoodType::TEA,
+    GoodType::COTTON,
+    GoodType::SILK,
+    GoodType::COFFEE,
+];
+
+impl Display for GoodType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let string = match self {
+            GoodType::SUGAR => "Sugar",
+            GoodType::TOBACCO => "Tobacco",
+            GoodType::TEA => "Tea",
+            GoodType::COTTON => "Cotton",
+            GoodType::SILK => "Silk",
+            GoodType::COFFEE => "Coffee",
+        };
+        // Use `self.number` to refer to each positional data point.
+        write!(f, "{}", string)
+    }
+}
+
+fn print_good_inventory(kind: &GoodType, amount: u32) -> io::Result<()> {
+    stdout()
+        .queue(PrintStyledContent(
+            format!("{}: ", kind)
+                .with(Color::White)
+                .on(Color::Green)
+                .attribute(Attribute::Bold),
+        ))?
+        .queue(PrintStyledContent(
+            amount.to_string().with(Color::White).on(Color::Black),
+        ))?;
+    Ok(())
 }
 
 fn main_loop(game_state: &mut GameState) -> io::Result<(bool, Option<GameState>)> {
@@ -35,20 +85,29 @@ fn main_loop(game_state: &mut GameState) -> io::Result<(bool, Option<GameState>)
                 // move forward game state
                 if !game_state.initialized {
                     // initialize game
-                    execute!(
-                        io::stdout(),
-                        // clear terminal
-                        Clear(crossterm::terminal::ClearType::All),
-                        // reset cursor position to top left
-                        MoveTo(0, 0),
-                        // write out new game state
-                        PrintStyledContent(
-                            "Game has begun."
-                                .with(Color::White)
-                                .on(Color::Red)
-                                .attribute(Attribute::Bold)
-                        ),
-                    )?;
+                    stdout()
+                        .queue(
+                            // clear terminal
+                            Clear(crossterm::terminal::ClearType::All),
+                        )?
+                        .queue(
+                            // reset cursor position to top left
+                            MoveTo(0, 0),
+                        )?
+                        .queue(
+                            // write out new game state
+                            PrintStyledContent(
+                                "==Inventory=="
+                                    .with(Color::White)
+                                    .on(Color::Red)
+                                    .attribute(Attribute::Bold),
+                            ),
+                        )?;
+                    for (i, good_type) in GOOD_TYPES.iter().enumerate() {
+                        stdout().queue(MoveTo(0, (i as u16) + 1))?;
+                        print_good_inventory(good_type, 50)?;
+                    }
+                    stdout().flush()?;
                     return Ok((false, Some(GameState { initialized: true })));
                 }
                 // user event had no effect
