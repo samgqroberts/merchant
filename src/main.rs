@@ -13,6 +13,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, Clear},
     QueueableCommand,
 };
+use rand::{rngs::StdRng, RngCore, SeedableRng};
 
 #[derive(Clone)]
 enum Location {
@@ -38,12 +39,56 @@ impl Display for Location {
 }
 
 #[derive(Clone)]
+struct Prices {
+    savannah: Inventory,
+    london: Inventory,
+    lisbon: Inventory,
+    amsterdam: Inventory,
+    capetown: Inventory,
+}
+
+impl Prices {
+    fn new(rng: &mut StdRng) -> Prices {
+        Prices {
+            savannah: Prices::randomized_inventory(rng),
+            london: Prices::randomized_inventory(rng),
+            lisbon: Prices::randomized_inventory(rng),
+            amsterdam: Prices::randomized_inventory(rng),
+            capetown: Prices::randomized_inventory(rng),
+        }
+    }
+
+    fn randomized_inventory(rng: &mut StdRng) -> Inventory {
+        // number between 39 and 111
+        let mut gen = || rng.next_u32() % (111 - 39) + 39;
+        Inventory {
+            sugar: gen(),
+            tobacco: gen(),
+            tea: gen(),
+            cotton: gen(),
+            rum: gen(),
+            coffee: gen(),
+        }
+    }
+
+    fn location_prices(&self, location: &Location) -> &Inventory {
+        match location {
+            Location::SAVANNAH => &self.savannah,
+            Location::LONDON => &self.london,
+            Location::LISBON => &self.lisbon,
+            Location::AMSTERDAM => &self.amsterdam,
+            Location::CAPETOWN => &self.capetown,
+        }
+    }
+}
+
+#[derive(Clone)]
 struct Inventory {
     sugar: u32,
     tobacco: u32,
     tea: u32,
     cotton: u32,
-    silk: u32,
+    rum: u32,
     coffee: u32,
 }
 
@@ -54,7 +99,7 @@ impl Inventory {
             tobacco: 0,
             tea: 0,
             cotton: 0,
-            silk: 0,
+            rum: 0,
             coffee: 0,
         }
     }
@@ -65,7 +110,7 @@ impl Inventory {
             GoodType::TOBACCO => self.tobacco,
             GoodType::TEA => self.tea,
             GoodType::COTTON => self.cotton,
-            GoodType::SILK => self.silk,
+            GoodType::RUM => self.rum,
             GoodType::COFFEE => self.coffee,
         }
     }
@@ -73,23 +118,29 @@ impl Inventory {
 
 #[derive(Clone)]
 struct GameState {
+    rng: StdRng,
     initialized: bool,
     date: NaiveDate,
     hold_size: u16,
     gold: u32,
     location: Location,
     inventory: Inventory,
+    prices: Prices,
 }
 
 impl GameState {
     fn new() -> GameState {
+        let mut rng = StdRng::from_entropy();
+        let prices = Prices::new(&mut rng);
         GameState {
+            rng,
             initialized: false,
             date: NaiveDate::from_ymd_opt(1782, 3, 1).unwrap(),
             hold_size: 100,
             gold: 1400,
             location: Location::LONDON,
             inventory: Inventory::new(),
+            prices,
         }
     }
 
@@ -106,7 +157,7 @@ enum GoodType {
     TOBACCO,
     TEA,
     COTTON,
-    SILK,
+    RUM,
     COFFEE,
 }
 
@@ -115,7 +166,7 @@ const GOOD_TYPES: &'static [GoodType] = &[
     GoodType::TOBACCO,
     GoodType::TEA,
     GoodType::COTTON,
-    GoodType::SILK,
+    GoodType::RUM,
     GoodType::COFFEE,
 ];
 
@@ -126,26 +177,12 @@ impl Display for GoodType {
             GoodType::TOBACCO => "Tobacco",
             GoodType::TEA => "Tea",
             GoodType::COTTON => "Cotton",
-            GoodType::SILK => "Silk",
+            GoodType::RUM => "Rum",
             GoodType::COFFEE => "Coffee",
         };
         // Use `self.number` to refer to each positional data point.
         write!(f, "{}", string)
     }
-}
-
-fn print_good_inventory(kind: &GoodType, amount: u32) -> io::Result<()> {
-    stdout()
-        .queue(PrintStyledContent(
-            format!("{}: ", kind)
-                .with(Color::White)
-                .on(Color::Green)
-                .attribute(Attribute::Bold),
-        ))?
-        .queue(PrintStyledContent(
-            amount.to_string().with(Color::White).on(Color::Black),
-        ))?;
-    Ok(())
 }
 
 fn draw_inventory_scene(game_state: &GameState) -> io::Result<()> {
@@ -170,11 +207,82 @@ fn draw_inventory_scene(game_state: &GameState) -> io::Result<()> {
         // inventory
         MoveTo(9, 3),
         PrintStyledContent("Inventory".with(Color::White)),
+        MoveTo(11, 4),
+        PrintStyledContent(format!("Sugar: {}", game_state.inventory.sugar).with(Color::White)),
+        MoveTo(9, 5),
+        PrintStyledContent(format!("Tobacco: {}", game_state.inventory.sugar).with(Color::White)),
+        MoveTo(13, 6),
+        PrintStyledContent(format!("Tea: {}", game_state.inventory.sugar).with(Color::White)),
+        MoveTo(10, 7),
+        PrintStyledContent(format!("Cotton: {}", game_state.inventory.sugar).with(Color::White)),
+        MoveTo(13, 8),
+        PrintStyledContent(format!("Rum: {}", game_state.inventory.sugar).with(Color::White)),
+        MoveTo(10, 9),
+        PrintStyledContent(format!("Coffee: {}", game_state.inventory.sugar).with(Color::White)),
+        // current prices
+        MoveTo(5, 11),
+        PrintStyledContent("Captain, the prices of goods here are:".with(Color::White)),
+        MoveTo(11, 12),
+        PrintStyledContent(
+            format!(
+                "Sugar: {}",
+                game_state
+                    .prices
+                    .location_prices(&game_state.location)
+                    .sugar
+            )
+            .with(Color::White)
+        ),
+        MoveTo(27, 12),
+        PrintStyledContent(
+            format!(
+                "Tobacco: {}",
+                game_state
+                    .prices
+                    .location_prices(&game_state.location)
+                    .tobacco
+            )
+            .with(Color::White)
+        ),
+        MoveTo(13, 13),
+        PrintStyledContent(
+            format!(
+                "Tea: {}",
+                game_state.prices.location_prices(&game_state.location).tea
+            )
+            .with(Color::White)
+        ),
+        MoveTo(28, 13),
+        PrintStyledContent(
+            format!(
+                "Cotton: {}",
+                game_state
+                    .prices
+                    .location_prices(&game_state.location)
+                    .cotton
+            )
+            .with(Color::White)
+        ),
+        MoveTo(13, 14),
+        PrintStyledContent(
+            format!(
+                "Rum: {}",
+                game_state.prices.location_prices(&game_state.location).rum
+            )
+            .with(Color::White)
+        ),
+        MoveTo(28, 14),
+        PrintStyledContent(
+            format!(
+                "Coffee: {}",
+                game_state
+                    .prices
+                    .location_prices(&game_state.location)
+                    .coffee
+            )
+            .with(Color::White)
+        ),
     )?;
-    for (i, good_type) in GOOD_TYPES.iter().enumerate() {
-        queue!(stdout, MoveTo(9, (i as u16) + 4))?;
-        print_good_inventory(good_type, game_state.inventory.good_amount(good_type))?;
-    }
     stdout.flush()?;
     Ok(())
 }
