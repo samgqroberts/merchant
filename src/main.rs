@@ -4,22 +4,99 @@ use std::{
     time::Duration,
 };
 
+use chrono::NaiveDate;
 use crossterm::{
     cursor::{MoveTo, MoveToNextLine},
     event::{poll, read, Event, KeyCode, KeyModifiers},
-    execute,
+    execute, queue,
     style::{style, Attribute, Color, PrintStyledContent, Stylize},
     terminal::{disable_raw_mode, enable_raw_mode, Clear},
     QueueableCommand,
 };
 
+#[derive(Clone)]
+enum Location {
+    SAVANNAH,
+    LONDON,
+    LISBON,
+    AMSTERDAM,
+    CAPETOWN,
+}
+
+impl Display for Location {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let string = match self {
+            Location::SAVANNAH => "Savannah",
+            Location::LONDON => "London",
+            Location::LISBON => "Lisbon",
+            Location::AMSTERDAM => "Amsterdam",
+            Location::CAPETOWN => "Cape Town",
+        };
+        // Use `self.number` to refer to each positional data point.
+        write!(f, "{}", string)
+    }
+}
+
+#[derive(Clone)]
+struct Inventory {
+    sugar: u32,
+    tobacco: u32,
+    tea: u32,
+    cotton: u32,
+    silk: u32,
+    coffee: u32,
+}
+
+impl Inventory {
+    fn new() -> Inventory {
+        Inventory {
+            sugar: 0,
+            tobacco: 0,
+            tea: 0,
+            cotton: 0,
+            silk: 0,
+            coffee: 0,
+        }
+    }
+
+    fn good_amount(&self, good_type: &GoodType) -> u32 {
+        match good_type {
+            GoodType::SUGAR => self.sugar,
+            GoodType::TOBACCO => self.tobacco,
+            GoodType::TEA => self.tea,
+            GoodType::COTTON => self.cotton,
+            GoodType::SILK => self.silk,
+            GoodType::COFFEE => self.coffee,
+        }
+    }
+}
+
+#[derive(Clone)]
 struct GameState {
     initialized: bool,
+    date: NaiveDate,
+    hold_size: u16,
+    gold: u32,
+    location: Location,
+    inventory: Inventory,
 }
 
 impl GameState {
     fn new() -> GameState {
-        GameState { initialized: false }
+        GameState {
+            initialized: false,
+            date: NaiveDate::from_ymd_opt(1782, 3, 1).unwrap(),
+            hold_size: 100,
+            gold: 1400,
+            location: Location::LONDON,
+            inventory: Inventory::new(),
+        }
+    }
+
+    fn initialize(&self) -> GameState {
+        let mut game_state = self.clone();
+        game_state.initialized = true;
+        game_state
     }
 }
 
@@ -71,7 +148,38 @@ fn print_good_inventory(kind: &GoodType, amount: u32) -> io::Result<()> {
     Ok(())
 }
 
-fn main_loop(game_state: &mut GameState) -> io::Result<(bool, Option<GameState>)> {
+fn draw_inventory_scene(game_state: &GameState) -> io::Result<()> {
+    let mut stdout = stdout();
+    queue!(
+        stdout,
+        // clear terminal
+        Clear(crossterm::terminal::ClearType::All),
+        // write out new game state
+        // date
+        MoveTo(9, 0),
+        PrintStyledContent(format!("Date {}", game_state.date.to_string()).with(Color::White)),
+        // hold size
+        MoveTo(32, 0),
+        PrintStyledContent(format!("Hold Size {}", game_state.hold_size).with(Color::White)),
+        // gold
+        MoveTo(9, 1),
+        PrintStyledContent(format!("Gold {}", game_state.gold).with(Color::White)),
+        // location
+        MoveTo(33, 1),
+        PrintStyledContent(format!("Location {}", game_state.location).with(Color::White)),
+        // inventory
+        MoveTo(9, 3),
+        PrintStyledContent("Inventory".with(Color::White)),
+    )?;
+    for (i, good_type) in GOOD_TYPES.iter().enumerate() {
+        queue!(stdout, MoveTo(9, (i as u16) + 4))?;
+        print_good_inventory(good_type, game_state.inventory.good_amount(good_type))?;
+    }
+    stdout.flush()?;
+    Ok(())
+}
+
+fn main_loop(game_state: &GameState) -> io::Result<(bool, Option<GameState>)> {
     // Wait up to 1s for some user event
     if poll(Duration::from_millis(1_000))? {
         // Read what even happened from the poll
@@ -85,30 +193,8 @@ fn main_loop(game_state: &mut GameState) -> io::Result<(bool, Option<GameState>)
                 // move forward game state
                 if !game_state.initialized {
                     // initialize game
-                    stdout()
-                        .queue(
-                            // clear terminal
-                            Clear(crossterm::terminal::ClearType::All),
-                        )?
-                        .queue(
-                            // reset cursor position to top left
-                            MoveTo(0, 0),
-                        )?
-                        .queue(
-                            // write out new game state
-                            PrintStyledContent(
-                                "==Inventory=="
-                                    .with(Color::White)
-                                    .on(Color::Red)
-                                    .attribute(Attribute::Bold),
-                            ),
-                        )?;
-                    for (i, good_type) in GOOD_TYPES.iter().enumerate() {
-                        stdout().queue(MoveTo(0, (i as u16) + 1))?;
-                        print_good_inventory(good_type, 50)?;
-                    }
-                    stdout().flush()?;
-                    return Ok((false, Some(GameState { initialized: true })));
+                    draw_inventory_scene(game_state)?;
+                    return Ok((false, Some(game_state.initialize())));
                 }
                 // user event had no effect
                 Ok((false, None))
