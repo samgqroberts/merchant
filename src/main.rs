@@ -3,12 +3,15 @@ mod state;
 mod update;
 
 use std::{
-    io::{self},
+    io::{self, stdout},
     time::Duration,
 };
 
 use crossterm::{
+    cursor::{MoveToNextLine, Show},
     event::{poll, read, Event, KeyCode, KeyModifiers},
+    execute,
+    style::Print,
     terminal::{disable_raw_mode, enable_raw_mode},
 };
 use draw::draw_scene;
@@ -49,6 +52,7 @@ fn main_loop(game_state: &GameState) -> io::Result<(bool, Option<GameState>)> {
 }
 
 fn main() -> io::Result<()> {
+    let mut stdout = stdout();
     // set terminal into "non-canonical" mode so inputs are captured raw with no interpretation
     // https://docs.rs/crossterm/0.26.1/crossterm/terminal/index.html#raw-mode
     enable_raw_mode()?;
@@ -63,6 +67,13 @@ fn main() -> io::Result<()> {
             Ok((should_exit, new_game_state)) => {
                 if should_exit {
                     // main loop told us user requested an exit
+                    execute!(
+                        stdout,
+                        Show,
+                        MoveToNextLine(2),
+                        Print("Thank you for playing!"),
+                        MoveToNextLine(1)
+                    )?;
                     break;
                 }
                 if let Some(new_game_state) = new_game_state {
