@@ -9,3 +9,6 @@ edition = "2021"
 chrono = "0.4.26"
 crossterm = "0.26.1"
 rand = "0.8.5"
+
+[dev-dependencies]
+strip-ansi-escapes = "0.1.1"
