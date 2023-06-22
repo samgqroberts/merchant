@@ -171,17 +171,17 @@ mod tests {
             })
         }
 
-        fn assert(&self, expectation: &str) -> () {
-            assert_eq!(
-                str::from_utf8(&strip(self.writer_ref.borrow().buffer.clone()).unwrap()).unwrap(),
-                expectation.to_owned()
-            );
+        fn expect(&self, expectation: &str) -> () {
+            let buffer = self.writer_ref.borrow().buffer.clone();
+            let stripped = strip(buffer).unwrap();
+            let as_str = str::from_utf8(&stripped).unwrap();
+            assert_eq!(as_str, expectation.to_owned());
         }
 
-        fn charpress(&mut self, char: char) -> io::Result<()> {
+        fn keypress(&mut self, key_code: KeyCode) -> io::Result<()> {
             self.writer_ref.borrow_mut().reset();
             self.game_state = update(
-                KeyEvent::new(KeyCode::Char(char), KeyModifiers::empty()),
+                KeyEvent::new(key_code, KeyModifiers::empty()),
                 &self.game_state,
             )?
             .unwrap();
@@ -189,14 +189,40 @@ mod tests {
             engine.draw(&self.game_state)?;
             Ok(())
         }
+
+        fn charpress(&mut self, char: char) -> io::Result<()> {
+            self.keypress(KeyCode::Char(char))
+        }
+
+        fn enterpress(&mut self) -> io::Result<()> {
+            self.keypress(KeyCode::Enter)
+        }
     }
 
     #[test]
     fn splash_screen_into_inventory() -> io::Result<()> {
         let mut test_engine = TestEngine::new()?;
-        test_engine.assert("MerchantNavigate shifting markets and unreliable sources.By samgqrobertsPress any key to begin");
+        test_engine.expect("MerchantNavigate shifting markets and unreliable sources.By samgqrobertsPress any key to begin");
         test_engine.charpress('a')?;
-        test_engine.assert("Date 1782-03-01Hold Size 100Gold 1400Location LondonInventorySugar: 0Tobacco: 0Tea: 0Cotton: 0Rum: 0Coffee: 0Captain, the prices of goods here are:Sugar: 57Tobacco: 39Tea: 97Cotton: 102Rum: 95Coffee: 42(1) Buy(2) Sell(3) Sail");
+        test_engine.expect("Date 1782-03-01Hold Size 100Gold 1400Location LondonInventorySugar: 0Tobacco: 0Tea: 0Cotton: 0Rum: 0Coffee: 0Captain, the prices of goods here are:Sugar: 57Tobacco: 39Tea: 97Cotton: 102Rum: 95Coffee: 42(1) Buy(2) Sell(3) Sail");
+        Ok(())
+    }
+
+    #[test]
+    fn buy_good() -> io::Result<()> {
+        let mut test_engine =
+            TestEngine::from_game_state(GameState::from_u64_seed(42).initialize())?;
+        test_engine.expect("Date 1782-03-01Hold Size 100Gold 1400Location LondonInventorySugar: 0Tobacco: 0Tea: 0Cotton: 0Rum: 0Coffee: 0Captain, the prices of goods here are:Sugar: 57Tobacco: 39Tea: 97Cotton: 102Rum: 95Coffee: 42(1) Buy(2) Sell(3) Sail");
+        test_engine.charpress('1')?;
+        test_engine.expect("Date 1782-03-01Hold Size 100Gold 1400Location LondonInventorySugar: 0Tobacco: 0Tea: 0Cotton: 0Rum: 0Coffee: 0Captain, the prices of goods here are:Sugar: 57Tobacco: 39Tea: 97Cotton: 102Rum: 95Coffee: 42Which do you want to buy?(1) Sugar(2) Tobacco(3) Tea(4) Cotton(5) Rum(6) Coffee");
+        test_engine.charpress('2')?;
+        test_engine.expect("Date 1782-03-01Hold Size 100Gold 1400Location LondonInventorySugar: 0Tobacco: 0Tea: 0Cotton: 0Rum: 0Coffee: 0Captain, the prices of goods here are:Sugar: 57Tobacco: 39Tea: 97Cotton: 102Rum: 95Coffee: 42How much Tobacco do you want? You can afford (35)");
+        test_engine.charpress('1')?;
+        test_engine.expect("Date 1782-03-01Hold Size 100Gold 1400Location LondonInventorySugar: 0Tobacco: 0Tea: 0Cotton: 0Rum: 0Coffee: 0Captain, the prices of goods here are:Sugar: 57Tobacco: 39Tea: 97Cotton: 102Rum: 95Coffee: 42How much Tobacco do you want? 1You can afford (35)");
+        test_engine.charpress('0')?;
+        test_engine.expect("Date 1782-03-01Hold Size 100Gold 1400Location LondonInventorySugar: 0Tobacco: 0Tea: 0Cotton: 0Rum: 0Coffee: 0Captain, the prices of goods here are:Sugar: 57Tobacco: 39Tea: 97Cotton: 102Rum: 95Coffee: 42How much Tobacco do you want? 10You can afford (35)");
+        test_engine.enterpress()?;
+        test_engine.expect("Date 1782-03-01Hold Size 100Gold 1010Location LondonInventorySugar: 0Tobacco: 10Tea: 0Cotton: 0Rum: 0Coffee: 0Captain, the prices of goods here are:Sugar: 57Tobacco: 39Tea: 97Cotton: 102Rum: 95Coffee: 42(1) Buy(2) Sell(3) Sail");
         Ok(())
     }
 }

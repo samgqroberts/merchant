@@ -1,7 +1,7 @@
 use std::fmt::{self, Display};
 
 use chrono::NaiveDate;
-use rand::{rngs::StdRng, RngCore};
+use rand::{rngs::StdRng, RngCore, SeedableRng};
 
 #[derive(Clone, Debug)]
 pub enum Location {
@@ -165,6 +165,10 @@ impl GameState {
             prices,
             mode: Mode::ViewingInventory,
         }
+    }
+
+    pub fn from_u64_seed(seed: u64) -> Self {
+        Self::new(StdRng::seed_from_u64(seed))
     }
 
     pub fn initialize(&self) -> GameState {
