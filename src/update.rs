@@ -5,6 +5,11 @@ use crossterm::event::{KeyCode, KeyEvent};
 use crate::state::{BuyInfo, GameState, GoodType, Mode};
 
 pub fn update(event: KeyEvent, game_state: &GameState) -> io::Result<Option<GameState>> {
+    // any key event initializes the game if game is not already initialized
+    if !game_state.initialized {
+        return Ok(Some(game_state.initialize()));
+    }
+    // other updates depend on what the viewer is seeing currently
     match &game_state.mode {
         Mode::ViewingInventory => {
             if event.code == KeyCode::Char('1') {

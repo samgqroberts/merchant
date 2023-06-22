@@ -2,6 +2,8 @@ mod draw;
 mod state;
 mod update;
 
+use rand::{rngs::StdRng, SeedableRng};
+use std::cell::RefCell;
 use std::io::Stdout;
 use std::{
     io::Write,
@@ -22,7 +24,7 @@ pub struct Engine<'a, Writer: Write> {
 }
 
 impl<'a, Writer: Write> Engine<'a, Writer> {
-    pub fn new(writer: &'a mut Box<Writer>) -> Self {
+    pub fn new(writer: &'a RefCell<Writer>) -> Self {
         Self {
             drawer: Drawer { writer },
         }
@@ -53,12 +55,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                             return Ok((true, None));
                         }
                         // move forward game state
-                        if !game_state.initialized {
-                            // initialize game
-                            return Ok((false, Some(game_state.initialize())));
-                        } else {
-                            return update(event, game_state).map(|st| (false, st));
-                        }
+                        return update(event, game_state).map(|st| (false, st));
                     }
                     _ => continue,
                 }
@@ -80,9 +77,10 @@ fn main() -> io::Result<()> {
     // https://docs.rs/crossterm/0.26.1/crossterm/terminal/index.html#raw-mode
     enable_raw_mode()?;
     // start main game loop, which draws -> reads input -> updates state, with fresh game state
-    let mut game_state = GameState::new();
-    let mut writer: Box<Stdout> = Box::from(stdout);
-    let mut engine = Engine::new(&mut writer);
+    let rng = StdRng::from_entropy();
+    let mut game_state = GameState::new(rng);
+    let writer: RefCell<Stdout> = RefCell::from(stdout);
+    let mut engine = Engine::new(&writer);
     loop {
         match engine.draw_and_prompt(&mut game_state) {
             Err(e) => {
@@ -110,7 +108,8 @@ fn main() -> io::Result<()> {
 mod tests {
     use super::*;
 
-    use std::str;
+    use crossterm::event::KeyEvent;
+    use std::{cell::RefCell, str};
     use strip_ansi_escapes::strip;
 
     // Helper for execute tests to confirm flush
@@ -126,6 +125,11 @@ mod tests {
                 buffer: "".to_owned(),
                 flushed: false,
             }
+        }
+
+        fn reset(&mut self) -> () {
+            self.buffer = "".to_owned();
+            self.flushed = false;
         }
     }
 
@@ -145,15 +149,27 @@ mod tests {
     }
 
     #[test]
-    fn thing() -> io::Result<()> {
-        let game_state = GameState::new();
+    fn splash_screen_into_inventory() -> io::Result<()> {
+        let rng = StdRng::seed_from_u64(42);
+        let game_state = GameState::new(rng);
         let writer = FakeWrite::new();
-        let mut writer_box: Box<FakeWrite> = Box::from(writer);
-        let mut engine = Engine::new(&mut writer_box);
+        let writer_box: RefCell<FakeWrite> = RefCell::from(writer);
+        let mut engine = Engine::new(&writer_box);
         engine.draw(&game_state)?;
         assert_eq!(
-            str::from_utf8(&strip(writer_box.buffer).unwrap()).unwrap(),
+            str::from_utf8(&strip((&writer_box.borrow().buffer).clone()).unwrap()).unwrap(),
             "MerchantNavigate shifting markets and unreliable sources.By samgqrobertsPress any key to begin".to_owned()
+        );
+        writer_box.borrow_mut().reset();
+        let new_game_state = update(
+            KeyEvent::new(KeyCode::Char('a'), KeyModifiers::empty()),
+            &game_state,
+        )?
+        .unwrap();
+        engine.draw(&new_game_state)?;
+        assert_eq!(
+            str::from_utf8(&strip(writer_box.borrow().buffer.clone()).unwrap()).unwrap(),
+            "Date 1782-03-01Hold Size 100Gold 1400Location LondonInventorySugar: 0Tobacco: 0Tea: 0Cotton: 0Rum: 0Coffee: 0Captain, the prices of goods here are:Sugar: 57Tobacco: 39Tea: 97Cotton: 102Rum: 95Coffee: 42(1) Buy(2) Sell(3) Sail".to_owned()
         );
         Ok(())
     }

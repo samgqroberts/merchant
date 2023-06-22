@@ -4,17 +4,20 @@ use crossterm::{
     style::{style, Attribute, Color, Print, PrintStyledContent, Stylize},
     terminal::Clear,
 };
-use std::io::{self, Write};
+use std::{
+    cell::RefCell,
+    io::{self, Write},
+};
 
 use crate::state::{GameState, Mode};
 
 pub struct Drawer<'a, Writer: Write> {
-    pub writer: &'a mut Box<Writer>,
+    pub writer: &'a RefCell<Writer>,
 }
 
 impl<'a, Writer: Write> Drawer<'a, Writer> {
     pub fn draw_scene(&mut self, game_state: &GameState) -> io::Result<()> {
-        let writer = self.writer.by_ref();
+        let writer = &mut *self.writer.borrow_mut();
         if !game_state.initialized {
             // initial splash screen
             queue!(
@@ -227,12 +230,12 @@ impl<'a, Writer: Write> Drawer<'a, Writer> {
                 Mode::Sailing => todo!(),
             }
         }
-        self.writer.flush()?;
+        writer.flush()?;
         Ok(())
     }
 
     pub fn exit_message(&mut self) -> io::Result<()> {
-        let writer = self.writer.by_ref();
+        let writer = &mut *self.writer.borrow_mut();
         execute!(
             writer,
             Show,

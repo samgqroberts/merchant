@@ -1,7 +1,7 @@
 use std::fmt::{self, Display};
 
 use chrono::NaiveDate;
-use rand::{rngs::StdRng, RngCore, SeedableRng};
+use rand::{rngs::StdRng, RngCore};
 
 #[derive(Clone, Debug)]
 pub enum Location {
@@ -152,8 +152,7 @@ pub struct GameState {
 }
 
 impl GameState {
-    pub fn new() -> GameState {
-        let mut rng = StdRng::from_entropy();
+    pub fn new(mut rng: StdRng) -> GameState {
         let prices = Prices::new(&mut rng);
         GameState {
             rng,
