@@ -114,7 +114,7 @@ mod tests {
 
     // Helper for execute tests to confirm flush
     #[derive(Default, Debug, Clone)]
-    pub(self) struct FakeWrite {
+    struct FakeWrite {
         pub buffer: String,
         pub flushed: bool,
     }
@@ -148,29 +148,55 @@ mod tests {
         }
     }
 
+    struct TestEngine {
+        writer_ref: RefCell<FakeWrite>,
+        game_state: GameState,
+    }
+
+    impl TestEngine {
+        fn new() -> io::Result<Self> {
+            let rng = StdRng::seed_from_u64(42);
+            let game_state = GameState::new(rng);
+            Self::from_game_state(game_state)
+        }
+
+        fn from_game_state(game_state: GameState) -> io::Result<Self> {
+            let writer = FakeWrite::new();
+            let writer_box: RefCell<FakeWrite> = RefCell::from(writer);
+            let mut engine = Engine::new(&writer_box);
+            engine.draw(&game_state)?;
+            Ok(Self {
+                writer_ref: writer_box,
+                game_state,
+            })
+        }
+
+        fn assert(&self, expectation: &str) -> () {
+            assert_eq!(
+                str::from_utf8(&strip(self.writer_ref.borrow().buffer.clone()).unwrap()).unwrap(),
+                expectation.to_owned()
+            );
+        }
+
+        fn charpress(&mut self, char: char) -> io::Result<()> {
+            self.writer_ref.borrow_mut().reset();
+            self.game_state = update(
+                KeyEvent::new(KeyCode::Char(char), KeyModifiers::empty()),
+                &self.game_state,
+            )?
+            .unwrap();
+            let mut engine = Engine::new(&self.writer_ref);
+            engine.draw(&self.game_state)?;
+            Ok(())
+        }
+    }
+
     #[test]
     fn splash_screen_into_inventory() -> io::Result<()> {
-        let rng = StdRng::seed_from_u64(42);
-        let game_state = GameState::new(rng);
-        let writer = FakeWrite::new();
-        let writer_box: RefCell<FakeWrite> = RefCell::from(writer);
-        let mut engine = Engine::new(&writer_box);
-        engine.draw(&game_state)?;
-        assert_eq!(
-            str::from_utf8(&strip((&writer_box.borrow().buffer).clone()).unwrap()).unwrap(),
-            "MerchantNavigate shifting markets and unreliable sources.By samgqrobertsPress any key to begin".to_owned()
-        );
-        writer_box.borrow_mut().reset();
-        let new_game_state = update(
-            KeyEvent::new(KeyCode::Char('a'), KeyModifiers::empty()),
-            &game_state,
-        )?
-        .unwrap();
-        engine.draw(&new_game_state)?;
-        assert_eq!(
-            str::from_utf8(&strip(writer_box.borrow().buffer.clone()).unwrap()).unwrap(),
-            "Date 1782-03-01Hold Size 100Gold 1400Location LondonInventorySugar: 0Tobacco: 0Tea: 0Cotton: 0Rum: 0Coffee: 0Captain, the prices of goods here are:Sugar: 57Tobacco: 39Tea: 97Cotton: 102Rum: 95Coffee: 42(1) Buy(2) Sell(3) Sail".to_owned()
-        );
+        let mut test_engine = TestEngine::new()?;
+        test_engine.assert("MerchantNavigate shifting markets and unreliable sources.By samgqrobertsPress any key to begin");
+        test_engine.charpress('a')?;
+        test_engine.assert("Date 1782-03-01Hold Size 100Gold 1400Location LondonInventorySugar: 0Tobacco: 0Tea: 0Cotton: 0Rum: 0Coffee: 0Captain, the prices of goods here are:Sugar: 57Tobacco: 39Tea: 97Cotton: 102Rum: 95Coffee: 42(1) Buy(2) Sell(3) Sail");
         Ok(())
     }
 }
