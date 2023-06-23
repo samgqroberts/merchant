@@ -130,6 +130,8 @@ pub fn raw_format_ansi(s: &str) -> String {
 
 #[cfg(test)]
 pub mod tests {
+    use crate::test::captured_write::CapturedWrite;
+
     use super::*;
 
     use ansi_parser::AnsiSequence::{CursorBackward, CursorDown, CursorPos};
@@ -138,8 +140,6 @@ pub mod tests {
     use crossterm::style::{Attribute, Color, Print, PrintStyledContent, Stylize};
     use crossterm::terminal::Clear;
     use std::io;
-
-    use crate::captured_write::CapturedWrite;
 
     #[test]
     fn test_tokenize_ansi() -> io::Result<()> {
