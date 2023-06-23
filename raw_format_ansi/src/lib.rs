@@ -7,7 +7,7 @@ extern crate regex;
 
 use ansi_parser::{
     AnsiParser, AnsiSequence,
-    AnsiSequence::{CursorBackward, CursorDown, CursorForward, CursorPos},
+    AnsiSequence::{CursorBackward, CursorDown, CursorForward, CursorPos, CursorUp},
     Output,
     Output::*,
 };
@@ -101,6 +101,9 @@ pub fn raw_format_ansi(s: &str) -> String {
                     if row > 0 { row - 1 } else { 0 },
                     if col > 0 { col - 1 } else { 0 },
                 ) // ANSI escapes use 1-indexing
+            } else if let CursorUp(num_lines) = sequence {
+                let num_lines: usize = num_lines.clone().try_into().unwrap();
+                cursor_pos.0 = cursor_pos.0.checked_sub(num_lines).unwrap_or(0);
             } else if let CursorDown(num_lines) = sequence {
                 let num_lines: usize = num_lines.clone().try_into().unwrap();
                 cursor_pos.0 = cursor_pos.0 + num_lines;
@@ -152,7 +155,7 @@ pub mod tests {
 
     use ansi_parser::AnsiSequence::{CursorBackward, CursorDown, CursorPos};
     use captured_write::CapturedWrite;
-    use crossterm::cursor::{MoveTo, MoveToNextLine};
+    use crossterm::cursor::{MoveDown, MoveLeft, MoveRight, MoveTo, MoveToNextLine, MoveUp};
     use crossterm::execute;
     use crossterm::style::{Attribute, Color, Print, PrintStyledContent, Stylize};
     use crossterm::terminal::Clear;
@@ -183,7 +186,7 @@ pub mod tests {
     }
 
     #[test]
-    fn test_raw_format_ansi() -> io::Result<()> {
+    fn test_basic() -> io::Result<()> {
         let mut fake = CapturedWrite::new();
         execute!(
             fake,
@@ -213,7 +216,7 @@ pub mod tests {
     }
 
     #[test]
-    fn test_raw_format_ansi_2() -> io::Result<()> {
+    fn test_skipping_line_with_move_to() -> io::Result<()> {
         let mut fake = CapturedWrite::new();
         execute!(
             fake,
@@ -225,6 +228,28 @@ pub mod tests {
         )?;
         let stripped = raw_format_ansi(&fake.buffer);
         assert_eq!(stripped, "First line.\n\nSkipped line.".to_owned());
+        Ok(())
+    }
+
+    #[test]
+    fn test_relative_moves() -> io::Result<()> {
+        let mut fake = CapturedWrite::new();
+        execute!(
+            fake,
+            Print("1"),
+            MoveTo(3, 3),
+            Print("2"),
+            MoveRight(1),
+            Print("3"),
+            MoveDown(2),
+            Print("4"),
+            MoveLeft(3),
+            Print("5"),
+            MoveUp(4),
+            Print("6"),
+        )?;
+        let stripped = raw_format_ansi(&fake.buffer);
+        assert_eq!(stripped, "1\n 6\n\n   23\n\n 5  4");
         Ok(())
     }
 }
