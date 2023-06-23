@@ -1,4 +1,6 @@
+mod captured_write;
 mod draw;
+mod raw_format_ansi;
 mod state;
 mod update;
 
@@ -106,50 +108,16 @@ fn main() -> io::Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use crate::captured_write::CapturedWrite;
+    use crate::raw_format_ansi::raw_format_ansi;
+
     use super::*;
 
     use crossterm::event::KeyEvent;
     use std::{cell::RefCell, str};
-    use strip_ansi_escapes::strip;
-
-    // Helper for execute tests to confirm flush
-    #[derive(Default, Debug, Clone)]
-    struct FakeWrite {
-        pub buffer: String,
-        pub flushed: bool,
-    }
-
-    impl FakeWrite {
-        fn new() -> Self {
-            Self {
-                buffer: "".to_owned(),
-                flushed: false,
-            }
-        }
-
-        fn reset(&mut self) -> () {
-            self.buffer = "".to_owned();
-            self.flushed = false;
-        }
-    }
-
-    impl io::Write for FakeWrite {
-        fn write(&mut self, content: &[u8]) -> io::Result<usize> {
-            let content = str::from_utf8(content)
-                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-            self.buffer.push_str(content);
-            self.flushed = false;
-            Ok(content.len())
-        }
-
-        fn flush(&mut self) -> io::Result<()> {
-            self.flushed = true;
-            Ok(())
-        }
-    }
 
     struct TestEngine {
-        writer_ref: RefCell<FakeWrite>,
+        writer_ref: RefCell<CapturedWrite>,
         game_state: GameState,
     }
 
@@ -161,8 +129,8 @@ mod tests {
         }
 
         fn from_game_state(game_state: GameState) -> io::Result<Self> {
-            let writer = FakeWrite::new();
-            let writer_box: RefCell<FakeWrite> = RefCell::from(writer);
+            let writer = CapturedWrite::new();
+            let writer_box: RefCell<CapturedWrite> = RefCell::from(writer);
             let mut engine = Engine::new(&writer_box);
             engine.draw(&game_state)?;
             Ok(Self {
@@ -171,11 +139,15 @@ mod tests {
             })
         }
 
-        fn expect(&self, expectation: &str) -> () {
+        fn expect(&self, expectation: &str) -> io::Result<()> {
             let buffer = self.writer_ref.borrow().buffer.clone();
-            let stripped = strip(buffer).unwrap();
-            let as_str = str::from_utf8(&stripped).unwrap();
-            assert_eq!(as_str, expectation.to_owned());
+            let formatted = raw_format_ansi(&buffer);
+            if formatted != expectation.to_owned() {
+                println!("{}", formatted);
+                println!("{}", expectation);
+            }
+            assert_eq!(formatted, expectation.to_owned());
+            Ok(())
         }
 
         fn keypress(&mut self, key_code: KeyCode) -> io::Result<()> {
@@ -202,9 +174,37 @@ mod tests {
     #[test]
     fn splash_screen_into_inventory() -> io::Result<()> {
         let mut test_engine = TestEngine::new()?;
-        test_engine.expect("MerchantNavigate shifting markets and unreliable sources.By samgqrobertsPress any key to begin");
+        test_engine.expect(
+            "Merchant
+
+Navigate shifting markets and unreliable sources.
+
+By samgqroberts
+
+Press any key to begin",
+        )?;
         test_engine.charpress('a')?;
-        test_engine.expect("Date 1782-03-01Hold Size 100Gold 1400Location LondonInventorySugar: 0Tobacco: 0Tea: 0Cotton: 0Rum: 0Coffee: 0Captain, the prices of goods here are:Sugar: 57Tobacco: 39Tea: 97Cotton: 102Rum: 95Coffee: 42(1) Buy(2) Sell(3) Sail");
+        test_engine.expect(
+            "         Date 1782-03-01        Hold Size 100
+         Gold 1400               Location London
+
+         Inventory
+           Sugar: 0
+         Tobacco: 0
+             Tea: 0
+          Cotton: 0
+             Rum: 0
+          Coffee: 0
+
+     Captain, the prices of goods here are:
+           Sugar: 57       Tobacco: 39
+             Tea: 97        Cotton: 102
+             Rum: 95        Coffee: 42
+
+         (1) Buy
+         (2) Sell
+         (3) Sail",
+        )?;
         Ok(())
     }
 
@@ -212,17 +212,138 @@ mod tests {
     fn buy_good() -> io::Result<()> {
         let mut test_engine =
             TestEngine::from_game_state(GameState::from_u64_seed(42).initialize())?;
-        test_engine.expect("Date 1782-03-01Hold Size 100Gold 1400Location LondonInventorySugar: 0Tobacco: 0Tea: 0Cotton: 0Rum: 0Coffee: 0Captain, the prices of goods here are:Sugar: 57Tobacco: 39Tea: 97Cotton: 102Rum: 95Coffee: 42(1) Buy(2) Sell(3) Sail");
+        test_engine.expect(
+            "         Date 1782-03-01        Hold Size 100
+         Gold 1400               Location London
+
+         Inventory
+           Sugar: 0
+         Tobacco: 0
+             Tea: 0
+          Cotton: 0
+             Rum: 0
+          Coffee: 0
+
+     Captain, the prices of goods here are:
+           Sugar: 57       Tobacco: 39
+             Tea: 97        Cotton: 102
+             Rum: 95        Coffee: 42
+
+         (1) Buy
+         (2) Sell
+         (3) Sail",
+        )?;
         test_engine.charpress('1')?;
-        test_engine.expect("Date 1782-03-01Hold Size 100Gold 1400Location LondonInventorySugar: 0Tobacco: 0Tea: 0Cotton: 0Rum: 0Coffee: 0Captain, the prices of goods here are:Sugar: 57Tobacco: 39Tea: 97Cotton: 102Rum: 95Coffee: 42Which do you want to buy?(1) Sugar(2) Tobacco(3) Tea(4) Cotton(5) Rum(6) Coffee");
+        test_engine.expect(
+            "         Date 1782-03-01        Hold Size 100
+         Gold 1400               Location London
+
+         Inventory
+           Sugar: 0
+         Tobacco: 0
+             Tea: 0
+          Cotton: 0
+             Rum: 0
+          Coffee: 0
+
+     Captain, the prices of goods here are:
+           Sugar: 57       Tobacco: 39
+             Tea: 97        Cotton: 102
+             Rum: 95        Coffee: 42
+
+         Which do you want to buy?
+         (1) Sugar
+         (2) Tobacco
+         (3) Tea
+         (4) Cotton
+         (5) Rum
+         (6) Coffee",
+        )?;
         test_engine.charpress('2')?;
-        test_engine.expect("Date 1782-03-01Hold Size 100Gold 1400Location LondonInventorySugar: 0Tobacco: 0Tea: 0Cotton: 0Rum: 0Coffee: 0Captain, the prices of goods here are:Sugar: 57Tobacco: 39Tea: 97Cotton: 102Rum: 95Coffee: 42How much Tobacco do you want? You can afford (35)");
+        test_engine.expect(
+            "         Date 1782-03-01        Hold Size 100
+         Gold 1400               Location London
+
+         Inventory
+           Sugar: 0
+         Tobacco: 0
+             Tea: 0
+          Cotton: 0
+             Rum: 0
+          Coffee: 0
+
+     Captain, the prices of goods here are:
+           Sugar: 57       Tobacco: 39
+             Tea: 97        Cotton: 102
+             Rum: 95        Coffee: 42
+
+         How much Tobacco do you want? 
+         You can afford (35)",
+        )?;
         test_engine.charpress('1')?;
-        test_engine.expect("Date 1782-03-01Hold Size 100Gold 1400Location LondonInventorySugar: 0Tobacco: 0Tea: 0Cotton: 0Rum: 0Coffee: 0Captain, the prices of goods here are:Sugar: 57Tobacco: 39Tea: 97Cotton: 102Rum: 95Coffee: 42How much Tobacco do you want? 1You can afford (35)");
+        test_engine.expect(
+            "         Date 1782-03-01        Hold Size 100
+         Gold 1400               Location London
+
+         Inventory
+           Sugar: 0
+         Tobacco: 0
+             Tea: 0
+          Cotton: 0
+             Rum: 0
+          Coffee: 0
+
+     Captain, the prices of goods here are:
+           Sugar: 57       Tobacco: 39
+             Tea: 97        Cotton: 102
+             Rum: 95        Coffee: 42
+
+         How much Tobacco do you want? 1
+         You can afford (35)",
+        )?;
         test_engine.charpress('0')?;
-        test_engine.expect("Date 1782-03-01Hold Size 100Gold 1400Location LondonInventorySugar: 0Tobacco: 0Tea: 0Cotton: 0Rum: 0Coffee: 0Captain, the prices of goods here are:Sugar: 57Tobacco: 39Tea: 97Cotton: 102Rum: 95Coffee: 42How much Tobacco do you want? 10You can afford (35)");
+        test_engine.expect(
+            "         Date 1782-03-01        Hold Size 100
+         Gold 1400               Location London
+
+         Inventory
+           Sugar: 0
+         Tobacco: 0
+             Tea: 0
+          Cotton: 0
+             Rum: 0
+          Coffee: 0
+
+     Captain, the prices of goods here are:
+           Sugar: 57       Tobacco: 39
+             Tea: 97        Cotton: 102
+             Rum: 95        Coffee: 42
+
+         How much Tobacco do you want? 10
+         You can afford (35)",
+        )?;
         test_engine.enterpress()?;
-        test_engine.expect("Date 1782-03-01Hold Size 100Gold 1010Location LondonInventorySugar: 0Tobacco: 10Tea: 0Cotton: 0Rum: 0Coffee: 0Captain, the prices of goods here are:Sugar: 57Tobacco: 39Tea: 97Cotton: 102Rum: 95Coffee: 42(1) Buy(2) Sell(3) Sail");
+        test_engine.expect(
+            "         Date 1782-03-01        Hold Size 100
+         Gold 1010               Location London
+
+         Inventory
+           Sugar: 0
+         Tobacco: 10
+             Tea: 0
+          Cotton: 0
+             Rum: 0
+          Coffee: 0
+
+     Captain, the prices of goods here are:
+           Sugar: 57       Tobacco: 39
+             Tea: 97        Cotton: 102
+             Rum: 95        Coffee: 42
+
+         (1) Buy
+         (2) Sell
+         (3) Sail",
+        )?;
         Ok(())
     }
 }
