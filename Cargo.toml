@@ -1,13 +1,10 @@
-[package]
-name = "merchant"
-version = "0.1.0"
-edition = "2021"
+[workspace]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+members = [
+    "game",
+    "captured_write",
+    "raw_format_ansi"
+]
 
-[dependencies]
-ansi-parser = "0.8.0"
-chrono = "0.4.26"
-crossterm = "0.26.1"
-rand = "0.8.5"
-regex = "1.8.4"
+[profile.release]
+debug = 1

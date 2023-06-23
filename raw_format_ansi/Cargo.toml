@@ -1,0 +1,15 @@
+[package]
+name = "raw_format_ansi"
+version = "0.1.0"
+
+[lib]
+crate-type = ["rlib"]
+name = "raw_format_ansi"
+
+[dependencies]
+ansi-parser = "0.8.0"
+regex = "1.8.4"
+
+[dev-dependencies]
+crossterm = "0.26.1"
+captured_write = { path ="../captured_write" }

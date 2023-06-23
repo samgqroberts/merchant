@@ -1,10 +1,10 @@
+use captured_write::CapturedWrite;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use rand::{rngs::StdRng, SeedableRng};
 use std::{cell::RefCell, io, str};
 
-use crate::{state::GameState, test::raw_format_ansi::raw_format_ansi, update::update, Engine};
-
-use super::captured_write::CapturedWrite;
+use crate::{state::GameState, update::update, Engine};
+use raw_format_ansi::raw_format_ansi;
 
 pub struct TestEngine {
     writer_ref: RefCell<CapturedWrite>,

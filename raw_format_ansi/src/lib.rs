@@ -1,10 +1,18 @@
+extern crate ansi_parser;
+#[cfg(test)]
+extern crate captured_write;
+#[cfg(test)]
+extern crate crossterm;
+extern crate regex;
+
 use ansi_parser::{
     AnsiParser, AnsiSequence,
-    AnsiSequence::{CursorBackward, CursorDown, CursorPos},
+    AnsiSequence::{CursorBackward, CursorDown, CursorForward, CursorPos},
     Output,
     Output::*,
 };
 use regex::Regex;
+use std::convert::TryInto;
 use std::str;
 
 /// Takes a string slice and parses it into ansi escape sequences and text blocks.
@@ -51,22 +59,34 @@ fn tokenize_ansi<'a>(s: &'a str) -> Vec<Output<'a>> {
 /// In the resulting string, ANSI cursor position has been taken into account to produce simple
 /// text in the right location.
 ///
-/// For example, if an ANSI sequence directed the terminal to move the cursor right 4 characters,
-/// then write the text "Hello", the resulting string from this function would be:
-/// ```
-/// "    Hello"
+/// # Examples
+///
+/// If an ANSI sequence directed the terminal to move the cursor right 4 characters,
+/// then write the text "Hello", the resulting string from this function would be `"    Hello"`.
+///
+/// ```rust
+/// # use raw_format_ansi::raw_format_ansi;
+/// let input = "\u{1b}[4CHello";
+/// let result = raw_format_ansi(input);
+/// assert_eq!(result, "    Hello".to_owned());
 /// ```
 ///
 /// If the input string continued on to have a sequence directing the cursor move to line 3
-/// and column 2 then write "World", the resulting string would be:
-/// ```
-/// "    Hello\n\n World"
+/// and column 2 then write "World", the resulting string would be `"    Hello\n\n World"`
+/// ```rust
+/// # use raw_format_ansi::raw_format_ansi;
+/// let input = "\u{1b}[4CHello\u{1b}[3;2HWorld";
+/// let result = raw_format_ansi(input);
+/// assert_eq!(result, "    Hello\n\n World".to_owned());
 /// ```
 ///
 /// If the input string continued on to move the cursor back to line 1 column 5 and write "J",
 /// the resulting string would be:
-/// ```
-/// "    Jello\n\n World"
+/// ```rust
+/// # use raw_format_ansi::raw_format_ansi;
+/// let input = "\u{1b}[4CHello\u{1b}[3;2HWorld\u{1b}[1;5HJ";
+/// let result = raw_format_ansi(input);
+/// assert_eq!(result, "    Jello\n\n World".to_owned());
 /// ```
 pub fn raw_format_ansi(s: &str) -> String {
     let mut lines: Vec<String> = Vec::new();
@@ -75,7 +95,6 @@ pub fn raw_format_ansi(s: &str) -> String {
     for token in tokens {
         if let Escape(sequence) = token {
             if let CursorPos(row, col) = sequence {
-                // println!("{}, {}", col, row);
                 let row: usize = row.clone().try_into().unwrap();
                 let col: usize = col.clone().try_into().unwrap();
                 cursor_pos = (
@@ -88,6 +107,9 @@ pub fn raw_format_ansi(s: &str) -> String {
             } else if let CursorBackward(num_cols) = sequence {
                 let num_cols: usize = num_cols.clone().try_into().unwrap();
                 cursor_pos.1 = cursor_pos.1.checked_sub(num_cols).unwrap_or(0)
+            } else if let CursorForward(num_cols) = sequence {
+                let num_cols: usize = num_cols.clone().try_into().unwrap();
+                cursor_pos.1 = cursor_pos.1.checked_add(num_cols).unwrap_or(0)
             }
         } else if let TextBlock(text) = token {
             // incorporate text at position
@@ -97,10 +119,6 @@ pub fn raw_format_ansi(s: &str) -> String {
             let (row, col) = &cursor_pos;
             let row = row.clone();
             let col = col.clone();
-            // println!(
-            //     "lines: {:?}, text: {}, row: {}, col: {}",
-            //     lines, text, row, col
-            // );
             while lines.len() < row + 1 {
                 // pad with empty lines
                 lines.push("".to_owned());
@@ -114,7 +132,7 @@ pub fn raw_format_ansi(s: &str) -> String {
             let mut remaining = text.chars();
             let mut index = col.clone();
             while let Some(char) = remaining.next() {
-                if line.len() < index {
+                if line.len() > index {
                     line.replace_range(index..(index + 1), &char.to_string());
                 } else {
                     line.push(char);
@@ -130,11 +148,10 @@ pub fn raw_format_ansi(s: &str) -> String {
 
 #[cfg(test)]
 pub mod tests {
-    use crate::test::captured_write::CapturedWrite;
-
     use super::*;
 
     use ansi_parser::AnsiSequence::{CursorBackward, CursorDown, CursorPos};
+    use captured_write::CapturedWrite;
     use crossterm::cursor::{MoveTo, MoveToNextLine};
     use crossterm::execute;
     use crossterm::style::{Attribute, Color, Print, PrintStyledContent, Stylize};
