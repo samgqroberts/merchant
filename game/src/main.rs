@@ -17,11 +17,13 @@ fn main() -> io::Result<()> {
     // set terminal into "non-canonical" mode so inputs are captured raw with no interpretation
     // https://docs.rs/crossterm/0.26.1/crossterm/terminal/index.html#raw-mode
     enable_raw_mode()?;
-    // start main game loop, which draws -> reads input -> updates state, with fresh game state
+    // initialize game state with RNG
     let rng = StdRng::from_entropy();
     let mut game_state = GameState::new(rng);
+    // initialize game engine, pointing it to write to stdout
     let writer: RefCell<Stdout> = RefCell::from(stdout);
     let mut engine = Engine::new(&writer);
+    // start main game loop which draws -> reads input -> updates state
     loop {
         match engine.draw_and_prompt(&mut game_state) {
             Err(e) => {

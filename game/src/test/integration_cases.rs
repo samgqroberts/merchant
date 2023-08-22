@@ -1,3 +1,5 @@
+use rand::{rngs::StdRng, SeedableRng};
+
 use crate::{engine::UpdateResult, state::GameState, test::test_engine::TestEngine};
 
 #[test]
@@ -14,7 +16,7 @@ Press any key to begin",
     )?;
     test_engine.charpress('a')?;
     test_engine.expect(
-        "         Date 1782-03-01        Hold Size 100
+        "         March 1782             Hold Size 100
          Gold 1400               Location London
 
          Inventory
@@ -39,9 +41,15 @@ Press any key to begin",
 
 #[test]
 fn buy_good() -> UpdateResult<()> {
-    let mut test_engine = TestEngine::from_game_state(GameState::from_u64_seed(42).initialize())?;
+    let mut test_engine = TestEngine::from_game_state(
+        {
+            let seed = 42;
+            GameState::new(StdRng::seed_from_u64(seed))
+        }
+        .initialize(),
+    )?;
     test_engine.expect(
-        "         Date 1782-03-01        Hold Size 100
+        "         March 1782             Hold Size 100
          Gold 1400               Location London
 
          Inventory
@@ -63,7 +71,7 @@ fn buy_good() -> UpdateResult<()> {
     )?;
     test_engine.charpress('1')?;
     test_engine.expect(
-        "         Date 1782-03-01        Hold Size 100
+        "         March 1782             Hold Size 100
          Gold 1400               Location London
 
          Inventory
@@ -89,7 +97,7 @@ fn buy_good() -> UpdateResult<()> {
     )?;
     test_engine.charpress('2')?;
     test_engine.expect(
-        "         Date 1782-03-01        Hold Size 100
+        "         March 1782             Hold Size 100
          Gold 1400               Location London
 
          Inventory
@@ -110,7 +118,7 @@ fn buy_good() -> UpdateResult<()> {
     )?;
     test_engine.charpress('1')?;
     test_engine.expect(
-        "         Date 1782-03-01        Hold Size 100
+        "         March 1782             Hold Size 100
          Gold 1400               Location London
 
          Inventory
@@ -131,7 +139,7 @@ fn buy_good() -> UpdateResult<()> {
     )?;
     test_engine.charpress('0')?;
     test_engine.expect(
-        "         Date 1782-03-01        Hold Size 100
+        "         March 1782             Hold Size 100
          Gold 1400               Location London
 
          Inventory
@@ -152,7 +160,7 @@ fn buy_good() -> UpdateResult<()> {
     )?;
     test_engine.enterpress()?;
     test_engine.expect(
-        "         Date 1782-03-01        Hold Size 100
+        "         March 1782             Hold Size 100
          Gold 1010               Location London
 
          Inventory

@@ -1,7 +1,7 @@
 use std::fmt::{self, Display};
 
-use chrono::NaiveDate;
-use rand::{rngs::StdRng, RngCore, SeedableRng};
+use chrono::Month;
+use rand::{rngs::StdRng, RngCore};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Location {
@@ -171,7 +171,7 @@ pub enum Mode {
 pub struct GameState {
     pub rng: StdRng,
     pub initialized: bool,
-    pub date: NaiveDate,
+    pub date: (u16, Month),
     pub hold_size: u32,
     pub gold: u32,
     pub location: Location,
@@ -186,7 +186,7 @@ impl GameState {
         GameState {
             rng,
             initialized: false,
-            date: NaiveDate::from_ymd_opt(1782, 3, 1).unwrap(),
+            date: (1782, Month::March),
             hold_size: 100,
             gold: 1400,
             location: Location::London,
@@ -194,10 +194,6 @@ impl GameState {
             prices,
             mode: Mode::ViewingInventory,
         }
-    }
-
-    pub fn from_u64_seed(seed: u64) -> Self {
-        Self::new(StdRng::seed_from_u64(seed))
     }
 
     pub fn initialize(&self) -> GameState {
@@ -371,7 +367,7 @@ impl GameState {
         Err(StateError::InvalidMode(&self.mode))
     }
 
-    pub fn relocate(&self, destination: &Location) -> Result<GameState, StateError> {
+    pub fn sail_to(&self, destination: &Location) -> Result<GameState, StateError> {
         if let Mode::Sailing = self.mode {
             if destination == &self.location {
                 Err(StateError::AlreadyInLocation)
@@ -383,6 +379,11 @@ impl GameState {
                     .prices
                     .randomize_location_inventory(&mut new_state.rng, &destination);
                 new_state.location = destination.clone();
+                // increment the month
+                new_state.date.1 = new_state.date.1.succ();
+                if new_state.date.1 == Month::January {
+                    new_state.date.0 += 1;
+                }
                 Ok(new_state)
             }
         } else {

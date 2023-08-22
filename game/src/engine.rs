@@ -162,7 +162,10 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                 Clear(crossterm::terminal::ClearType::All),
                 // date
                 MoveTo(9, 0),
-                PrintStyledContent(format!("Date {}", state.date.to_string()).with(Color::White)),
+                PrintStyledContent(
+                    format!("{} {}", state.date.1.name(), state.date.0.to_string())
+                        .with(Color::White)
+                ),
                 // hold size
                 MoveTo(32, 0),
                 PrintStyledContent(format!("Hold Size {}", state.hold_size).with(Color::White)),
@@ -435,7 +438,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                     )?;
                     return Ok(Box::new(|event: KeyEvent, state: &GameState| {
                         if let Some(destination) = Location::from_key_code(&event.code) {
-                            return match state.relocate(&destination) {
+                            return match state.sail_to(&destination) {
                                 Ok(new_state) => Ok(Some(new_state)),
                                 Err(variant) => match variant {
                                     StateError::AlreadyInLocation => Ok(None),
