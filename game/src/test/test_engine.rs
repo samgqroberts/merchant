@@ -4,9 +4,8 @@ use rand::{rngs::StdRng, SeedableRng};
 use std::{cell::RefCell, str};
 
 use crate::{
+    engine::{Engine, UpdateResult},
     state::GameState,
-    update::{update, UpdateResult},
-    Engine,
 };
 use raw_format_ansi::raw_format_ansi;
 
@@ -22,11 +21,12 @@ impl TestEngine {
         Self::from_game_state(game_state)
     }
 
+    #[allow(unused_must_use)]
     pub fn from_game_state(game_state: GameState) -> UpdateResult<Self> {
         let writer = CapturedWrite::new();
         let writer_box: RefCell<CapturedWrite> = RefCell::from(writer);
         let mut engine = Engine::new(&writer_box);
-        engine.draw(&game_state)?;
+        engine.draw_scene(&game_state)?;
         Ok(Self {
             writer_ref: writer_box,
             game_state,
@@ -44,15 +44,18 @@ impl TestEngine {
         Ok(())
     }
 
+    #[allow(unused_must_use)]
     pub fn keypress(&mut self, key_code: KeyCode) -> UpdateResult<()> {
         self.writer_ref.borrow_mut().reset();
+        let mut engine = Engine::new(&self.writer_ref);
+        let update = engine.draw_scene(&self.game_state)?;
         self.game_state = update(
             KeyEvent::new(key_code, KeyModifiers::empty()),
             &self.game_state,
         )?
         .unwrap();
-        let mut engine = Engine::new(&self.writer_ref);
-        engine.draw(&self.game_state)?;
+        self.writer_ref.borrow_mut().reset();
+        engine.draw_scene(&self.game_state)?;
         Ok(())
     }
 

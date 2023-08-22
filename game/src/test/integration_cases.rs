@@ -1,4 +1,4 @@
-use crate::{state::GameState, test::test_engine::TestEngine, update::UpdateResult};
+use crate::{engine::UpdateResult, state::GameState, test::test_engine::TestEngine};
 
 #[test]
 fn splash_screen_into_inventory() -> UpdateResult<()> {
