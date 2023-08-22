@@ -249,6 +249,24 @@ impl GameState {
         Err(StateError::InvalidMode(&self.mode))
     }
 
+    pub fn cancel_buy(&self) -> Result<GameState, StateError> {
+        if let Mode::Buying(None) = &self.mode {
+            let mut new_state = self.clone();
+            new_state.mode = Mode::ViewingInventory;
+            return Ok(new_state);
+        }
+        Err(StateError::InvalidMode(&self.mode))
+    }
+
+    pub fn cancel_sell(&self) -> Result<GameState, StateError> {
+        if let Mode::Selling(None) = &self.mode {
+            let mut new_state = self.clone();
+            new_state.mode = Mode::ViewingInventory;
+            return Ok(new_state);
+        }
+        Err(StateError::InvalidMode(&self.mode))
+    }
+
     pub fn user_typed_digit(&self, digit: u32) -> Result<GameState, StateError> {
         if let Mode::Buying(Some(info)) = &self.mode {
             let mut new_state = self.clone();
@@ -386,6 +404,16 @@ impl GameState {
                 }
                 Ok(new_state)
             }
+        } else {
+            Err(StateError::InvalidMode(&self.mode))
+        }
+    }
+
+    pub fn cancel_sail_to(&self) -> Result<GameState, StateError> {
+        if let Mode::Sailing = self.mode {
+            let mut new_state = self.clone();
+            new_state.mode = Mode::ViewingInventory;
+            Ok(new_state)
         } else {
             Err(StateError::InvalidMode(&self.mode))
         }

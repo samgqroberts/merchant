@@ -160,6 +160,8 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                 writer,
                 // clear terminal
                 Clear(crossterm::terminal::ClearType::All),
+                // hide cursor
+                Hide,
                 // date
                 MoveTo(9, 0),
                 PrintStyledContent(
@@ -339,9 +341,12 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         )?;
                         return Ok(Box::new(|event: KeyEvent, state: &GameState| {
                             if let Some(good) = GoodType::from_key_code(&event.code) {
-                                return Ok(Some(state.choose_buy_good(good)?));
+                                Ok(Some(state.choose_buy_good(good)?))
+                            } else if event.code == KeyCode::Backspace {
+                                Ok(Some(state.cancel_buy()?))
+                            } else {
+                                Ok(None)
                             }
-                            return Ok(None);
                         }));
                     }
                 }
@@ -411,9 +416,12 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         )?;
                         return Ok(Box::new(|event: KeyEvent, state: &GameState| {
                             if let Some(good) = GoodType::from_key_code(&event.code) {
-                                return Ok(Some(state.choose_sell_good(good)?));
+                                Ok(Some(state.choose_sell_good(good)?))
+                            } else if event.code == KeyCode::Backspace {
+                                Ok(Some(state.cancel_sell()?))
+                            } else {
+                                Ok(None)
                             }
-                            return Ok(None);
                         }));
                     }
                 }
@@ -438,15 +446,18 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                     )?;
                     return Ok(Box::new(|event: KeyEvent, state: &GameState| {
                         if let Some(destination) = Location::from_key_code(&event.code) {
-                            return match state.sail_to(&destination) {
+                            match state.sail_to(&destination) {
                                 Ok(new_state) => Ok(Some(new_state)),
                                 Err(variant) => match variant {
                                     StateError::AlreadyInLocation => Ok(None),
                                     x => Err(x.into()),
                                 },
-                            };
+                            }
+                        } else if event.code == KeyCode::Backspace {
+                            Ok(Some(state.cancel_sail_to()?))
+                        } else {
+                            Ok(None)
                         }
-                        return Ok(None);
                     }));
                 }
             }
