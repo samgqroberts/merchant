@@ -122,6 +122,19 @@ impl Inventory {
         }
         new_inventory
     }
+
+    pub fn remove_good(&self, good: &GoodType, amount: u32) -> Inventory {
+        let mut new_inventory = self.clone();
+        match good {
+            GoodType::Sugar => new_inventory.sugar -= amount,
+            GoodType::Tobacco => new_inventory.tobacco -= amount,
+            GoodType::Tea => new_inventory.tea -= amount,
+            GoodType::Cotton => new_inventory.cotton -= amount,
+            GoodType::Rum => new_inventory.rum -= amount,
+            GoodType::Coffee => new_inventory.coffee -= amount,
+        }
+        new_inventory
+    }
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -134,7 +147,7 @@ pub struct BuyInfo {
 pub enum Mode {
     ViewingInventory,
     Buying(Option<BuyInfo>),
-    Selling,
+    Selling(Option<BuyInfo>),
     Sailing,
 }
 

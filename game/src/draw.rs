@@ -226,8 +226,55 @@ impl<'a, Writer: Write> Drawer<'a, Writer> {
                         )?;
                     }
                 }
-                Mode::Selling => todo!(),
-                Mode::Sailing => todo!(),
+                Mode::Selling(info) => {
+                    if let Some(info) = info {
+                        // user has indicated which good they want to sell
+                        let good = &info.good;
+                        let prompt = format!(
+                            "How much {} do you want to sell? {}",
+                            good,
+                            info.amount
+                                .map_or("".to_owned(), |amount| amount.to_string())
+                        );
+                        let prompt_len: u16 = prompt.len().try_into().unwrap();
+                        let current_amount = game_state.inventory.good_amount(good);
+                        queue!(
+                            writer,
+                            // prompt what to sell
+                            MoveTo(9, 16),
+                            PrintStyledContent(prompt.with(Color::White)),
+                            MoveTo(9, 17),
+                            PrintStyledContent(
+                                format!("You have ({})", current_amount).with(Color::White)
+                            ),
+                            MoveTo(9 + prompt_len, 16),
+                            Show
+                        )?;
+                    } else {
+                        // user is choosing which good to sell
+                        queue!(
+                            writer,
+                            // prompt what to sell
+                            MoveTo(9, 16),
+                            PrintStyledContent("Which do you want to sell?".with(Color::White)),
+                            MoveTo(9, 17),
+                            PrintStyledContent("(1) Sugar".with(Color::White)),
+                            MoveTo(9, 18),
+                            PrintStyledContent("(2) Tobacco".with(Color::White)),
+                            MoveTo(9, 19),
+                            PrintStyledContent("(3) Tea".with(Color::White)),
+                            MoveTo(9, 20),
+                            PrintStyledContent("(4) Cotton".with(Color::White)),
+                            MoveTo(9, 21),
+                            PrintStyledContent("(5) Rum".with(Color::White)),
+                            MoveTo(9, 22),
+                            PrintStyledContent("(6) Coffee".with(Color::White)),
+                        )?;
+                    }
+                }
+                Mode::Sailing => {
+                    queue!(writer, PrintStyledContent("todo".with(Color::White)))?;
+                }
             }
         }
         writer.flush()?;
