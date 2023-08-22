@@ -273,7 +273,24 @@ impl<'a, Writer: Write> Drawer<'a, Writer> {
                     }
                 }
                 Mode::Sailing => {
-                    queue!(writer, PrintStyledContent("todo".with(Color::White)))?;
+                    // user is choosing where to sail
+                    queue!(
+                        writer,
+                        MoveTo(9, 16),
+                        PrintStyledContent("Where do you want to sail?".with(Color::White)),
+                        MoveTo(9, 17),
+                        PrintStyledContent("(1) Savannah".with(Color::White)),
+                        MoveTo(9, 18),
+                        PrintStyledContent("(2) London".with(Color::White)),
+                        MoveTo(9, 19),
+                        PrintStyledContent("(3) Lisbon".with(Color::White)),
+                        MoveTo(9, 20),
+                        PrintStyledContent("(4) Amsterdam".with(Color::White)),
+                        MoveTo(9, 21),
+                        PrintStyledContent("(5) Cape Town".with(Color::White)),
+                        MoveTo(9, 22),
+                        PrintStyledContent("(6) Venice".with(Color::White)),
+                    )?;
                 }
             }
         }

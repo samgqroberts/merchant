@@ -2,7 +2,7 @@ use std::io;
 
 use crossterm::event::{KeyCode, KeyEvent};
 
-use crate::state::{BuyInfo, GameState, GoodType, Mode};
+use crate::state::{BuyInfo, GameState, GoodType, Location, Mode};
 
 pub fn update(event: KeyEvent, game_state: &GameState) -> io::Result<Option<GameState>> {
     // any key event initializes the game if game is not already initialized
@@ -26,7 +26,15 @@ pub fn update(event: KeyEvent, game_state: &GameState) -> io::Result<Option<Game
                         new_state.mode = Mode::Selling(None);
                         return Ok(Some(new_state));
                     }
-                    _ => {}
+                    '3' => {
+                        // user is now in sailing mode
+                        let mut new_state = game_state.clone();
+                        new_state.mode = Mode::Sailing;
+                        return Ok(Some(new_state));
+                    }
+                    _ => {
+                        // any other character has no effect
+                    }
                 }
             }
         }
@@ -208,7 +216,48 @@ pub fn update(event: KeyEvent, game_state: &GameState) -> io::Result<Option<Game
                 }
             }
         }
-        Mode::Sailing => todo!(),
+        Mode::Sailing => {
+            let mut destination: Option<Location> = None;
+            if let KeyCode::Char(c) = event.code {
+                match c {
+                    '1' => {
+                        destination = Some(Location::Savannah);
+                    }
+                    '2' => {
+                        destination = Some(Location::London);
+                    }
+                    '3' => {
+                        destination = Some(Location::Lisbon);
+                    }
+                    '4' => {
+                        destination = Some(Location::Amsterdam);
+                    }
+                    '5' => {
+                        destination = Some(Location::CapeTown);
+                    }
+                    '6' => {
+                        destination = Some(Location::Venice);
+                    }
+                    _ => {
+                        // no effect
+                    }
+                }
+            }
+            if let Some(destination) = destination {
+                if destination == game_state.location {
+                    // user is already here, no effect
+                } else {
+                    let mut new_state = game_state.clone();
+                    new_state.mode = Mode::ViewingInventory;
+                    // update prices for location we just left
+                    new_state
+                        .prices
+                        .randomize_location_inventory(&mut new_state.rng, &destination);
+                    new_state.location = destination;
+                    return Ok(Some(new_state));
+                }
+            }
+        }
     }
     Ok(None)
 }

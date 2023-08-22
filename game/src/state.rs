@@ -3,13 +3,14 @@ use std::fmt::{self, Display};
 use chrono::NaiveDate;
 use rand::{rngs::StdRng, RngCore, SeedableRng};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Location {
     Savannah,
     London,
     Lisbon,
     Amsterdam,
     CapeTown,
+    Venice,
 }
 
 impl Display for Location {
@@ -20,6 +21,7 @@ impl Display for Location {
             Location::Lisbon => "Lisbon",
             Location::Amsterdam => "Amsterdam",
             Location::CapeTown => "Cape Town",
+            Location::Venice => "Venice",
         };
         write!(f, "{}", string)
     }
@@ -32,6 +34,7 @@ pub struct Prices {
     pub lisbon: Inventory,
     pub amsterdam: Inventory,
     pub capetown: Inventory,
+    pub venice: Inventory,
 }
 
 impl Prices {
@@ -42,6 +45,7 @@ impl Prices {
             lisbon: Prices::randomized_inventory(rng),
             amsterdam: Prices::randomized_inventory(rng),
             capetown: Prices::randomized_inventory(rng),
+            venice: Prices::randomized_inventory(rng),
         }
     }
 
@@ -58,6 +62,17 @@ impl Prices {
         }
     }
 
+    pub fn randomize_location_inventory(&mut self, rng: &mut StdRng, location: &Location) -> () {
+        match location {
+            Location::Savannah => self.savannah = Prices::randomized_inventory(rng),
+            Location::London => self.london = Prices::randomized_inventory(rng),
+            Location::Lisbon => self.lisbon = Prices::randomized_inventory(rng),
+            Location::Amsterdam => self.amsterdam = Prices::randomized_inventory(rng),
+            Location::CapeTown => self.capetown = Prices::randomized_inventory(rng),
+            Location::Venice => self.venice = Prices::randomized_inventory(rng),
+        }
+    }
+
     pub fn location_prices(&self, location: &Location) -> &Inventory {
         match location {
             Location::Savannah => &self.savannah,
@@ -65,6 +80,7 @@ impl Prices {
             Location::Lisbon => &self.lisbon,
             Location::Amsterdam => &self.amsterdam,
             Location::CapeTown => &self.capetown,
+            Location::Venice => &self.venice,
         }
     }
 }
