@@ -19,7 +19,7 @@ use crossterm::{
 };
 use draw::Drawer;
 use state::GameState;
-use update::update;
+use update::{update, UpdateError};
 
 pub struct Engine<'a, Writer: Write> {
     drawer: Drawer<'a, Writer>,
@@ -39,7 +39,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
     pub fn draw_and_prompt(
         &mut self,
         game_state: &GameState,
-    ) -> io::Result<(bool, Option<GameState>)> {
+    ) -> Result<(bool, Option<GameState>), UpdateError> {
         // draw the game state
         self.draw(game_state)?;
         // Wait for any user event
@@ -68,8 +68,8 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
         }
     }
 
-    pub fn exit_message(&mut self) -> io::Result<()> {
-        self.drawer.exit_message()
+    pub fn exit_message(&mut self, msg: &[&str]) -> io::Result<()> {
+        self.drawer.exit_message(msg)
     }
 }
 
@@ -86,13 +86,16 @@ fn main() -> io::Result<()> {
     loop {
         match engine.draw_and_prompt(&mut game_state) {
             Err(e) => {
-                // an io error was encountered in main game loop
-                println!("Error: {:?}\r", e);
+                // an error was encountered in main game loop
+                let msg = format!("{:?}", e);
+                let lines = msg.split("\\n").collect::<Vec<&str>>();
+                engine.exit_message(&lines)?;
+                break;
             }
             Ok((should_exit, new_game_state)) => {
                 if should_exit {
                     // main loop told us user requested an exit
-                    engine.exit_message()?;
+                    engine.exit_message(&["Thank you for playing!"])?;
                     break;
                 }
                 if let Some(new_game_state) = new_game_state {

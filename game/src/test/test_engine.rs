@@ -1,9 +1,13 @@
 use captured_write::CapturedWrite;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use rand::{rngs::StdRng, SeedableRng};
-use std::{cell::RefCell, io, str};
+use std::{cell::RefCell, str};
 
-use crate::{state::GameState, update::update, Engine};
+use crate::{
+    state::GameState,
+    update::{update, UpdateResult},
+    Engine,
+};
 use raw_format_ansi::raw_format_ansi;
 
 pub struct TestEngine {
@@ -12,13 +16,13 @@ pub struct TestEngine {
 }
 
 impl TestEngine {
-    pub fn new() -> io::Result<Self> {
+    pub fn new() -> UpdateResult<Self> {
         let rng = StdRng::seed_from_u64(42);
         let game_state = GameState::new(rng);
         Self::from_game_state(game_state)
     }
 
-    pub fn from_game_state(game_state: GameState) -> io::Result<Self> {
+    pub fn from_game_state(game_state: GameState) -> UpdateResult<Self> {
         let writer = CapturedWrite::new();
         let writer_box: RefCell<CapturedWrite> = RefCell::from(writer);
         let mut engine = Engine::new(&writer_box);
@@ -29,7 +33,7 @@ impl TestEngine {
         })
     }
 
-    pub fn expect(&self, expectation: &str) -> io::Result<()> {
+    pub fn expect(&self, expectation: &str) -> UpdateResult<()> {
         let buffer = self.writer_ref.borrow().buffer.clone();
         let formatted = raw_format_ansi(&buffer);
         if formatted != expectation.to_owned() {
@@ -40,7 +44,7 @@ impl TestEngine {
         Ok(())
     }
 
-    pub fn keypress(&mut self, key_code: KeyCode) -> io::Result<()> {
+    pub fn keypress(&mut self, key_code: KeyCode) -> UpdateResult<()> {
         self.writer_ref.borrow_mut().reset();
         self.game_state = update(
             KeyEvent::new(key_code, KeyModifiers::empty()),
@@ -52,11 +56,11 @@ impl TestEngine {
         Ok(())
     }
 
-    pub fn charpress(&mut self, char: char) -> io::Result<()> {
+    pub fn charpress(&mut self, char: char) -> UpdateResult<()> {
         self.keypress(KeyCode::Char(char))
     }
 
-    pub fn enterpress(&mut self) -> io::Result<()> {
+    pub fn enterpress(&mut self) -> UpdateResult<()> {
         self.keypress(KeyCode::Enter)
     }
 }

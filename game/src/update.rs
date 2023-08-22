@@ -2,9 +2,69 @@ use std::io;
 
 use crossterm::event::{KeyCode, KeyEvent};
 
-use crate::state::{BuyInfo, GameState, GoodType, Location, Mode};
+use crate::state::{GameState, GoodType, Location, Mode, StateError};
 
-pub fn update(event: KeyEvent, game_state: &GameState) -> io::Result<Option<GameState>> {
+#[derive(Debug)]
+pub struct UpdateError(String);
+
+impl From<io::Error> for UpdateError {
+    fn from(value: io::Error) -> Self {
+        Self(value.to_string())
+    }
+}
+
+impl<'a> From<StateError<'a>> for UpdateError {
+    fn from(value: StateError) -> Self {
+        Self(value.to_string())
+    }
+}
+
+pub type UpdateResult<T> = Result<T, UpdateError>;
+
+trait FromKeyCode
+where
+    Self: Sized,
+{
+    fn from_key_code(key_code: &KeyCode) -> Option<Self>;
+}
+
+impl FromKeyCode for GoodType {
+    fn from_key_code(key_code: &KeyCode) -> Option<Self> {
+        if let KeyCode::Char(c) = key_code {
+            match c {
+                '1' => Some(GoodType::Sugar),
+                '2' => Some(GoodType::Tobacco),
+                '3' => Some(GoodType::Tea),
+                '4' => Some(GoodType::Cotton),
+                '5' => Some(GoodType::Rum),
+                '6' => Some(GoodType::Coffee),
+                _ => None,
+            }
+        } else {
+            None
+        }
+    }
+}
+
+impl FromKeyCode for Location {
+    fn from_key_code(key_code: &KeyCode) -> Option<Self> {
+        if let KeyCode::Char(c) = key_code {
+            match c {
+                '1' => Some(Location::Savannah),
+                '2' => Some(Location::London),
+                '3' => Some(Location::Lisbon),
+                '4' => Some(Location::Amsterdam),
+                '5' => Some(Location::CapeTown),
+                '6' => Some(Location::Venice),
+                _ => None,
+            }
+        } else {
+            None
+        }
+    }
+}
+
+pub fn update(event: KeyEvent, game_state: &GameState) -> UpdateResult<Option<GameState>> {
     // any key event initializes the game if game is not already initialized
     if !game_state.initialized {
         return Ok(Some(game_state.initialize()));
@@ -15,22 +75,13 @@ pub fn update(event: KeyEvent, game_state: &GameState) -> io::Result<Option<Game
             if let KeyCode::Char(ch) = event.code {
                 match ch {
                     '1' => {
-                        // user is now in buying mode
-                        let mut new_state = game_state.clone();
-                        new_state.mode = Mode::Buying(None);
-                        return Ok(Some(new_state));
+                        return Ok(Some(game_state.begin_buying()?));
                     }
                     '2' => {
-                        // user is now in selling mode
-                        let mut new_state = game_state.clone();
-                        new_state.mode = Mode::Selling(None);
-                        return Ok(Some(new_state));
+                        return Ok(Some(game_state.begin_selling()?));
                     }
                     '3' => {
-                        // user is now in sailing mode
-                        let mut new_state = game_state.clone();
-                        new_state.mode = Mode::Sailing;
-                        return Ok(Some(new_state));
+                        return Ok(Some(game_state.begin_sailing()?));
                     }
                     _ => {
                         // any other character has no effect
@@ -38,224 +89,67 @@ pub fn update(event: KeyEvent, game_state: &GameState) -> io::Result<Option<Game
                 }
             }
         }
-        Mode::Buying(buy_info) => {
-            if let Some(buy_info) = buy_info {
+        Mode::Buying(info) => {
+            if info.is_some() {
                 // user has chosen a good to buy
                 if let KeyCode::Char(c) = event.code {
                     if let Some(digit) = c.to_digit(10) {
-                        let mut new_state = game_state.clone();
-                        let mut new_buy_info = buy_info.clone();
-                        new_buy_info.amount = Some(
-                            new_buy_info
-                                .amount
-                                .map_or(digit, |amount| amount * 10 + digit),
-                        );
-                        new_state.mode = Mode::Buying(Some(new_buy_info));
-                        return Ok(Some(new_state));
+                        return Ok(Some(game_state.user_typed_digit(digit)?));
                     }
                 }
                 if event.code == KeyCode::Backspace {
-                    let mut new_state = game_state.clone();
-                    let mut new_buy_info = buy_info.clone();
-                    new_buy_info.amount = new_buy_info.amount.and_then(|amount| {
-                        if amount <= 9 {
-                            None
-                        } else {
-                            Some(amount / 10)
-                        }
-                    });
-                    new_state.mode = Mode::Buying(Some(new_buy_info));
-                    return Ok(Some(new_state));
+                    return Ok(Some(game_state.user_typed_backspace()?));
                 }
                 if event.code == KeyCode::Enter {
-                    match buy_info.amount.unwrap_or(0) {
-                        0 => {
-                            let mut new_state = game_state.clone();
-                            new_state.mode = Mode::ViewingInventory;
-                            return Ok(Some(new_state));
-                        }
-                        amount => {
-                            let good_price = game_state
-                                .prices
-                                .location_prices(&game_state.location)
-                                .good_amount(&buy_info.good);
-                            let can_afford = game_state.gold / good_price;
-                            println!("{} {}", good_price, can_afford);
-                            if amount > can_afford {
-                                // user cannot make this purchase because not enough gold
-                            } else {
-                                let hold_size = game_state.hold_size;
-                                let current_hold = game_state.inventory.total_amount();
-                                if current_hold + amount > hold_size {
-                                    // user cannot make this purchase because not enough hold space
-                                } else {
-                                    let mut new_state = game_state.clone();
-                                    new_state.inventory =
-                                        new_state.inventory.add_good(&buy_info.good, amount);
-                                    new_state.gold -= good_price * amount;
-                                    new_state.mode = Mode::ViewingInventory;
-                                    return Ok(Some(new_state));
-                                }
-                            }
-                        }
-                    }
+                    return match game_state.commit_buy() {
+                        Ok(new_state) => Ok(Some(new_state)),
+                        Err(variant) => match variant {
+                            StateError::CannotAfford | StateError::InsufficientHold => Ok(None),
+                            x => Err(x.into()),
+                        },
+                    };
                 }
             } else {
-                let mut good: Option<GoodType> = None;
-                if let KeyCode::Char(c) = event.code {
-                    match c {
-                        '1' => {
-                            good = Some(GoodType::Sugar);
-                        }
-                        '2' => {
-                            good = Some(GoodType::Tobacco);
-                        }
-                        '3' => {
-                            good = Some(GoodType::Tea);
-                        }
-                        '4' => {
-                            good = Some(GoodType::Cotton);
-                        }
-                        '5' => {
-                            good = Some(GoodType::Rum);
-                        }
-                        '6' => {
-                            good = Some(GoodType::Coffee);
-                        }
-                        _ => (),
-                    }
-                }
-                if let Some(good) = good {
-                    let mut new_state = game_state.clone();
-                    new_state.mode = Mode::Buying(Some(BuyInfo { good, amount: None }));
-                    return Ok(Some(new_state));
+                if let Some(good) = GoodType::from_key_code(&event.code) {
+                    return Ok(Some(game_state.choose_buy_good(good)?));
                 }
             }
         }
         Mode::Selling(info) => {
-            if let Some(info) = info {
+            if info.is_some() {
                 // user has chosen a good to sell
                 if let KeyCode::Char(c) = event.code {
                     if let Some(digit) = c.to_digit(10) {
-                        let mut new_state = game_state.clone();
-                        let mut new_info = info.clone();
-                        new_info.amount =
-                            Some(new_info.amount.map_or(digit, |amount| amount * 10 + digit));
-                        new_state.mode = Mode::Selling(Some(new_info));
-                        return Ok(Some(new_state));
+                        return Ok(Some(game_state.user_typed_digit(digit)?));
                     }
                 }
                 if event.code == KeyCode::Backspace {
-                    let mut new_state = game_state.clone();
-                    let mut new_info = info.clone();
-                    new_info.amount = new_info.amount.and_then(|amount| {
-                        if amount <= 9 {
-                            None
-                        } else {
-                            Some(amount / 10)
-                        }
-                    });
-                    new_state.mode = Mode::Selling(Some(new_info));
-                    return Ok(Some(new_state));
+                    return Ok(Some(game_state.user_typed_backspace()?));
                 }
                 if event.code == KeyCode::Enter {
-                    match info.amount.unwrap_or(0) {
-                        0 => {
-                            let mut new_state = game_state.clone();
-                            new_state.mode = Mode::ViewingInventory;
-                            return Ok(Some(new_state));
-                        }
-                        amount => {
-                            let good_price = game_state
-                                .prices
-                                .location_prices(&game_state.location)
-                                .good_amount(&info.good);
-                            let user_amount = game_state.inventory.good_amount(&info.good);
-                            if amount > user_amount {
-                                // user cannot sell this amount because they don't have enough
-                            } else {
-                                let mut new_state = game_state.clone();
-                                new_state.inventory =
-                                    new_state.inventory.remove_good(&info.good, amount);
-                                new_state.gold += good_price * amount;
-                                new_state.mode = Mode::ViewingInventory;
-                                return Ok(Some(new_state));
-                            }
-                        }
-                    }
+                    return match game_state.commit_sell() {
+                        Ok(new_state) => Ok(Some(new_state)),
+                        Err(variant) => match variant {
+                            StateError::InsufficientInventory => Ok(None),
+                            x => Err(x.into()),
+                        },
+                    };
                 }
             } else {
-                let mut good: Option<GoodType> = None;
-                if let KeyCode::Char(c) = event.code {
-                    match c {
-                        '1' => {
-                            good = Some(GoodType::Sugar);
-                        }
-                        '2' => {
-                            good = Some(GoodType::Tobacco);
-                        }
-                        '3' => {
-                            good = Some(GoodType::Tea);
-                        }
-                        '4' => {
-                            good = Some(GoodType::Cotton);
-                        }
-                        '5' => {
-                            good = Some(GoodType::Rum);
-                        }
-                        '6' => {
-                            good = Some(GoodType::Coffee);
-                        }
-                        _ => (),
-                    }
-                }
-                if let Some(good) = good {
-                    let mut new_state = game_state.clone();
-                    new_state.mode = Mode::Selling(Some(BuyInfo { good, amount: None }));
-                    return Ok(Some(new_state));
+                if let Some(good) = GoodType::from_key_code(&event.code) {
+                    return Ok(Some(game_state.choose_sell_good(good)?));
                 }
             }
         }
         Mode::Sailing => {
-            let mut destination: Option<Location> = None;
-            if let KeyCode::Char(c) = event.code {
-                match c {
-                    '1' => {
-                        destination = Some(Location::Savannah);
-                    }
-                    '2' => {
-                        destination = Some(Location::London);
-                    }
-                    '3' => {
-                        destination = Some(Location::Lisbon);
-                    }
-                    '4' => {
-                        destination = Some(Location::Amsterdam);
-                    }
-                    '5' => {
-                        destination = Some(Location::CapeTown);
-                    }
-                    '6' => {
-                        destination = Some(Location::Venice);
-                    }
-                    _ => {
-                        // no effect
-                    }
-                }
-            }
-            if let Some(destination) = destination {
-                if destination == game_state.location {
-                    // user is already here, no effect
-                } else {
-                    let mut new_state = game_state.clone();
-                    new_state.mode = Mode::ViewingInventory;
-                    // update prices for location we just left
-                    new_state
-                        .prices
-                        .randomize_location_inventory(&mut new_state.rng, &destination);
-                    new_state.location = destination;
-                    return Ok(Some(new_state));
-                }
+            if let Some(destination) = Location::from_key_code(&event.code) {
+                return match game_state.relocate(&destination) {
+                    Ok(new_state) => Ok(Some(new_state)),
+                    Err(variant) => match variant {
+                        StateError::AlreadyInLocation => Ok(None),
+                        x => Err(x.into()),
+                    },
+                };
             }
         }
     }

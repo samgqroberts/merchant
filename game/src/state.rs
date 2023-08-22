@@ -154,7 +154,7 @@ impl Inventory {
 }
 
 #[derive(PartialEq, Clone, Debug)]
-pub struct BuyInfo {
+pub struct Transaction {
     pub good: GoodType,
     pub amount: Option<u32>,
 }
@@ -162,8 +162,8 @@ pub struct BuyInfo {
 #[derive(PartialEq, Clone, Debug)]
 pub enum Mode {
     ViewingInventory,
-    Buying(Option<BuyInfo>),
-    Selling(Option<BuyInfo>),
+    Buying(Option<Transaction>),
+    Selling(Option<Transaction>),
     Sailing,
 }
 
@@ -204,6 +204,205 @@ impl GameState {
         let mut game_state = self.clone();
         game_state.initialized = true;
         game_state
+    }
+
+    fn require_viewing_inventory(&self) -> Result<(), StateError> {
+        if self.mode != Mode::ViewingInventory {
+            Err(StateError::InvalidMode(&self.mode))
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn begin_buying(&self) -> Result<GameState, StateError> {
+        self.require_viewing_inventory()?;
+        let mut new_state = self.clone();
+        new_state.mode = Mode::Buying(None);
+        return Ok(new_state);
+    }
+
+    pub fn begin_selling(&self) -> Result<GameState, StateError> {
+        self.require_viewing_inventory()?;
+        let mut new_state = self.clone();
+        new_state.mode = Mode::Selling(None);
+        return Ok(new_state);
+    }
+
+    pub fn begin_sailing(&self) -> Result<GameState, StateError> {
+        self.require_viewing_inventory()?;
+        let mut new_state = self.clone();
+        new_state.mode = Mode::Sailing;
+        return Ok(new_state);
+    }
+
+    pub fn choose_buy_good(&self, good: GoodType) -> Result<GameState, StateError> {
+        if let Mode::Buying(None) = &self.mode {
+            let mut new_state = self.clone();
+            new_state.mode = Mode::Buying(Some(Transaction { good, amount: None }));
+            return Ok(new_state);
+        }
+        Err(StateError::InvalidMode(&self.mode))
+    }
+
+    pub fn choose_sell_good(&self, good: GoodType) -> Result<GameState, StateError> {
+        if let Mode::Selling(None) = &self.mode {
+            let mut new_state = self.clone();
+            new_state.mode = Mode::Selling(Some(Transaction { good, amount: None }));
+            return Ok(new_state);
+        }
+        Err(StateError::InvalidMode(&self.mode))
+    }
+
+    pub fn user_typed_digit(&self, digit: u32) -> Result<GameState, StateError> {
+        if let Mode::Buying(Some(info)) = &self.mode {
+            let mut new_state = self.clone();
+            let mut new_info = info.clone();
+            new_info.amount = Some(new_info.amount.map_or(digit, |amount| amount * 10 + digit));
+            new_state.mode = Mode::Buying(Some(new_info));
+            Ok(new_state)
+        } else if let Mode::Selling(Some(info)) = &self.mode {
+            let mut new_state = self.clone();
+            let mut new_info = info.clone();
+            new_info.amount = Some(new_info.amount.map_or(digit, |amount| amount * 10 + digit));
+            new_state.mode = Mode::Selling(Some(new_info));
+            Ok(new_state)
+        } else {
+            Err(StateError::InvalidMode(&self.mode))
+        }
+    }
+
+    pub fn user_typed_backspace(&self) -> Result<GameState, StateError> {
+        if let Mode::Buying(Some(info)) = &self.mode {
+            let mut new_state = self.clone();
+            let mut new_info = info.clone();
+            new_info.amount =
+                new_info.amount.and_then(
+                    |amount| {
+                        if amount <= 9 {
+                            None
+                        } else {
+                            Some(amount / 10)
+                        }
+                    },
+                );
+            new_state.mode = Mode::Buying(Some(new_info));
+            Ok(new_state)
+        } else if let Mode::Selling(Some(info)) = &self.mode {
+            let mut new_state = self.clone();
+            let mut new_info = info.clone();
+            new_info.amount =
+                new_info.amount.and_then(
+                    |amount| {
+                        if amount <= 9 {
+                            None
+                        } else {
+                            Some(amount / 10)
+                        }
+                    },
+                );
+            new_state.mode = Mode::Selling(Some(new_info));
+            Ok(new_state)
+        } else {
+            Err(StateError::InvalidMode(&self.mode))
+        }
+    }
+
+    pub fn commit_buy(&self) -> Result<GameState, StateError> {
+        if let Mode::Buying(Some(info)) = &self.mode {
+            match info.amount.unwrap_or(0) {
+                0 => {
+                    let mut new_state = self.clone();
+                    new_state.mode = Mode::ViewingInventory;
+                    return Ok(new_state);
+                }
+                amount => {
+                    let good_price = self
+                        .prices
+                        .location_prices(&self.location)
+                        .good_amount(&info.good);
+                    let can_afford = self.gold / good_price;
+                    if amount > can_afford {
+                        return Err(StateError::CannotAfford);
+                    } else {
+                        let hold_size = self.hold_size;
+                        let current_hold = self.inventory.total_amount();
+                        if current_hold + amount > hold_size {
+                            return Err(StateError::InsufficientHold);
+                        } else {
+                            let mut new_state = self.clone();
+                            new_state.inventory = new_state.inventory.add_good(&info.good, amount);
+                            new_state.gold -= good_price * amount;
+                            new_state.mode = Mode::ViewingInventory;
+                            return Ok(new_state);
+                        }
+                    }
+                }
+            }
+        }
+        Err(StateError::InvalidMode(&self.mode))
+    }
+
+    pub fn commit_sell(&self) -> Result<GameState, StateError> {
+        if let Mode::Selling(Some(info)) = &self.mode {
+            match info.amount.unwrap_or(0) {
+                0 => {
+                    let mut new_state = self.clone();
+                    new_state.mode = Mode::ViewingInventory;
+                    return Ok(new_state);
+                }
+                amount => {
+                    let good_price = self
+                        .prices
+                        .location_prices(&self.location)
+                        .good_amount(&info.good);
+                    let user_amount = self.inventory.good_amount(&info.good);
+                    if amount > user_amount {
+                        return Err(StateError::InsufficientInventory);
+                    } else {
+                        let mut new_state = self.clone();
+                        new_state.inventory = new_state.inventory.remove_good(&info.good, amount);
+                        new_state.gold += good_price * amount;
+                        new_state.mode = Mode::ViewingInventory;
+                        return Ok(new_state);
+                    }
+                }
+            }
+        }
+        Err(StateError::InvalidMode(&self.mode))
+    }
+
+    pub fn relocate(&self, destination: &Location) -> Result<GameState, StateError> {
+        if let Mode::Sailing = self.mode {
+            if destination == &self.location {
+                Err(StateError::AlreadyInLocation)
+            } else {
+                let mut new_state = self.clone();
+                new_state.mode = Mode::ViewingInventory;
+                // update prices for location we just left
+                new_state
+                    .prices
+                    .randomize_location_inventory(&mut new_state.rng, &destination);
+                new_state.location = destination.clone();
+                Ok(new_state)
+            }
+        } else {
+            Err(StateError::InvalidMode(&self.mode))
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum StateError<'a> {
+    InvalidMode(&'a Mode),
+    CannotAfford,
+    InsufficientHold,
+    InsufficientInventory,
+    AlreadyInLocation,
+}
+
+impl<'a> Display for StateError<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:#?}", self)
     }
 }
 

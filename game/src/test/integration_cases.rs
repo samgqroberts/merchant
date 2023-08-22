@@ -1,9 +1,7 @@
-use std::io;
-
-use crate::{state::GameState, test::test_engine::TestEngine};
+use crate::{state::GameState, test::test_engine::TestEngine, update::UpdateResult};
 
 #[test]
-fn splash_screen_into_inventory() -> io::Result<()> {
+fn splash_screen_into_inventory() -> UpdateResult<()> {
     let mut test_engine = TestEngine::new()?;
     test_engine.expect(
         "Merchant
@@ -40,7 +38,7 @@ Press any key to begin",
 }
 
 #[test]
-fn buy_good() -> io::Result<()> {
+fn buy_good() -> UpdateResult<()> {
     let mut test_engine = TestEngine::from_game_state(GameState::from_u64_seed(42).initialize())?;
     test_engine.expect(
         "         Date 1782-03-01        Hold Size 100

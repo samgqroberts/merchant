@@ -298,15 +298,13 @@ impl<'a, Writer: Write> Drawer<'a, Writer> {
         Ok(())
     }
 
-    pub fn exit_message(&mut self) -> io::Result<()> {
+    pub fn exit_message(&mut self, msg: &[&str]) -> io::Result<()> {
         let writer = &mut *self.writer.borrow_mut();
-        execute!(
-            writer,
-            Show,
-            MoveToNextLine(2),
-            Print("Thank you for playing!"),
-            MoveToNextLine(1)
-        )?;
+        execute!(writer, Show, MoveToNextLine(1),)?;
+        for line in msg {
+            execute!(writer, Show, MoveToNextLine(1), Print(line),)?;
+        }
+        execute!(writer, MoveToNextLine(1))?;
         Ok(())
     }
 }
