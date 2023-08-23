@@ -54,6 +54,53 @@ impl Command for SplashScreen {
     }
 }
 
+pub struct GameEndScreen<'a>(pub &'a GameState);
+
+impl<'a> Command for GameEndScreen<'a> {
+    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+        let state = self.0;
+        let final_gold: i64 = ((state.gold + state.bank) as i64) - (state.debt as i64);
+        comp!(
+            f,
+            Clear(crossterm::terminal::ClearType::All),
+            Hide,
+            MoveTo(0, 0),
+            PrintStyledContent(
+                "Congratulations!!"
+                    .with(Color::White)
+                    .attribute(Attribute::Bold)
+            ),
+            MoveTo(0, 2),
+            PrintStyledContent("After three years, you went from being".with(Color::White)),
+            MoveTo(0, 3),
+            PrintStyledContent(
+                format!("1400 gold in debt")
+                    .with(Color::White)
+                    .attribute(Attribute::Bold)
+            ),
+            MoveTo(0, 4),
+            PrintStyledContent(
+                format!("to {}", if final_gold >= 0 { "having" } else { "being" })
+                    .with(Color::White)
+            ),
+            MoveTo(0, 5),
+            PrintStyledContent(
+                format!(
+                    "{}",
+                    if final_gold >= 0 {
+                        format!("{} gold", final_gold)
+                    } else {
+                        format!("{} gold in debt", final_gold.abs())
+                    }
+                )
+                .with(Color::White)
+                .attribute(Attribute::Bold)
+            ),
+        );
+        Ok(())
+    }
+}
+
 pub struct BankWithdrawInput<'a>(pub &'a Option<u32>, pub u16, pub u16);
 
 impl<'a> Command for BankWithdrawInput<'a> {

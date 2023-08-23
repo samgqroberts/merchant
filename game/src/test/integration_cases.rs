@@ -53,27 +53,52 @@ Press any key to begin
 }
 
 #[test]
-fn buy_good() -> UpdateResult<()> {
-    let mut e = TestEngine::from_game_state(
+fn end_game_positive() -> UpdateResult<()> {
+    let e = TestEngine::from_game_state(
         {
-            let seed = 42;
-            GameState::new(StdRng::seed_from_u64(seed))
+            let mut state = GameState::new(StdRng::seed_from_u64(42));
+            state.gold = 40000;
+            state.debt = 100;
+            state.game_end = true;
+            state
         }
         .initialize(),
     )?;
-    assert!(e.expect("(1) Buy"));
-    e.charpress('1')?;
-    assert!(e.expect("Which do you want to buy?"));
-    assert!(e.expect("(2) Tobacco"));
-    e.charpress('2')?;
-    assert!(e.expect("How much Tobacco do you want?"));
-    assert!(e.expect("You can afford (13)"));
-    e.charpress('1')?;
-    assert!(e.expect("How much Tobacco do you want? 1"));
-    e.charpress('0')?;
-    assert!(e.expect("How much Tobacco do you want? 10"));
-    e.enterpress()?;
-    assert!(e.expect("Tobacco: 10"));
+    e.expect_full(
+        r"
+Congratulations!!
+
+After three years, you went from being
+1400 gold in debt
+to having
+39900 gold
+",
+    )?;
+    Ok(())
+}
+
+#[test]
+fn end_game_negative() -> UpdateResult<()> {
+    let e = TestEngine::from_game_state(
+        {
+            let mut state = GameState::new(StdRng::seed_from_u64(42));
+            state.gold = 100;
+            state.debt = 40000;
+            state.game_end = true;
+            state
+        }
+        .initialize(),
+    )?;
+    e.expect_full(
+        r"
+Congratulations!!
+
+After three years, you went from being
+1400 gold in debt
+to being
+39900 gold in debt
+",
+    )?;
     Ok(())
 }
 

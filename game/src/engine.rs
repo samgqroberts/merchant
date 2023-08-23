@@ -12,9 +12,10 @@ use std::{
 
 use crate::{
     components::{
-        BankDepositInput, BankWithdrawInput, BorrowGoldInput, BuyInput, BuyPrompt, PayDebtInput,
-        SailPrompt, SellInput, SellPrompt, SplashScreen, StashDepositInput, StashDepositPrompt,
-        StashWithdrawInput, StashWithdrawPrompt, ViewingInventoryActions, ViewingInventoryBase,
+        BankDepositInput, BankWithdrawInput, BorrowGoldInput, BuyInput, BuyPrompt, GameEndScreen,
+        PayDebtInput, SailPrompt, SellInput, SellPrompt, SplashScreen, StashDepositInput,
+        StashDepositPrompt, StashWithdrawInput, StashWithdrawPrompt, ViewingInventoryActions,
+        ViewingInventoryBase,
     },
     state::{GameState, GoodType, Location, Mode, StateError},
 };
@@ -128,6 +129,9 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
             return Ok(Box::new(|_: KeyEvent, state: &GameState| {
                 Ok(Some(state.initialize()))
             }));
+        } else if state.game_end {
+            queue!(writer, GameEndScreen(state))?;
+            return Ok(Box::new(|_: KeyEvent, _: &GameState| Ok(None)));
         } else {
             queue!(writer, ViewingInventoryBase(state))?;
             match &state.mode {
@@ -286,6 +290,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                             Ok(None)
                         }));
                     } else {
+                        // user is choosing which good to stash
                         queue!(writer, StashDepositPrompt(9, 19))?;
                         return Ok(Box::new(|event: KeyEvent, state: &GameState| {
                             if let Some(good) = GoodType::from_key_code(&event.code) {
@@ -325,6 +330,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                             Ok(None)
                         }));
                     } else {
+                        // user is choosing which good to withdraw from stash
                         queue!(writer, StashWithdrawPrompt(9, 19))?;
                         return Ok(Box::new(|event: KeyEvent, state: &GameState| {
                             if let Some(good) = GoodType::from_key_code(&event.code) {

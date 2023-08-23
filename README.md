@@ -4,7 +4,7 @@ TODO
 - [] debt limit
 - [x] bank
 - [x] home base stash
-- [] end of game (30 month deadline?)
+- [x] end of game (30 month deadline?)
 - [] different good prices (which of these goods is most expensive?)
 - events
   - [] buy guns (cannons?)
@@ -17,4 +17,5 @@ TODO
   - [] find random goods
 - [] enliven UI
   - big ASCII ship?
+- [] window resize / size awareness
 - [] make merchant metaphors / style better

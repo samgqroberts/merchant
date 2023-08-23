@@ -187,6 +187,7 @@ pub struct GameState {
     pub prices: Prices,
     pub debt: u32,
     pub mode: Mode,
+    pub game_end: bool,
 }
 
 impl GameState {
@@ -206,6 +207,7 @@ impl GameState {
             prices,
             debt: starting_gold,
             mode: Mode::ViewingInventory,
+            game_end: false,
         }
     }
 
@@ -618,16 +620,21 @@ impl GameState {
             } else {
                 let mut new_state = self.clone();
                 new_state.mode = Mode::ViewingInventory;
-                // update prices for location we just left
-                new_state
-                    .prices
-                    .randomize_location_inventory(&mut new_state.rng, &destination);
-                new_state.location = destination.clone();
                 // increment the month
                 new_state.date.1 = new_state.date.1.succ();
                 if new_state.date.1 == Month::January {
                     new_state.date.0 += 1;
                 }
+                if new_state.date.0 == 1785 && new_state.date.1 == Month::March {
+                    // 3 years have elapsed
+                    // end the game
+                    new_state.game_end = true
+                }
+                // update prices for location we just left
+                new_state
+                    .prices
+                    .randomize_location_inventory(&mut new_state.rng, &destination);
+                new_state.location = destination.clone();
                 // increment debt, if any
                 let new_debt = f64::from(new_state.debt) * 1.1;
                 new_state.debt = new_debt.floor() as u32;
