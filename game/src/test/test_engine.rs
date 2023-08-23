@@ -34,15 +34,15 @@ impl TestEngine {
         })
     }
 
-    pub fn expect(&self, expectation: &str) -> UpdateResult<()> {
+    pub fn expect(&self, expectation: &str) -> bool {
         let expectation = expectation.trim_matches('\n');
         let buffer = self.writer_ref.borrow().buffer.clone();
         let formatted = raw_format_ansi(&buffer);
-        if formatted != expectation.to_owned() {
+        let result = formatted.contains(expectation);
+        if !result {
             println!("----------------\n{}\n----------------", formatted);
         }
-        assert!(formatted.contains(expectation));
-        Ok(())
+        result
     }
 
     pub fn expect_full(&self, expectation: &str) -> UpdateResult<()> {
