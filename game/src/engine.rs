@@ -1,9 +1,11 @@
+use core::fmt;
 use crossterm::{
     cursor::{Hide, MoveTo, MoveToNextLine, Show},
     event::{poll, read, Event, KeyCode, KeyEvent, KeyModifiers},
     execute, queue,
     style::{style, Attribute, Color, Print, PrintStyledContent, Stylize},
     terminal::Clear,
+    Command,
 };
 use std::{
     cell::RefCell,
@@ -11,7 +13,7 @@ use std::{
     time::Duration,
 };
 
-use crate::state::{GameState, GoodType, Location, Mode, StateError};
+use crate::state::{GameState, GoodType, Inventory, Location, Mode, StateError};
 
 #[derive(Debug)]
 pub struct UpdateError(String);
@@ -60,8 +62,8 @@ impl FromKeyCode for Location {
     fn from_key_code(key_code: &KeyCode) -> Option<Self> {
         if let KeyCode::Char(c) = key_code {
             match c {
-                '1' => Some(Location::Savannah),
-                '2' => Some(Location::London),
+                '1' => Some(Location::London),
+                '2' => Some(Location::Savannah),
                 '3' => Some(Location::Lisbon),
                 '4' => Some(Location::Amsterdam),
                 '5' => Some(Location::CapeTown),
@@ -177,93 +179,62 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                 // location
                 MoveTo(33, 1),
                 PrintStyledContent(format!("Location {}", state.location).with(Color::White)),
+                // home base
+                MoveTo(10, 3),
+                PrintStyledContent("Home base".with(Color::White)),
+                InventoryList(&state.stash, 9, 4),
+                MoveTo(12, 11),
+                PrintStyledContent(format!("Debt: {}", state.debt).with(Color::White)),
                 // inventory
-                MoveTo(9, 3),
+                MoveTo(33, 3),
                 PrintStyledContent("Inventory".with(Color::White)),
-                MoveTo(11, 4),
-                PrintStyledContent(format!("Sugar: {}", state.inventory.sugar).with(Color::White)),
-                MoveTo(9, 5),
-                PrintStyledContent(
-                    format!("Tobacco: {}", state.inventory.tobacco).with(Color::White)
-                ),
-                MoveTo(13, 6),
-                PrintStyledContent(format!("Tea: {}", state.inventory.tea).with(Color::White)),
-                MoveTo(10, 7),
-                PrintStyledContent(
-                    format!("Cotton: {}", state.inventory.cotton).with(Color::White)
-                ),
-                MoveTo(13, 8),
-                PrintStyledContent(format!("Rum: {}", state.inventory.rum).with(Color::White)),
-                MoveTo(10, 9),
-                PrintStyledContent(
-                    format!("Coffee: {}", state.inventory.coffee).with(Color::White)
-                ),
+                InventoryList(&state.inventory, 32, 4),
                 // current prices
-                MoveTo(5, 11),
-                PrintStyledContent("Captain, the prices of goods here are:".with(Color::White)),
-                MoveTo(11, 12),
-                PrintStyledContent(
-                    format!(
-                        "Sugar: {}",
-                        state.prices.location_prices(&state.location).sugar
-                    )
-                    .with(Color::White)
-                ),
-                MoveTo(27, 12),
-                PrintStyledContent(
-                    format!(
-                        "Tobacco: {}",
-                        state.prices.location_prices(&state.location).tobacco
-                    )
-                    .with(Color::White)
-                ),
-                MoveTo(13, 13),
-                PrintStyledContent(
-                    format!("Tea: {}", state.prices.location_prices(&state.location).tea)
-                        .with(Color::White)
-                ),
-                MoveTo(28, 13),
-                PrintStyledContent(
-                    format!(
-                        "Cotton: {}",
-                        state.prices.location_prices(&state.location).cotton
-                    )
-                    .with(Color::White)
-                ),
-                MoveTo(13, 14),
-                PrintStyledContent(
-                    format!("Rum: {}", state.prices.location_prices(&state.location).rum)
-                        .with(Color::White)
-                ),
-                MoveTo(28, 14),
-                PrintStyledContent(
-                    format!(
-                        "Coffee: {}",
-                        state.prices.location_prices(&state.location).coffee
-                    )
-                    .with(Color::White)
-                ),
+                CurrentPrices(state.prices.location_prices(&state.location), 5, 13),
             )?;
             match &state.mode {
                 Mode::ViewingInventory => {
                     queue!(
                         writer,
                         // actions
-                        MoveTo(9, 16),
-                        PrintStyledContent("(1) Buy".with(Color::White)),
-                        MoveTo(9, 17),
-                        PrintStyledContent("(2) Sell".with(Color::White)),
                         MoveTo(9, 18),
+                        PrintStyledContent("(1) Buy".with(Color::White)),
+                        MoveTo(9, 19),
+                        PrintStyledContent("(2) Sell".with(Color::White)),
+                        MoveTo(9, 20),
                         PrintStyledContent("(3) Sail".with(Color::White)),
                     )?;
+                    if state.location == Location::London {
+                        queue!(
+                            writer,
+                            MoveTo(9, 21),
+                            PrintStyledContent("(4) Stash deposit".with(Color::White)),
+                            MoveTo(9, 22),
+                            PrintStyledContent("(5) Stash withdraw".with(Color::White)),
+                            MoveTo(9, 23),
+                            PrintStyledContent("(6) Borrow gold".with(Color::White)),
+                            MoveTo(9, 24),
+                            PrintStyledContent("(7) Pay down debt".with(Color::White)),
+                        )?;
+                    }
                     return Ok(Box::new(|event: KeyEvent, state: &GameState| {
                         if let KeyCode::Char(ch) = event.code {
                             match ch {
-                                '1' => Ok(Some(state.begin_buying()?)),
-                                '2' => Ok(Some(state.begin_selling()?)),
-                                '3' => Ok(Some(state.begin_sailing()?)),
-                                _ => Ok(None),
+                                '1' => return Ok(Some(state.begin_buying()?)),
+                                '2' => return Ok(Some(state.begin_selling()?)),
+                                '3' => return Ok(Some(state.begin_sailing()?)),
+                                _ => {}
+                            };
+                            if state.location == Location::London {
+                                match ch {
+                                    '4' => return Ok(Some(state.begin_stash_deposit()?)),
+                                    '5' => return Ok(Some(state.begin_stash_withdraw()?)),
+                                    '6' => return Ok(Some(state.begin_borrow_gold()?)),
+                                    '7' => return Ok(Some(state.begin_pay_debt()?)),
+                                    _ => {}
+                                };
                             }
+                            Ok(None)
                         } else {
                             Ok(None)
                         }
@@ -288,13 +259,13 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         queue!(
                             writer,
                             // prompt what to buy
-                            MoveTo(9, 16),
+                            MoveTo(9, 18),
                             PrintStyledContent(prompt.with(Color::White)),
-                            MoveTo(9, 17),
+                            MoveTo(9, 19),
                             PrintStyledContent(
                                 format!("You can afford ({})", can_afford).with(Color::White)
                             ),
-                            MoveTo(9 + prompt_len, 16),
+                            MoveTo(9 + prompt_len, 18),
                             Show
                         )?;
                         return Ok(Box::new(|event: KeyEvent, state: &GameState| {
@@ -324,19 +295,19 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         queue!(
                             writer,
                             // prompt what to buy
-                            MoveTo(9, 16),
-                            PrintStyledContent("Which do you want to buy?".with(Color::White)),
-                            MoveTo(9, 17),
-                            PrintStyledContent("(1) Sugar".with(Color::White)),
                             MoveTo(9, 18),
-                            PrintStyledContent("(2) Tobacco".with(Color::White)),
+                            PrintStyledContent("Which do you want to buy?".with(Color::White)),
                             MoveTo(9, 19),
-                            PrintStyledContent("(3) Tea".with(Color::White)),
+                            PrintStyledContent("(1) Sugar".with(Color::White)),
                             MoveTo(9, 20),
-                            PrintStyledContent("(4) Cotton".with(Color::White)),
+                            PrintStyledContent("(2) Tobacco".with(Color::White)),
                             MoveTo(9, 21),
-                            PrintStyledContent("(5) Rum".with(Color::White)),
+                            PrintStyledContent("(3) Tea".with(Color::White)),
                             MoveTo(9, 22),
+                            PrintStyledContent("(4) Cotton".with(Color::White)),
+                            MoveTo(9, 23),
+                            PrintStyledContent("(5) Rum".with(Color::White)),
+                            MoveTo(9, 24),
                             PrintStyledContent("(6) Coffee".with(Color::White)),
                         )?;
                         return Ok(Box::new(|event: KeyEvent, state: &GameState| {
@@ -365,13 +336,13 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         queue!(
                             writer,
                             // prompt what to sell
-                            MoveTo(9, 16),
+                            MoveTo(9, 18),
                             PrintStyledContent(prompt.with(Color::White)),
-                            MoveTo(9, 17),
+                            MoveTo(9, 19),
                             PrintStyledContent(
                                 format!("You have ({})", current_amount).with(Color::White)
                             ),
-                            MoveTo(9 + prompt_len, 16),
+                            MoveTo(9 + prompt_len, 18),
                             Show
                         )?;
                         return Ok(Box::new(|event: KeyEvent, state: &GameState| {
@@ -399,19 +370,19 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         queue!(
                             writer,
                             // prompt what to sell
-                            MoveTo(9, 16),
-                            PrintStyledContent("Which do you want to sell?".with(Color::White)),
-                            MoveTo(9, 17),
-                            PrintStyledContent("(1) Sugar".with(Color::White)),
                             MoveTo(9, 18),
-                            PrintStyledContent("(2) Tobacco".with(Color::White)),
+                            PrintStyledContent("Which do you want to sell?".with(Color::White)),
                             MoveTo(9, 19),
-                            PrintStyledContent("(3) Tea".with(Color::White)),
+                            PrintStyledContent("(1) Sugar".with(Color::White)),
                             MoveTo(9, 20),
-                            PrintStyledContent("(4) Cotton".with(Color::White)),
+                            PrintStyledContent("(2) Tobacco".with(Color::White)),
                             MoveTo(9, 21),
-                            PrintStyledContent("(5) Rum".with(Color::White)),
+                            PrintStyledContent("(3) Tea".with(Color::White)),
                             MoveTo(9, 22),
+                            PrintStyledContent("(4) Cotton".with(Color::White)),
+                            MoveTo(9, 23),
+                            PrintStyledContent("(5) Rum".with(Color::White)),
+                            MoveTo(9, 24),
                             PrintStyledContent("(6) Coffee".with(Color::White)),
                         )?;
                         return Ok(Box::new(|event: KeyEvent, state: &GameState| {
@@ -429,19 +400,19 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                     // user is choosing where to sail
                     queue!(
                         writer,
-                        MoveTo(9, 16),
-                        PrintStyledContent("Where do you want to sail?".with(Color::White)),
-                        MoveTo(9, 17),
-                        PrintStyledContent("(1) Savannah".with(Color::White)),
                         MoveTo(9, 18),
-                        PrintStyledContent("(2) London".with(Color::White)),
+                        PrintStyledContent("Where do you want to sail?".with(Color::White)),
                         MoveTo(9, 19),
-                        PrintStyledContent("(3) Lisbon".with(Color::White)),
+                        PrintStyledContent("(1) London".with(Color::White)),
                         MoveTo(9, 20),
-                        PrintStyledContent("(4) Amsterdam".with(Color::White)),
+                        PrintStyledContent("(2) Savannah".with(Color::White)),
                         MoveTo(9, 21),
-                        PrintStyledContent("(5) Cape Town".with(Color::White)),
+                        PrintStyledContent("(3) Lisbon".with(Color::White)),
                         MoveTo(9, 22),
+                        PrintStyledContent("(4) Amsterdam".with(Color::White)),
+                        MoveTo(9, 23),
+                        PrintStyledContent("(5) Cape Town".with(Color::White)),
+                        MoveTo(9, 24),
                         PrintStyledContent("(6) Venice".with(Color::White)),
                     )?;
                     return Ok(Box::new(|event: KeyEvent, state: &GameState| {
@@ -458,6 +429,219 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         } else {
                             Ok(None)
                         }
+                    }));
+                }
+                Mode::StashDeposit(info) => {
+                    if let Some(info) = info {
+                        // user has indicated which good they want to stash
+                        let good = &info.good;
+                        let prompt = format!(
+                            "How much {} do you want to stash? {}",
+                            good,
+                            info.amount
+                                .map_or("".to_owned(), |amount| amount.to_string())
+                        );
+                        let prompt_len: u16 = prompt.len().try_into().unwrap();
+                        let current_amount = state.inventory.good_amount(good);
+                        queue!(
+                            writer,
+                            MoveTo(9, 18),
+                            PrintStyledContent(prompt.with(Color::White)),
+                            MoveTo(9, 19),
+                            PrintStyledContent(
+                                format!("You have ({})", current_amount).with(Color::White)
+                            ),
+                            MoveTo(9 + prompt_len, 18),
+                            Show
+                        )?;
+                        return Ok(Box::new(|event: KeyEvent, state: &GameState| {
+                            if let KeyCode::Char(c) = event.code {
+                                if let Some(digit) = c.to_digit(10) {
+                                    return Ok(Some(state.user_typed_digit(digit)?));
+                                }
+                            }
+                            if event.code == KeyCode::Backspace {
+                                return Ok(Some(state.user_typed_backspace()?));
+                            }
+                            if event.code == KeyCode::Enter {
+                                return match state.commit_stash_deposit() {
+                                    Ok(new_state) => Ok(Some(new_state)),
+                                    Err(variant) => match variant {
+                                        StateError::InsufficientInventory => Ok(None),
+                                        x => Err(x.into()),
+                                    },
+                                };
+                            }
+                            Ok(None)
+                        }));
+                    } else {
+                        queue!(
+                            writer,
+                            MoveTo(9, 18),
+                            PrintStyledContent("Which do you want to stash?".with(Color::White)),
+                            MoveTo(9, 19),
+                            PrintStyledContent("(1) Sugar".with(Color::White)),
+                            MoveTo(9, 20),
+                            PrintStyledContent("(2) Tobacco".with(Color::White)),
+                            MoveTo(9, 21),
+                            PrintStyledContent("(3) Tea".with(Color::White)),
+                            MoveTo(9, 22),
+                            PrintStyledContent("(4) Cotton".with(Color::White)),
+                            MoveTo(9, 23),
+                            PrintStyledContent("(5) Rum".with(Color::White)),
+                            MoveTo(9, 24),
+                            PrintStyledContent("(6) Coffee".with(Color::White)),
+                        )?;
+                        return Ok(Box::new(|event: KeyEvent, state: &GameState| {
+                            if let Some(good) = GoodType::from_key_code(&event.code) {
+                                Ok(Some(state.choose_stash_deposit_good(good)?))
+                            } else if event.code == KeyCode::Backspace {
+                                Ok(Some(state.cancel_stash_deposit()?))
+                            } else {
+                                Ok(None)
+                            }
+                        }));
+                    }
+                }
+                Mode::StashWithdraw(info) => {
+                    if let Some(info) = info {
+                        // user has indicated which good they want to withdraw from stash
+                        let good = &info.good;
+                        let prompt = format!(
+                            "How much {} do you want to withdraw? {}",
+                            good,
+                            info.amount
+                                .map_or("".to_owned(), |amount| amount.to_string())
+                        );
+                        let prompt_len: u16 = prompt.len().try_into().unwrap();
+                        let current_amount = state.stash.good_amount(good);
+                        queue!(
+                            writer,
+                            MoveTo(9, 18),
+                            PrintStyledContent(prompt.with(Color::White)),
+                            MoveTo(9, 19),
+                            PrintStyledContent(
+                                format!("There are ({})", current_amount).with(Color::White)
+                            ),
+                            MoveTo(9 + prompt_len, 18),
+                            Show
+                        )?;
+                        return Ok(Box::new(|event: KeyEvent, state: &GameState| {
+                            if let KeyCode::Char(c) = event.code {
+                                if let Some(digit) = c.to_digit(10) {
+                                    return Ok(Some(state.user_typed_digit(digit)?));
+                                }
+                            }
+                            if event.code == KeyCode::Backspace {
+                                return Ok(Some(state.user_typed_backspace()?));
+                            }
+                            if event.code == KeyCode::Enter {
+                                return match state.commit_stash_withdraw() {
+                                    Ok(new_state) => Ok(Some(new_state)),
+                                    Err(variant) => match variant {
+                                        StateError::InsufficientStash => Ok(None),
+                                        x => Err(x.into()),
+                                    },
+                                };
+                            }
+                            Ok(None)
+                        }));
+                    } else {
+                        queue!(
+                            writer,
+                            MoveTo(9, 18),
+                            PrintStyledContent("Which do you want to withdraw?".with(Color::White)),
+                            MoveTo(9, 19),
+                            PrintStyledContent("(1) Sugar".with(Color::White)),
+                            MoveTo(9, 20),
+                            PrintStyledContent("(2) Tobacco".with(Color::White)),
+                            MoveTo(9, 21),
+                            PrintStyledContent("(3) Tea".with(Color::White)),
+                            MoveTo(9, 22),
+                            PrintStyledContent("(4) Cotton".with(Color::White)),
+                            MoveTo(9, 23),
+                            PrintStyledContent("(5) Rum".with(Color::White)),
+                            MoveTo(9, 24),
+                            PrintStyledContent("(6) Coffee".with(Color::White)),
+                        )?;
+                        return Ok(Box::new(|event: KeyEvent, state: &GameState| {
+                            if let Some(good) = GoodType::from_key_code(&event.code) {
+                                Ok(Some(state.choose_stash_withdraw_good(good)?))
+                            } else if event.code == KeyCode::Backspace {
+                                Ok(Some(state.cancel_stash_withdraw()?))
+                            } else {
+                                Ok(None)
+                            }
+                        }));
+                    }
+                }
+                Mode::BorrowGold(amount) => {
+                    let prompt = format!(
+                        "How much gold do you want to borrow? {}",
+                        amount.map_or("".to_owned(), |amount| amount.to_string())
+                    );
+                    let prompt_len: u16 = prompt.len().try_into().unwrap();
+                    queue!(
+                        writer,
+                        MoveTo(9, 18),
+                        PrintStyledContent(prompt.with(Color::White)),
+                        MoveTo(9 + prompt_len, 18),
+                        Show
+                    )?;
+                    return Ok(Box::new(|event: KeyEvent, state: &GameState| {
+                        if let KeyCode::Char(c) = event.code {
+                            if let Some(digit) = c.to_digit(10) {
+                                return Ok(Some(state.user_typed_digit(digit)?));
+                            }
+                        }
+                        if event.code == KeyCode::Backspace {
+                            return Ok(Some(state.user_typed_backspace()?));
+                        }
+                        if event.code == KeyCode::Enter {
+                            return match state.commit_borrow_gold() {
+                                Ok(new_state) => Ok(Some(new_state)),
+                                Err(variant) => match variant {
+                                    StateError::InsufficientStash => Ok(None),
+                                    x => Err(x.into()),
+                                },
+                            };
+                        }
+                        Ok(None)
+                    }));
+                }
+                Mode::PayDebt(amount) => {
+                    let prompt = format!(
+                        "How much debt do you want to pay down? {}",
+                        amount.map_or("".to_owned(), |amount| amount.to_string())
+                    );
+                    let prompt_len: u16 = prompt.len().try_into().unwrap();
+                    queue!(
+                        writer,
+                        MoveTo(9, 18),
+                        PrintStyledContent(prompt.with(Color::White)),
+                        MoveTo(9 + prompt_len, 18),
+                        Show
+                    )?;
+                    return Ok(Box::new(|event: KeyEvent, state: &GameState| {
+                        if let KeyCode::Char(c) = event.code {
+                            if let Some(digit) = c.to_digit(10) {
+                                return Ok(Some(state.user_typed_digit(digit)?));
+                            }
+                        }
+                        if event.code == KeyCode::Backspace {
+                            return Ok(Some(state.user_typed_backspace()?));
+                        }
+                        if event.code == KeyCode::Enter {
+                            return match state.commit_pay_debt() {
+                                Ok(new_state) => Ok(Some(new_state)),
+                                Err(variant) => match variant {
+                                    StateError::PayDownAmountHigherThanDebt => Ok(None),
+                                    StateError::CannotAfford => Ok(None),
+                                    x => Err(x.into()),
+                                },
+                            };
+                        }
+                        Ok(None)
                     }));
                 }
             }
@@ -478,6 +662,62 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
             execute!(writer, Show, MoveToNextLine(1), Print(line),)?;
         }
         execute!(writer, MoveToNextLine(1))?;
+        Ok(())
+    }
+}
+
+pub struct InventoryList<'a>(&'a Inventory, u16, u16);
+
+impl<'a> Command for InventoryList<'a> {
+    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+        let inventory = self.0;
+        let offset_x = self.1;
+        let offset_y = self.2;
+        MoveTo(offset_x + 2, offset_y).write_ansi(f)?;
+        PrintStyledContent(format!("Sugar: {}", inventory.sugar).with(Color::White))
+            .write_ansi(f)?;
+        MoveTo(offset_x, offset_y + 1).write_ansi(f)?;
+        PrintStyledContent(format!("Tobacco: {}", inventory.tobacco).with(Color::White))
+            .write_ansi(f)?;
+        MoveTo(offset_x + 4, offset_y + 2).write_ansi(f)?;
+        PrintStyledContent(format!("Tea: {}", inventory.tea).with(Color::White)).write_ansi(f)?;
+        MoveTo(offset_x + 1, offset_y + 3).write_ansi(f)?;
+        PrintStyledContent(format!("Cotton: {}", inventory.cotton).with(Color::White))
+            .write_ansi(f)?;
+        MoveTo(offset_x + 4, offset_y + 4).write_ansi(f)?;
+        PrintStyledContent(format!("Rum: {}", inventory.rum).with(Color::White)).write_ansi(f)?;
+        MoveTo(offset_x + 1, offset_y + 5).write_ansi(f)?;
+        PrintStyledContent(format!("Coffee: {}", inventory.coffee).with(Color::White))
+            .write_ansi(f)?;
+        Ok(())
+    }
+}
+
+pub struct CurrentPrices<'a>(&'a Inventory, u16, u16);
+
+impl<'a> Command for CurrentPrices<'a> {
+    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+        let prices = self.0;
+        let offset_x = self.1;
+        let offset_y = self.2;
+        MoveTo(offset_x, offset_y).write_ansi(f)?;
+        PrintStyledContent("Captain, the prices of goods here are:".with(Color::White))
+            .write_ansi(f)?;
+        MoveTo(offset_x + 6, offset_y + 1).write_ansi(f)?;
+        PrintStyledContent(format!("Sugar: {}", prices.sugar).with(Color::White)).write_ansi(f)?;
+        MoveTo(offset_x + 27, offset_y + 1).write_ansi(f)?;
+        PrintStyledContent(format!("Tobacco: {}", prices.tobacco).with(Color::White))
+            .write_ansi(f)?;
+        MoveTo(offset_x + 8, offset_y + 2).write_ansi(f)?;
+        PrintStyledContent(format!("Tea: {}", prices.tea).with(Color::White)).write_ansi(f)?;
+        MoveTo(offset_x + 28, offset_y + 2).write_ansi(f)?;
+        PrintStyledContent(format!("Cotton: {}", prices.cotton).with(Color::White))
+            .write_ansi(f)?;
+        MoveTo(offset_x + 8, offset_y + 3).write_ansi(f)?;
+        PrintStyledContent(format!("Rum: {}", prices.rum).with(Color::White)).write_ansi(f)?;
+        MoveTo(offset_x + 28, offset_y + 3).write_ansi(f)?;
+        PrintStyledContent(format!("Coffee: {}", prices.coffee).with(Color::White))
+            .write_ansi(f)?;
         Ok(())
     }
 }

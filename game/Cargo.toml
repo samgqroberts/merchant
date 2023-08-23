@@ -9,3 +9,6 @@ crossterm = "0.26.1"
 rand = "0.8.5"
 captured_write = { path ="../captured_write" }
 raw_format_ansi = { path ="../raw_format_ansi" }
+
+[dev-dependencies]
+pretty_assertions = "1.4.0"
