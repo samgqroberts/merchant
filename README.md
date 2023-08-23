@@ -1,9 +1,9 @@
 TODO
 
-- [] loan shark
+- [x] loan shark
 - [] debt limit
-- [] bank
-- [] home base stash
+- [x] bank
+- [x] home base stash
 - [] end of game (30 month deadline?)
 - [] different good prices (which of these goods is most expensive?)
 - events

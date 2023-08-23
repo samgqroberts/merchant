@@ -169,6 +169,8 @@ pub enum Mode {
     StashWithdraw(Option<Transaction>),
     BorrowGold(Option<u32>),
     PayDebt(Option<u32>),
+    BankDeposit(Option<u32>),
+    BankWithdraw(Option<u32>),
 }
 
 #[derive(Clone, Debug)]
@@ -178,6 +180,7 @@ pub struct GameState {
     pub date: (u16, Month),
     pub hold_size: u32,
     pub gold: u32,
+    pub bank: u32,
     pub location: Location,
     pub stash: Inventory,
     pub inventory: Inventory,
@@ -196,6 +199,7 @@ impl GameState {
             date: (1782, Month::March),
             hold_size: 100,
             gold: starting_gold,
+            bank: 0,
             location: Location::London, // home base
             stash: Inventory::new(),
             inventory: Inventory::new(),
@@ -277,6 +281,22 @@ impl GameState {
         self.require_location_home_base()?;
         let mut new_state = self.clone();
         new_state.mode = Mode::PayDebt(None);
+        return Ok(new_state);
+    }
+
+    pub fn begin_bank_deposit(&self) -> Result<GameState, StateError> {
+        self.require_viewing_inventory()?;
+        self.require_location_home_base()?;
+        let mut new_state = self.clone();
+        new_state.mode = Mode::BankDeposit(None);
+        return Ok(new_state);
+    }
+
+    pub fn begin_bank_withdraw(&self) -> Result<GameState, StateError> {
+        self.require_viewing_inventory()?;
+        self.require_location_home_base()?;
+        let mut new_state = self.clone();
+        new_state.mode = Mode::BankWithdraw(None);
         return Ok(new_state);
     }
 
@@ -370,6 +390,8 @@ impl GameState {
             let amount = match &mut new_state.mode {
                 Mode::BorrowGold(amount) => Some(amount),
                 Mode::PayDebt(amount) => Some(amount),
+                Mode::BankDeposit(amount) => Some(amount),
+                Mode::BankWithdraw(amount) => Some(amount),
                 _ => binding,
             };
             if let Some(amount) = amount {
@@ -401,6 +423,8 @@ impl GameState {
             let amount = match &mut new_state.mode {
                 Mode::BorrowGold(amount) => Some(amount),
                 Mode::PayDebt(amount) => Some(amount),
+                Mode::BankDeposit(amount) => Some(amount),
+                Mode::BankWithdraw(amount) => Some(amount),
                 _ => binding,
             };
             if let Some(amount) = amount {
@@ -557,6 +581,36 @@ impl GameState {
         Err(StateError::InvalidMode(&self.mode))
     }
 
+    pub fn commit_bank_deposit(&self) -> Result<GameState, StateError> {
+        if let Mode::BankDeposit(amount) = &self.mode {
+            let amount = &amount.unwrap_or(0);
+            if amount > &self.gold {
+                return Err(StateError::CannotAfford);
+            }
+            let mut new_state = self.clone();
+            new_state.gold -= amount;
+            new_state.bank += amount;
+            new_state.mode = Mode::ViewingInventory;
+            return Ok(new_state);
+        }
+        Err(StateError::InvalidMode(&self.mode))
+    }
+
+    pub fn commit_bank_withdraw(&self) -> Result<GameState, StateError> {
+        if let Mode::BankWithdraw(amount) = &self.mode {
+            let amount = &amount.unwrap_or(0);
+            if amount > &self.bank {
+                return Err(StateError::InsufficientBank);
+            }
+            let mut new_state = self.clone();
+            new_state.gold += amount;
+            new_state.bank -= amount;
+            new_state.mode = Mode::ViewingInventory;
+            return Ok(new_state);
+        }
+        Err(StateError::InvalidMode(&self.mode))
+    }
+
     pub fn sail_to(&self, destination: &Location) -> Result<GameState, StateError> {
         if let Mode::Sailing = self.mode {
             if destination == &self.location {
@@ -605,6 +659,7 @@ pub enum StateError<'a> {
     AlreadyInLocation,
     LocationNotHomeBase(&'a Location),
     PayDownAmountHigherThanDebt,
+    InsufficientBank,
 }
 
 impl<'a> Display for StateError<'a> {

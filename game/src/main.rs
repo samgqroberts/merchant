@@ -1,4 +1,6 @@
 mod engine;
+#[macro_use]
+mod macros;
 mod state;
 #[cfg(test)]
 mod test;

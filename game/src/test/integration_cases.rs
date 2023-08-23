@@ -30,6 +30,7 @@ Press any key to begin
              Rum: 0                 Rum: 0
           Coffee: 0              Coffee: 0
 
+            Bank: 0
             Debt: 1400
 
      Captain, the prices of goods here are:
@@ -44,6 +45,8 @@ Press any key to begin
          (5) Stash withdraw
          (6) Borrow gold
          (7) Pay down debt
+         (8) Bank deposit
+         (9) Bank withdraw
 ",
     )?;
     Ok(())
@@ -234,5 +237,61 @@ fn pay_debt() -> UpdateResult<()> {
     e.enterpress()?;
     assert!(e.expect("Gold 700"));
     assert!(e.expect("Debt: 200"));
+    Ok(())
+}
+
+#[test]
+fn bank_deposit() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state(
+        {
+            let mut state = GameState::new(StdRng::seed_from_u64(42));
+            state.gold = 1000;
+            state.bank = 500;
+            state
+        }
+        .initialize(),
+    )?;
+    assert!(e.expect("Gold 1000"));
+    assert!(e.expect("Bank: 500"));
+    assert!(e.expect("(8) Bank deposit"));
+    e.charpress('8')?;
+    assert!(e.expect("How much gold do you want to deposit in the bank?"));
+    e.charpress('3')?;
+    assert!(e.expect("How much gold do you want to deposit in the bank? 3"));
+    e.charpress('0')?;
+    assert!(e.expect("How much gold do you want to deposit in the bank? 30"));
+    e.charpress('0')?;
+    assert!(e.expect("How much gold do you want to deposit in the bank? 300"));
+    e.enterpress()?;
+    assert!(e.expect("Gold 700"));
+    assert!(e.expect("Bank: 800"));
+    Ok(())
+}
+
+#[test]
+fn bank_withdraw() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state(
+        {
+            let mut state = GameState::new(StdRng::seed_from_u64(42));
+            state.gold = 1000;
+            state.bank = 500;
+            state
+        }
+        .initialize(),
+    )?;
+    assert!(e.expect("Gold 1000"));
+    assert!(e.expect("Bank: 500"));
+    assert!(e.expect("(9) Bank withdraw"));
+    e.charpress('9')?;
+    assert!(e.expect("How much gold do you want to withdraw?"));
+    e.charpress('3')?;
+    assert!(e.expect("How much gold do you want to withdraw? 3"));
+    e.charpress('0')?;
+    assert!(e.expect("How much gold do you want to withdraw? 30"));
+    e.charpress('0')?;
+    assert!(e.expect("How much gold do you want to withdraw? 300"));
+    e.enterpress()?;
+    assert!(e.expect("Gold 1300"));
+    assert!(e.expect("Bank: 200"));
     Ok(())
 }
