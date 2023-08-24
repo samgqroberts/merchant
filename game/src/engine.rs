@@ -6,6 +6,7 @@ use crossterm::{
 };
 use std::{
     cell::RefCell,
+    cmp::min,
     io::{self, Write},
     time::Duration,
 };
@@ -13,8 +14,8 @@ use std::{
 use crate::{
     components::{
         BankDepositInput, BankWithdrawInput, BuyInput, BuyPrompt, CheapGoodDialog,
-        ExpensiveGoodDialog, GameEndScreen, PayDebtInput, SailPrompt, SellInput, SellPrompt,
-        SplashScreen, StashDepositInput, StashDepositPrompt, StashWithdrawInput,
+        ExpensiveGoodDialog, FindGoodsDialog, GameEndScreen, PayDebtInput, SailPrompt, SellInput,
+        SellPrompt, SplashScreen, StashDepositInput, StashDepositPrompt, StashWithdrawInput,
         StashWithdrawPrompt, ViewingInventoryActions, ViewingInventoryBase,
     },
     state::{GameState, Good, Location, LocationEvent, Mode, StateError},
@@ -389,6 +390,20 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                     LocationEvent::ExpensiveGood(good) => {
                         queue!(writer, ExpensiveGoodDialog(good, 9, 19))?;
                         return Ok(Box::new(|_: KeyEvent, state: &mut GameState| {
+                            state.acknowledge_event()?;
+                            Ok(())
+                        }));
+                    }
+                    LocationEvent::FindGoods(good, amount) => {
+                        queue!(writer, FindGoodsDialog(good, amount, state, 9, 19))?;
+                        let good = good.clone();
+                        let amount = amount.clone();
+                        return Ok(Box::new(move |_: KeyEvent, state: &mut GameState| {
+                            {
+                                let remaining_hold = state.remaining_hold();
+                                let amount_to_add = min(amount, remaining_hold);
+                                state.inventory.add_good(&good, amount_to_add);
+                            }
                             state.acknowledge_event()?;
                             Ok(())
                         }));

@@ -23,6 +23,7 @@ pub struct Transaction {
 pub enum LocationEvent {
     CheapGood(Good),
     ExpensiveGood(Good),
+    FindGoods(Good, u32),
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -465,6 +466,12 @@ impl GameState {
         } else {
             Err(StateError::InvalidMode(self.mode.clone()))
         }
+    }
+
+    pub fn remaining_hold(&self) -> u32 {
+        self.hold_size
+            .checked_sub(self.inventory.total_amount())
+            .unwrap_or(0)
     }
 }
 

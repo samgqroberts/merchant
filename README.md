@@ -11,10 +11,10 @@ TODO
   - [] buy more hold space
   - [] confrontations (pirates?)
     - choices: get captured, run, fight, ignore
-  - [] theft
   - [x] good sales (cheaper goods)
   - [x] increased good prices
-  - [] find random goods
+  - [] theft
+  - [x] find random goods
 - [] enliven UI
   - big ASCII ship?
 - [] window resize / size awareness

@@ -324,3 +324,35 @@ fn arrive_at_expensive_good_event() -> UpdateResult<()> {
     assert!(e.expect("Captain, the prices of goods here are:"));
     Ok(())
 }
+
+#[test]
+fn arrive_at_find_goods_event() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(42));
+        state.initialize();
+        state.inventory.coffee = 4;
+        state.mode = Mode::GameEvent(LocationEvent::FindGoods(Good::Coffee, 10));
+        state
+    })?;
+    assert!(e.expect("You randomly find 10 Coffee!"));
+    e.charpress('a')?;
+    assert!(e.expect("Coffee: 14"));
+    Ok(())
+}
+
+#[test]
+fn arrive_at_find_goods_event_not_enough_hold() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(42));
+        state.initialize();
+        state.inventory.coffee = 4;
+        state.hold_size = 11;
+        state.mode = Mode::GameEvent(LocationEvent::FindGoods(Good::Coffee, 10));
+        state
+    })?;
+    assert!(e.expect("You randomly find 10 Coffee!"));
+    assert!(e.expect("You have space for (7)"));
+    e.charpress('a')?;
+    assert!(e.expect("Coffee: 11"));
+    Ok(())
+}

@@ -317,7 +317,7 @@ impl<'a> Command for BuyInput<'a> {
             MoveTo(offset_x, offset_y + 1),
             PrintStyledContent(format!("You can afford ({})", can_afford).with(Color::White)),
         );
-        let remaining_hold = state.hold_size - state.inventory.total_amount();
+        let remaining_hold = state.remaining_hold();
         if remaining_hold < can_afford {
             comp!(
                 f,
@@ -588,6 +588,42 @@ impl<'a> Command for ExpensiveGoodDialog<'a> {
             MoveTo(offset_x, offset_y),
             PrintStyledContent(format!("Expensive {} here!", good).with(Color::White)),
         );
+        Ok(())
+    }
+}
+
+pub struct FindGoodsDialog<'a>(
+    pub &'a Good,
+    pub &'a u32,
+    pub &'a GameState,
+    pub u16,
+    pub u16,
+);
+
+impl<'a> Command for FindGoodsDialog<'a> {
+    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+        let good = self.0;
+        let amount = self.1;
+        let state = self.2;
+        let offset_x = self.3;
+        let offset_y = self.4;
+        comp!(
+            f,
+            MoveTo(offset_x, offset_y),
+            PrintStyledContent(
+                format!("You randomly find {} {}!", amount, good).with(Color::White)
+            ),
+        );
+        let remaining_hold = state.remaining_hold();
+        if &remaining_hold < amount {
+            comp!(
+                f,
+                MoveTo(offset_x, offset_y + 1),
+                PrintStyledContent(
+                    format!("You have space for ({})", remaining_hold).with(Color::White)
+                ),
+            )
+        }
         Ok(())
     }
 }
