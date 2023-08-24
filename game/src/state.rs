@@ -27,6 +27,20 @@ impl Display for Location {
     }
 }
 
+impl Location {
+    pub fn variants() -> impl Iterator<Item = &'static Location> {
+        static VARIANTS: &'static [Location] = &[
+            Location::London,
+            Location::Savannah,
+            Location::Lisbon,
+            Location::Amsterdam,
+            Location::CapeTown,
+            Location::Venice,
+        ];
+        VARIANTS.iter()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct PriceConfig {
     pub starting_gold: u32,
@@ -39,18 +53,33 @@ pub struct PriceConfig {
 }
 
 #[derive(Clone, Debug)]
-pub struct Prices {
-    pub config: PriceConfig,
-    pub london: Inventory,
-    pub savannah: Inventory,
-    pub lisbon: Inventory,
-    pub amsterdam: Inventory,
-    pub capetown: Inventory,
-    pub venice: Inventory,
+pub struct LocationInfo {
+    pub prices: Inventory,
+    pub event: Option<LocationEvent>,
 }
 
-impl Prices {
-    pub fn new(rng: &mut StdRng, starting_gold: u32) -> Prices {
+impl LocationInfo {
+    pub fn empty() -> Self {
+        Self {
+            prices: Inventory::new(),
+            event: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Locations {
+    pub config: PriceConfig,
+    pub london: LocationInfo,
+    pub savannah: LocationInfo,
+    pub lisbon: LocationInfo,
+    pub amsterdam: LocationInfo,
+    pub capetown: LocationInfo,
+    pub venice: LocationInfo,
+}
+
+impl Locations {
+    pub fn new(rng: &mut StdRng, starting_gold: u32) -> Locations {
         let config = PriceConfig {
             starting_gold,
             tea: (10.0, 14.0),
@@ -60,21 +89,19 @@ impl Prices {
             rum: (0.04, 0.14),
             cotton: (0.005, 0.025),
         };
-        let mut res = Prices {
+        let mut res = Locations {
             config,
-            london: Inventory::new(),
-            savannah: Inventory::new(),
-            lisbon: Inventory::new(),
-            amsterdam: Inventory::new(),
-            capetown: Inventory::new(),
-            venice: Inventory::new(),
+            london: LocationInfo::empty(),
+            savannah: LocationInfo::empty(),
+            lisbon: LocationInfo::empty(),
+            amsterdam: LocationInfo::empty(),
+            capetown: LocationInfo::empty(),
+            venice: LocationInfo::empty(),
         };
-        res.randomize_location_inventory(rng, &Location::London);
-        res.randomize_location_inventory(rng, &Location::Savannah);
-        res.randomize_location_inventory(rng, &Location::Lisbon);
-        res.randomize_location_inventory(rng, &Location::Amsterdam);
-        res.randomize_location_inventory(rng, &Location::CapeTown);
-        res.randomize_location_inventory(rng, &Location::Venice);
+        for location in Location::variants() {
+            // for new games, don't put an event in home base
+            res.generate_location(rng, location, location != &Location::London);
+        }
         res
     }
 
@@ -96,18 +123,38 @@ impl Prices {
         }
     }
 
-    pub fn randomize_location_inventory(&mut self, rng: &mut StdRng, location: &Location) -> () {
-        match location {
-            Location::London => self.london = self.randomized_inventory(rng),
-            Location::Savannah => self.savannah = self.randomized_inventory(rng),
-            Location::Lisbon => self.lisbon = self.randomized_inventory(rng),
-            Location::Amsterdam => self.amsterdam = self.randomized_inventory(rng),
-            Location::CapeTown => self.capetown = self.randomized_inventory(rng),
-            Location::Venice => self.venice = self.randomized_inventory(rng),
-        }
+    pub fn generate_location(
+        &mut self,
+        rng: &mut StdRng,
+        location: &Location,
+        allow_events: bool,
+    ) -> &LocationInfo {
+        let mut new_location_info = LocationInfo::empty();
+        new_location_info.prices = self.randomized_inventory(rng);
+        if allow_events {
+            new_location_info.event = if rng.next_u32() % 2 == 0 {
+                // we've hit an event
+                let event: LocationEvent = match rng.next_u32() {
+                    _ => {
+                        // select good to be cheap
+                        let good = GoodType::random(rng);
+                        // update location prices
+                        let good_price = (&mut new_location_info).prices.get_good_mut(&good);
+                        *good_price = ((*good_price as f64) * 0.5).floor() as u32;
+                        LocationEvent::CheapGood(good)
+                    }
+                };
+                Some(event)
+            } else {
+                None
+            };
+        };
+        let location_info = self.location_info_mut(location);
+        *location_info = new_location_info;
+        location_info
     }
 
-    pub fn location_prices(&self, location: &Location) -> &Inventory {
+    pub fn location_info(&self, location: &Location) -> &LocationInfo {
         match location {
             Location::London => &self.london,
             Location::Savannah => &self.savannah,
@@ -115,6 +162,17 @@ impl Prices {
             Location::Amsterdam => &self.amsterdam,
             Location::CapeTown => &self.capetown,
             Location::Venice => &self.venice,
+        }
+    }
+
+    pub fn location_info_mut(&mut self, location: &Location) -> &mut LocationInfo {
+        match location {
+            Location::London => &mut self.london,
+            Location::Savannah => &mut self.savannah,
+            Location::Lisbon => &mut self.lisbon,
+            Location::Amsterdam => &mut self.amsterdam,
+            Location::CapeTown => &mut self.capetown,
+            Location::Venice => &mut self.venice,
         }
     }
 }
@@ -185,6 +243,17 @@ impl Inventory {
         }
         new_inventory
     }
+
+    pub fn get_good_mut(&mut self, good: &GoodType) -> &mut u32 {
+        match good {
+            GoodType::Tea => &mut self.tea,
+            GoodType::Coffee => &mut self.coffee,
+            GoodType::Sugar => &mut self.sugar,
+            GoodType::Tobacco => &mut self.tobacco,
+            GoodType::Rum => &mut self.rum,
+            GoodType::Cotton => &mut self.cotton,
+        }
+    }
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -194,7 +263,7 @@ pub struct Transaction {
 }
 
 #[derive(PartialEq, Clone, Debug)]
-pub enum GameEvent {
+pub enum LocationEvent {
     CheapGood(GoodType),
 }
 
@@ -209,7 +278,7 @@ pub enum Mode {
     PayDebt(Option<u32>),
     BankDeposit(Option<u32>),
     BankWithdraw(Option<u32>),
-    GameEvent(GameEvent),
+    GameEvent(LocationEvent),
 }
 
 #[derive(Clone, Debug)]
@@ -223,7 +292,7 @@ pub struct GameState {
     pub location: Location,
     pub stash: Inventory,
     pub inventory: Inventory,
-    pub prices: Prices,
+    pub locations: Locations,
     pub debt: u32,
     pub mode: Mode,
     pub game_end: bool,
@@ -233,7 +302,7 @@ impl GameState {
     pub fn new(mut rng: StdRng) -> GameState {
         let starting_gold = 500;
         let debt = starting_gold * 3;
-        let prices = Prices::new(&mut rng, starting_gold);
+        let locations = Locations::new(&mut rng, starting_gold);
         GameState {
             rng,
             initialized: false,
@@ -244,7 +313,7 @@ impl GameState {
             location: Location::London, // home base
             stash: Inventory::new(),
             inventory: Inventory::new(),
-            prices,
+            locations,
             debt,
             mode: Mode::ViewingInventory,
             game_end: false,
@@ -479,8 +548,9 @@ impl GameState {
                 }
                 amount => {
                     let good_price = self
+                        .locations
+                        .location_info(&self.location)
                         .prices
-                        .location_prices(&self.location)
                         .good_amount(&info.good);
                     let can_afford = self.gold / good_price;
                     if amount > can_afford {
@@ -514,8 +584,9 @@ impl GameState {
                 }
                 amount => {
                     let good_price = self
+                        .locations
+                        .location_info(&self.location)
                         .prices
-                        .location_prices(&self.location)
                         .good_amount(&info.good);
                     let user_amount = self.inventory.good_amount(&info.good);
                     if amount > user_amount {
@@ -648,45 +719,19 @@ impl GameState {
                     // end the game
                     new_state.game_end = true
                 }
-                // update prices for location we just left
-                new_state
-                    .prices
-                    .randomize_location_inventory(&mut new_state.rng, &destination);
+                // update location info for location we just left
+                let new_location_info =
+                    new_state
+                        .locations
+                        .generate_location(&mut new_state.rng, &destination, true);
                 // set current location
                 new_state.location = destination.clone();
                 // increment debt, if any
                 let new_debt = f64::from(new_state.debt) * 1.1;
                 new_state.debt = new_debt.floor() as u32;
                 // determine if we've encountered an event
-                if new_state.rng.next_u32() % 2 == 0 {
-                    // we've hit an event
-                    let event: GameEvent = match new_state.rng.next_u32() {
-                        _ => {
-                            // select good to be cheap
-                            let good = GoodType::random(&mut new_state.rng);
-                            // TODO events need to be determined when locations / location prices
-                            // are first generated, in order to have gossip anticipate them
-                            let location_prices = match new_state.location {
-                                Location::London => &mut new_state.prices.london,
-                                Location::Savannah => &mut new_state.prices.savannah,
-                                Location::Lisbon => &mut new_state.prices.lisbon,
-                                Location::Amsterdam => &mut new_state.prices.amsterdam,
-                                Location::CapeTown => &mut new_state.prices.capetown,
-                                Location::Venice => &mut new_state.prices.venice,
-                            };
-                            let good_price: &mut u32 = match good {
-                                GoodType::Tea => &mut location_prices.tea,
-                                GoodType::Coffee => &mut location_prices.coffee,
-                                GoodType::Sugar => &mut location_prices.sugar,
-                                GoodType::Tobacco => &mut location_prices.tobacco,
-                                GoodType::Rum => &mut location_prices.rum,
-                                GoodType::Cotton => &mut location_prices.cotton,
-                            };
-                            *good_price = ((*good_price as f64) * 0.5).floor() as u32;
-                            GameEvent::CheapGood(good)
-                        }
-                    };
-                    new_state.mode = Mode::GameEvent(event);
+                if let Some(event) = &new_location_info.event {
+                    new_state.mode = Mode::GameEvent(event.clone());
                 }
                 Ok(new_state)
             }

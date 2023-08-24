@@ -275,7 +275,11 @@ impl<'a> Command for ViewingInventoryBase<'a> {
             PrintStyledContent("Inventory".with(Color::White)),
             InventoryList(&state.inventory, 32, 4),
             // current prices
-            CurrentPrices(state.prices.location_prices(&state.location), 5, 14),
+            CurrentPrices(
+                &state.locations.location_info(&state.location).prices,
+                5,
+                14
+            ),
         );
         Ok(())
     }
@@ -293,8 +297,9 @@ impl<'a> Command for BuyInput<'a> {
         let gold = state.gold;
         let good = &info.good;
         let good_price = state
+            .locations
+            .location_info(&state.location)
             .prices
-            .location_prices(&state.location)
             .good_amount(&good);
         let prompt = format!(
             "How much {} do you want? {}",

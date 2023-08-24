@@ -17,7 +17,7 @@ use crate::{
         StashDepositPrompt, StashWithdrawInput, StashWithdrawPrompt, ViewingInventoryActions,
         ViewingInventoryBase,
     },
-    state::{GameEvent, GameState, GoodType, Location, Mode, StateError},
+    state::{GameState, GoodType, Location, LocationEvent, Mode, StateError},
 };
 
 #[derive(Debug)]
@@ -408,7 +408,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                     }));
                 }
                 Mode::GameEvent(event) => match event {
-                    GameEvent::CheapGood(good) => {
+                    LocationEvent::CheapGood(good) => {
                         queue!(writer, CheapGoodDialog(good, 9, 19))?;
                         return Ok(Box::new(|_: KeyEvent, state: &GameState| {
                             Ok(Some(state.acknowledge_event()?))
