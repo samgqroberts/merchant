@@ -1,7 +1,11 @@
 use pretty_assertions::assert_eq;
 use rand::{rngs::StdRng, SeedableRng};
 
-use crate::{engine::UpdateResult, state::GameState, test::test_engine::TestEngine};
+use crate::{
+    engine::UpdateResult,
+    state::{GameEvent, GameState, GoodType, Mode},
+    test::test_engine::TestEngine,
+};
 
 #[test]
 fn splash_screen_into_inventory() -> UpdateResult<()> {
@@ -303,5 +307,21 @@ fn bank_withdraw() -> UpdateResult<()> {
     e.enterpress()?;
     assert!(e.expect("Gold 1300"));
     assert!(e.expect("Bank: 200"));
+    Ok(())
+}
+
+#[test]
+fn arrive_at_cheap_good_event() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state(
+        {
+            let mut state = GameState::new(StdRng::seed_from_u64(42));
+            state.mode = Mode::GameEvent(GameEvent::CheapGood(GoodType::Coffee));
+            state
+        }
+        .initialize(),
+    )?;
+    assert!(e.expect("Cheap Coffee here!"));
+    e.charpress('a')?;
+    assert!(e.expect("Captain, the prices of goods here are:"));
     Ok(())
 }

@@ -194,6 +194,11 @@ pub struct Transaction {
 }
 
 #[derive(PartialEq, Clone, Debug)]
+pub enum GameEvent {
+    CheapGood(GoodType),
+}
+
+#[derive(PartialEq, Clone, Debug)]
 pub enum Mode {
     ViewingInventory,
     Buying(Option<Transaction>),
@@ -204,6 +209,7 @@ pub enum Mode {
     PayDebt(Option<u32>),
     BankDeposit(Option<u32>),
     BankWithdraw(Option<u32>),
+    GameEvent(GameEvent),
 }
 
 #[derive(Clone, Debug)]
@@ -646,10 +652,42 @@ impl GameState {
                 new_state
                     .prices
                     .randomize_location_inventory(&mut new_state.rng, &destination);
+                // set current location
                 new_state.location = destination.clone();
                 // increment debt, if any
                 let new_debt = f64::from(new_state.debt) * 1.1;
                 new_state.debt = new_debt.floor() as u32;
+                // determine if we've encountered an event
+                if new_state.rng.next_u32() % 2 == 0 {
+                    // we've hit an event
+                    let event: GameEvent = match new_state.rng.next_u32() {
+                        _ => {
+                            // select good to be cheap
+                            let good = GoodType::random(&mut new_state.rng);
+                            // TODO events need to be determined when locations / location prices
+                            // are first generated, in order to have gossip anticipate them
+                            let location_prices = match new_state.location {
+                                Location::London => &mut new_state.prices.london,
+                                Location::Savannah => &mut new_state.prices.savannah,
+                                Location::Lisbon => &mut new_state.prices.lisbon,
+                                Location::Amsterdam => &mut new_state.prices.amsterdam,
+                                Location::CapeTown => &mut new_state.prices.capetown,
+                                Location::Venice => &mut new_state.prices.venice,
+                            };
+                            let good_price: &mut u32 = match good {
+                                GoodType::Tea => &mut location_prices.tea,
+                                GoodType::Coffee => &mut location_prices.coffee,
+                                GoodType::Sugar => &mut location_prices.sugar,
+                                GoodType::Tobacco => &mut location_prices.tobacco,
+                                GoodType::Rum => &mut location_prices.rum,
+                                GoodType::Cotton => &mut location_prices.cotton,
+                            };
+                            *good_price = ((*good_price as f64) * 0.5).floor() as u32;
+                            GameEvent::CheapGood(good)
+                        }
+                    };
+                    new_state.mode = Mode::GameEvent(event);
+                }
                 Ok(new_state)
             }
         } else {
@@ -659,6 +697,16 @@ impl GameState {
 
     pub fn cancel_sail_to(&self) -> Result<GameState, StateError> {
         if let Mode::Sailing = self.mode {
+            let mut new_state = self.clone();
+            new_state.mode = Mode::ViewingInventory;
+            Ok(new_state)
+        } else {
+            Err(StateError::InvalidMode(&self.mode))
+        }
+    }
+
+    pub fn acknowledge_event(&self) -> Result<GameState, StateError> {
+        if let Mode::GameEvent(_) = self.mode {
             let mut new_state = self.clone();
             new_state.mode = Mode::ViewingInventory;
             Ok(new_state)
@@ -718,5 +766,18 @@ impl Display for GoodType {
         };
         // Use `self.number` to refer to each positional data point.
         write!(f, "{}", string)
+    }
+}
+
+impl GoodType {
+    fn random(rng: &mut StdRng) -> GoodType {
+        match rng.next_u32() % 6 {
+            0 => GoodType::Tea,
+            1 => GoodType::Coffee,
+            2 => GoodType::Sugar,
+            3 => GoodType::Tobacco,
+            4 => GoodType::Rum,
+            _ => GoodType::Cotton,
+        }
     }
 }

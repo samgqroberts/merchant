@@ -9,7 +9,7 @@ use crossterm::{
 
 use crate::{
     comp,
-    state::{GameState, Inventory, Location, Transaction},
+    state::{GameState, GoodType, Inventory, Location, Transaction},
 };
 
 pub struct SplashScreen();
@@ -550,6 +550,22 @@ impl<'a> Command for PayDebtInput<'a> {
             PrintStyledContent(prompt.with(Color::White)),
             MoveTo(offset_x + prompt_len, offset_y),
             Show
+        );
+        Ok(())
+    }
+}
+
+pub struct CheapGoodDialog<'a>(pub &'a GoodType, pub u16, pub u16);
+
+impl<'a> Command for CheapGoodDialog<'a> {
+    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+        let good = self.0;
+        let offset_x = self.1;
+        let offset_y = self.2;
+        comp!(
+            f,
+            MoveTo(offset_x, offset_y),
+            PrintStyledContent(format!("Cheap {} here!", good).with(Color::White)),
         );
         Ok(())
     }
