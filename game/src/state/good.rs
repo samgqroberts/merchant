@@ -3,7 +3,7 @@ use std::fmt::{self, Display};
 use rand::{rngs::StdRng, RngCore};
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum GoodType {
+pub enum Good {
     Tea,
     Coffee,
     Sugar,
@@ -12,39 +12,42 @@ pub enum GoodType {
     Cotton,
 }
 
-pub const GOOD_TYPES: &'static [GoodType] = &[
-    GoodType::Tea,
-    GoodType::Coffee,
-    GoodType::Sugar,
-    GoodType::Tobacco,
-    GoodType::Rum,
-    GoodType::Cotton,
-];
-
-impl Display for GoodType {
+impl Display for Good {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let string = match self {
-            GoodType::Tea => "Tea",
-            GoodType::Coffee => "Coffee",
-            GoodType::Sugar => "Sugar",
-            GoodType::Tobacco => "Tobacco",
-            GoodType::Rum => "Rum",
-            GoodType::Cotton => "Cotton",
+            Good::Tea => "Tea",
+            Good::Coffee => "Coffee",
+            Good::Sugar => "Sugar",
+            Good::Tobacco => "Tobacco",
+            Good::Rum => "Rum",
+            Good::Cotton => "Cotton",
         };
         // Use `self.number` to refer to each positional data point.
         write!(f, "{}", string)
     }
 }
 
-impl GoodType {
-    pub fn random(rng: &mut StdRng) -> GoodType {
+impl Good {
+    pub fn random(rng: &mut StdRng) -> Good {
         match rng.next_u32() % 6 {
-            0 => GoodType::Tea,
-            1 => GoodType::Coffee,
-            2 => GoodType::Sugar,
-            3 => GoodType::Tobacco,
-            4 => GoodType::Rum,
-            _ => GoodType::Cotton,
+            0 => Good::Tea,
+            1 => Good::Coffee,
+            2 => Good::Sugar,
+            3 => Good::Tobacco,
+            4 => Good::Rum,
+            _ => Good::Cotton,
         }
+    }
+
+    pub fn variants() -> impl Iterator<Item = &'static Good> {
+        static VARIANTS: &'static [Good] = &[
+            Good::Tea,
+            Good::Coffee,
+            Good::Sugar,
+            Good::Tobacco,
+            Good::Rum,
+            Good::Cotton,
+        ];
+        VARIANTS.iter()
     }
 }

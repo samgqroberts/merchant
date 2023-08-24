@@ -1,4 +1,4 @@
-use super::{good::GOOD_TYPES, GoodType};
+use super::Good;
 
 #[derive(Clone, Debug)]
 pub struct Inventory {
@@ -22,59 +22,59 @@ impl Inventory {
         }
     }
 
-    pub fn good_amount(&self, good_type: &GoodType) -> u32 {
+    pub fn good_amount(&self, good_type: &Good) -> u32 {
         match good_type {
-            GoodType::Tea => self.tea,
-            GoodType::Coffee => self.coffee,
-            GoodType::Sugar => self.sugar,
-            GoodType::Tobacco => self.tobacco,
-            GoodType::Rum => self.rum,
-            GoodType::Cotton => self.cotton,
+            Good::Tea => self.tea,
+            Good::Coffee => self.coffee,
+            Good::Sugar => self.sugar,
+            Good::Tobacco => self.tobacco,
+            Good::Rum => self.rum,
+            Good::Cotton => self.cotton,
         }
     }
 
     pub fn total_amount(&self) -> u32 {
         let mut total: u32 = 0;
-        for good in GOOD_TYPES {
+        for good in Good::variants() {
             total += self.good_amount(good);
         }
         total
     }
 
-    pub fn add_good(&self, good: &GoodType, amount: u32) -> Inventory {
+    pub fn add_good(&self, good: &Good, amount: u32) -> Inventory {
         let mut new_inventory = self.clone();
         match good {
-            GoodType::Tea => new_inventory.tea += amount,
-            GoodType::Coffee => new_inventory.coffee += amount,
-            GoodType::Sugar => new_inventory.sugar += amount,
-            GoodType::Tobacco => new_inventory.tobacco += amount,
-            GoodType::Rum => new_inventory.rum += amount,
-            GoodType::Cotton => new_inventory.cotton += amount,
+            Good::Tea => new_inventory.tea += amount,
+            Good::Coffee => new_inventory.coffee += amount,
+            Good::Sugar => new_inventory.sugar += amount,
+            Good::Tobacco => new_inventory.tobacco += amount,
+            Good::Rum => new_inventory.rum += amount,
+            Good::Cotton => new_inventory.cotton += amount,
         }
         new_inventory
     }
 
-    pub fn remove_good(&self, good: &GoodType, amount: u32) -> Inventory {
+    pub fn remove_good(&self, good: &Good, amount: u32) -> Inventory {
         let mut new_inventory = self.clone();
         match good {
-            GoodType::Tea => new_inventory.tea -= amount,
-            GoodType::Coffee => new_inventory.coffee -= amount,
-            GoodType::Sugar => new_inventory.sugar -= amount,
-            GoodType::Tobacco => new_inventory.tobacco -= amount,
-            GoodType::Rum => new_inventory.rum -= amount,
-            GoodType::Cotton => new_inventory.cotton -= amount,
+            Good::Tea => new_inventory.tea -= amount,
+            Good::Coffee => new_inventory.coffee -= amount,
+            Good::Sugar => new_inventory.sugar -= amount,
+            Good::Tobacco => new_inventory.tobacco -= amount,
+            Good::Rum => new_inventory.rum -= amount,
+            Good::Cotton => new_inventory.cotton -= amount,
         }
         new_inventory
     }
 
-    pub fn get_good_mut(&mut self, good: &GoodType) -> &mut u32 {
+    pub fn get_good_mut(&mut self, good: &Good) -> &mut u32 {
         match good {
-            GoodType::Tea => &mut self.tea,
-            GoodType::Coffee => &mut self.coffee,
-            GoodType::Sugar => &mut self.sugar,
-            GoodType::Tobacco => &mut self.tobacco,
-            GoodType::Rum => &mut self.rum,
-            GoodType::Cotton => &mut self.cotton,
+            Good::Tea => &mut self.tea,
+            Good::Coffee => &mut self.coffee,
+            Good::Sugar => &mut self.sugar,
+            Good::Tobacco => &mut self.tobacco,
+            Good::Rum => &mut self.rum,
+            Good::Cotton => &mut self.cotton,
         }
     }
 }

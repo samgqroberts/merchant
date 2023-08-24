@@ -1,6 +1,6 @@
 use rand::{rngs::StdRng, RngCore};
 
-use super::{GoodType, Inventory, Location, LocationEvent};
+use super::{Good, Inventory, Location, LocationEvent};
 
 #[derive(Clone, Debug)]
 pub struct PriceConfig {
@@ -98,7 +98,7 @@ impl Locations {
                 let event: LocationEvent = match rng.next_u32() {
                     _ => {
                         // select good to be cheap
-                        let good = GoodType::random(rng);
+                        let good = Good::random(rng);
                         // update location prices
                         let good_price = (&mut new_location_info).prices.get_good_mut(&good);
                         *good_price = ((*good_price as f64) * 0.5).floor() as u32;

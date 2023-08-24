@@ -3,7 +3,7 @@ use rand::{rngs::StdRng, SeedableRng};
 
 use crate::{
     engine::UpdateResult,
-    state::{GameState, GoodType, LocationEvent, Mode},
+    state::{GameState, Good, LocationEvent, Mode},
     test::test_engine::TestEngine,
 };
 
@@ -315,7 +315,7 @@ fn arrive_at_cheap_good_event() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state(
         {
             let mut state = GameState::new(StdRng::seed_from_u64(42));
-            state.mode = Mode::GameEvent(LocationEvent::CheapGood(GoodType::Coffee));
+            state.mode = Mode::GameEvent(LocationEvent::CheapGood(Good::Coffee));
             state
         }
         .initialize(),

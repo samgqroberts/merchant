@@ -8,20 +8,20 @@ use std::fmt::{self, Display};
 use chrono::Month;
 use rand::rngs::StdRng;
 
-pub use self::good::GoodType;
+pub use self::good::Good;
 pub use self::inventory::Inventory;
 pub use self::location::Location;
 pub use self::locations::{LocationInfo, Locations, PriceConfig};
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Transaction {
-    pub good: GoodType,
+    pub good: Good,
     pub amount: Option<u32>,
 }
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum LocationEvent {
-    CheapGood(GoodType),
+    CheapGood(Good),
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -160,7 +160,7 @@ impl GameState {
         return Ok(new_state);
     }
 
-    pub fn choose_buy_good(&self, good: GoodType) -> Result<GameState, StateError> {
+    pub fn choose_buy_good(&self, good: Good) -> Result<GameState, StateError> {
         if let Mode::Buying(None) = &self.mode {
             let mut new_state = self.clone();
             new_state.mode = Mode::Buying(Some(Transaction { good, amount: None }));
@@ -169,7 +169,7 @@ impl GameState {
         Err(StateError::InvalidMode(&self.mode))
     }
 
-    pub fn choose_sell_good(&self, good: GoodType) -> Result<GameState, StateError> {
+    pub fn choose_sell_good(&self, good: Good) -> Result<GameState, StateError> {
         if let Mode::Selling(None) = &self.mode {
             let mut new_state = self.clone();
             new_state.mode = Mode::Selling(Some(Transaction { good, amount: None }));
@@ -178,7 +178,7 @@ impl GameState {
         Err(StateError::InvalidMode(&self.mode))
     }
 
-    pub fn choose_stash_deposit_good(&self, good: GoodType) -> Result<GameState, StateError> {
+    pub fn choose_stash_deposit_good(&self, good: Good) -> Result<GameState, StateError> {
         if let Mode::StashDeposit(None) = &self.mode {
             let mut new_state = self.clone();
             new_state.mode = Mode::StashDeposit(Some(Transaction { good, amount: None }));
@@ -187,7 +187,7 @@ impl GameState {
         Err(StateError::InvalidMode(&self.mode))
     }
 
-    pub fn choose_stash_withdraw_good(&self, good: GoodType) -> Result<GameState, StateError> {
+    pub fn choose_stash_withdraw_good(&self, good: Good) -> Result<GameState, StateError> {
         if let Mode::StashWithdraw(None) = &self.mode {
             let mut new_state = self.clone();
             new_state.mode = Mode::StashWithdraw(Some(Transaction { good, amount: None }));

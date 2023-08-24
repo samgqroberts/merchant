@@ -17,7 +17,7 @@ use crate::{
         StashDepositPrompt, StashWithdrawInput, StashWithdrawPrompt, ViewingInventoryActions,
         ViewingInventoryBase,
     },
-    state::{GameState, GoodType, Location, LocationEvent, Mode, StateError},
+    state::{GameState, Good, Location, LocationEvent, Mode, StateError},
 };
 
 #[derive(Debug)]
@@ -45,16 +45,16 @@ where
     fn from_key_code(key_code: &KeyCode) -> Option<Self>;
 }
 
-impl FromKeyCode for GoodType {
+impl FromKeyCode for Good {
     fn from_key_code(key_code: &KeyCode) -> Option<Self> {
         if let KeyCode::Char(c) = key_code {
             match c {
-                '1' => Some(GoodType::Tea),
-                '2' => Some(GoodType::Coffee),
-                '3' => Some(GoodType::Sugar),
-                '4' => Some(GoodType::Tobacco),
-                '5' => Some(GoodType::Rum),
-                '6' => Some(GoodType::Cotton),
+                '1' => Some(Good::Tea),
+                '2' => Some(Good::Coffee),
+                '3' => Some(Good::Sugar),
+                '4' => Some(Good::Tobacco),
+                '5' => Some(Good::Rum),
+                '6' => Some(Good::Cotton),
                 _ => None,
             }
         } else {
@@ -189,7 +189,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                     } else {
                         queue!(writer, BuyPrompt(9, 19))?;
                         return Ok(Box::new(|event: KeyEvent, state: &GameState| {
-                            if let Some(good) = GoodType::from_key_code(&event.code) {
+                            if let Some(good) = Good::from_key_code(&event.code) {
                                 Ok(Some(state.choose_buy_good(good)?))
                             } else if event.code == KeyCode::Backspace {
                                 Ok(Some(state.cancel_buy()?))
@@ -228,7 +228,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         // user is choosing which good to sell
                         queue!(writer, SellPrompt(9, 19))?;
                         return Ok(Box::new(|event: KeyEvent, state: &GameState| {
-                            if let Some(good) = GoodType::from_key_code(&event.code) {
+                            if let Some(good) = Good::from_key_code(&event.code) {
                                 Ok(Some(state.choose_sell_good(good)?))
                             } else if event.code == KeyCode::Backspace {
                                 Ok(Some(state.cancel_sell()?))
@@ -287,7 +287,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         // user is choosing which good to stash
                         queue!(writer, StashDepositPrompt(9, 19))?;
                         return Ok(Box::new(|event: KeyEvent, state: &GameState| {
-                            if let Some(good) = GoodType::from_key_code(&event.code) {
+                            if let Some(good) = Good::from_key_code(&event.code) {
                                 Ok(Some(state.choose_stash_deposit_good(good)?))
                             } else if event.code == KeyCode::Backspace {
                                 Ok(Some(state.cancel_stash_deposit()?))
@@ -327,7 +327,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         // user is choosing which good to withdraw from stash
                         queue!(writer, StashWithdrawPrompt(9, 19))?;
                         return Ok(Box::new(|event: KeyEvent, state: &GameState| {
-                            if let Some(good) = GoodType::from_key_code(&event.code) {
+                            if let Some(good) = Good::from_key_code(&event.code) {
                                 Ok(Some(state.choose_stash_withdraw_good(good)?))
                             } else if event.code == KeyCode::Backspace {
                                 Ok(Some(state.cancel_stash_withdraw()?))
