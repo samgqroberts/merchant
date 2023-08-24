@@ -1,6 +1,5 @@
 use captured_write::CapturedWrite;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use pretty_assertions::assert_eq;
 use rand::{rngs::StdRng, SeedableRng};
 use std::{cell::RefCell, str};
 
@@ -34,10 +33,15 @@ impl TestEngine {
         })
     }
 
-    pub fn expect(&self, expectation: &str) -> bool {
-        let expectation = expectation.trim_matches('\n');
+    pub fn get_current_formatted(&self) -> String {
         let buffer = self.writer_ref.borrow().buffer.clone();
         let formatted = raw_format_ansi(&buffer);
+        formatted
+    }
+
+    pub fn expect(&self, expectation: &str) -> bool {
+        let expectation = expectation.trim_matches('\n');
+        let formatted = self.get_current_formatted();
         let result = formatted.contains(expectation);
         if !result {
             println!("----------------\n{}\n----------------", formatted);
@@ -45,15 +49,14 @@ impl TestEngine {
         result
     }
 
-    pub fn expect_full(&self, expectation: &str) -> UpdateResult<()> {
+    pub fn expect_full(&self, expectation: &str) -> bool {
         let expectation = expectation.trim_matches('\n');
-        let buffer = self.writer_ref.borrow().buffer.clone();
-        let formatted = raw_format_ansi(&buffer);
-        if formatted != expectation.to_owned() {
+        let formatted = self.get_current_formatted();
+        let result = formatted == expectation.to_owned();
+        if !result {
             println!("----------------\n{}\n----------------", formatted);
         }
-        assert_eq!(formatted, expectation.to_owned());
-        Ok(())
+        result
     }
 
     #[allow(unused_must_use)]

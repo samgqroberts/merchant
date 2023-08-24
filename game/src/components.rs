@@ -131,22 +131,21 @@ impl<'a> Command for InventoryList<'a> {
         let inventory = self.0;
         let offset_x = self.1;
         let offset_y = self.2;
-        MoveTo(offset_x + 2, offset_y).write_ansi(f)?;
-        PrintStyledContent(format!("Sugar: {}", inventory.sugar).with(Color::White))
-            .write_ansi(f)?;
-        MoveTo(offset_x, offset_y + 1).write_ansi(f)?;
-        PrintStyledContent(format!("Tobacco: {}", inventory.tobacco).with(Color::White))
-            .write_ansi(f)?;
-        MoveTo(offset_x + 4, offset_y + 2).write_ansi(f)?;
-        PrintStyledContent(format!("Tea: {}", inventory.tea).with(Color::White)).write_ansi(f)?;
-        MoveTo(offset_x + 1, offset_y + 3).write_ansi(f)?;
-        PrintStyledContent(format!("Cotton: {}", inventory.cotton).with(Color::White))
-            .write_ansi(f)?;
-        MoveTo(offset_x + 4, offset_y + 4).write_ansi(f)?;
-        PrintStyledContent(format!("Rum: {}", inventory.rum).with(Color::White)).write_ansi(f)?;
-        MoveTo(offset_x + 1, offset_y + 5).write_ansi(f)?;
-        PrintStyledContent(format!("Coffee: {}", inventory.coffee).with(Color::White))
-            .write_ansi(f)?;
+        comp!(
+            f,
+            MoveTo(offset_x + 4, offset_y),
+            PrintStyledContent(format!("Tea: {}", inventory.tea).with(Color::White)),
+            MoveTo(offset_x + 1, offset_y + 1),
+            PrintStyledContent(format!("Coffee: {}", inventory.coffee).with(Color::White)),
+            MoveTo(offset_x + 2, offset_y + 2),
+            PrintStyledContent(format!("Sugar: {}", inventory.sugar).with(Color::White)),
+            MoveTo(offset_x, offset_y + 3),
+            PrintStyledContent(format!("Tobacco: {}", inventory.tobacco).with(Color::White)),
+            MoveTo(offset_x + 4, offset_y + 4),
+            PrintStyledContent(format!("Rum: {}", inventory.rum).with(Color::White)),
+            MoveTo(offset_x + 1, offset_y + 5),
+            PrintStyledContent(format!("Cotton: {}", inventory.cotton).with(Color::White)),
+        );
         Ok(())
     }
 }
@@ -162,18 +161,18 @@ impl<'a> Command for CurrentPrices<'a> {
             f,
             MoveTo(offset_x, offset_y),
             PrintStyledContent("Captain, the prices of goods here are:".with(Color::White)),
-            MoveTo(offset_x + 6, offset_y + 1),
+            MoveTo(offset_x + 8, offset_y + 1),
+            PrintStyledContent(format!("Tea: {}", prices.tea).with(Color::White)),
+            MoveTo(offset_x + 5, offset_y + 2),
+            PrintStyledContent(format!("Coffee: {}", prices.coffee).with(Color::White)),
+            MoveTo(offset_x + 6, offset_y + 3),
             PrintStyledContent(format!("Sugar: {}", prices.sugar).with(Color::White)),
             MoveTo(offset_x + 27, offset_y + 1),
             PrintStyledContent(format!("Tobacco: {}", prices.tobacco).with(Color::White)),
-            MoveTo(offset_x + 8, offset_y + 2),
-            PrintStyledContent(format!("Tea: {}", prices.tea).with(Color::White)),
-            MoveTo(offset_x + 28, offset_y + 2),
-            PrintStyledContent(format!("Cotton: {}", prices.cotton).with(Color::White)),
-            MoveTo(offset_x + 8, offset_y + 3),
+            MoveTo(offset_x + 31, offset_y + 2),
             PrintStyledContent(format!("Rum: {}", prices.rum).with(Color::White)),
             MoveTo(offset_x + 28, offset_y + 3),
-            PrintStyledContent(format!("Coffee: {}", prices.coffee).with(Color::White)),
+            PrintStyledContent(format!("Cotton: {}", prices.cotton).with(Color::White)),
         );
         Ok(())
     }
@@ -327,18 +326,32 @@ impl Command for BuyPrompt {
             f,
             MoveTo(offset_x, offset_y),
             PrintStyledContent("Which do you want to buy?".with(Color::White)),
+            GoodOptions(offset_x, offset_y + 1)
+        );
+        Ok(())
+    }
+}
+
+pub struct GoodOptions(pub u16, pub u16);
+
+impl Command for GoodOptions {
+    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+        let offset_x = self.0;
+        let offset_y = self.1;
+        comp!(
+            f,
+            MoveTo(offset_x, offset_y),
+            PrintStyledContent("(1) Tea".with(Color::White)),
             MoveTo(offset_x, offset_y + 1),
-            PrintStyledContent("(1) Sugar".with(Color::White)),
+            PrintStyledContent("(2) Coffee".with(Color::White)),
             MoveTo(offset_x, offset_y + 2),
-            PrintStyledContent("(2) Tobacco".with(Color::White)),
+            PrintStyledContent("(3) Sugar".with(Color::White)),
             MoveTo(offset_x, offset_y + 3),
-            PrintStyledContent("(3) Tea".with(Color::White)),
+            PrintStyledContent("(4) Tobacco".with(Color::White)),
             MoveTo(offset_x, offset_y + 4),
-            PrintStyledContent("(4) Cotton".with(Color::White)),
-            MoveTo(offset_x, offset_y + 5),
             PrintStyledContent("(5) Rum".with(Color::White)),
-            MoveTo(offset_x, offset_y + 6),
-            PrintStyledContent("(6) Coffee".with(Color::White)),
+            MoveTo(offset_x, offset_y + 5),
+            PrintStyledContent("(6) Cotton".with(Color::White)),
         );
         Ok(())
     }
@@ -383,18 +396,7 @@ impl Command for SellPrompt {
             f,
             MoveTo(offset_x, offset_y),
             PrintStyledContent("Which do you want to sell?".with(Color::White)),
-            MoveTo(offset_x, offset_y + 1),
-            PrintStyledContent("(1) Sugar".with(Color::White)),
-            MoveTo(offset_x, offset_y + 2),
-            PrintStyledContent("(2) Tobacco".with(Color::White)),
-            MoveTo(offset_x, offset_y + 3),
-            PrintStyledContent("(3) Tea".with(Color::White)),
-            MoveTo(offset_x, offset_y + 4),
-            PrintStyledContent("(4) Cotton".with(Color::White)),
-            MoveTo(offset_x, offset_y + 5),
-            PrintStyledContent("(5) Rum".with(Color::White)),
-            MoveTo(offset_x, offset_y + 6),
-            PrintStyledContent("(6) Coffee".with(Color::White)),
+            GoodOptions(offset_x, offset_y + 1),
         );
         Ok(())
     }
@@ -467,18 +469,7 @@ impl Command for StashDepositPrompt {
             f,
             MoveTo(offset_x, offset_y),
             PrintStyledContent("Which do you want to stash?".with(Color::White)),
-            MoveTo(offset_x, offset_y + 1),
-            PrintStyledContent("(1) Sugar".with(Color::White)),
-            MoveTo(offset_x, offset_y + 2),
-            PrintStyledContent("(2) Tobacco".with(Color::White)),
-            MoveTo(offset_x, offset_y + 3),
-            PrintStyledContent("(3) Tea".with(Color::White)),
-            MoveTo(offset_x, offset_y + 4),
-            PrintStyledContent("(4) Cotton".with(Color::White)),
-            MoveTo(offset_x, offset_y + 5),
-            PrintStyledContent("(5) Rum".with(Color::White)),
-            MoveTo(offset_x, offset_y + 6),
-            PrintStyledContent("(6) Coffee".with(Color::White)),
+            GoodOptions(offset_x, offset_y + 1),
         );
         Ok(())
     }
@@ -524,18 +515,7 @@ impl Command for StashWithdrawPrompt {
             f,
             MoveTo(offset_x, offset_y),
             PrintStyledContent("Which do you want to withdraw?".with(Color::White)),
-            MoveTo(offset_x, offset_y + 1),
-            PrintStyledContent("(1) Sugar".with(Color::White)),
-            MoveTo(offset_x, offset_y + 2),
-            PrintStyledContent("(2) Tobacco".with(Color::White)),
-            MoveTo(offset_x, offset_y + 3),
-            PrintStyledContent("(3) Tea".with(Color::White)),
-            MoveTo(offset_x, offset_y + 4),
-            PrintStyledContent("(4) Cotton".with(Color::White)),
-            MoveTo(offset_x, offset_y + 5),
-            PrintStyledContent("(5) Rum".with(Color::White)),
-            MoveTo(offset_x, offset_y + 6),
-            PrintStyledContent("(6) Coffee".with(Color::White)),
+            GoodOptions(offset_x, offset_y + 1),
         );
         Ok(())
     }

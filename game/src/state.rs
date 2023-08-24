@@ -87,34 +87,34 @@ impl Prices {
 
 #[derive(Clone, Debug)]
 pub struct Inventory {
+    pub tea: u32,
+    pub coffee: u32,
     pub sugar: u32,
     pub tobacco: u32,
-    pub tea: u32,
-    pub cotton: u32,
     pub rum: u32,
-    pub coffee: u32,
+    pub cotton: u32,
 }
 
 impl Inventory {
     fn new() -> Inventory {
         Inventory {
+            tea: 0,
+            coffee: 0,
             sugar: 0,
             tobacco: 0,
-            tea: 0,
-            cotton: 0,
             rum: 0,
-            coffee: 0,
+            cotton: 0,
         }
     }
 
     pub fn good_amount(&self, good_type: &GoodType) -> u32 {
         match good_type {
+            GoodType::Tea => self.tea,
+            GoodType::Coffee => self.coffee,
             GoodType::Sugar => self.sugar,
             GoodType::Tobacco => self.tobacco,
-            GoodType::Tea => self.tea,
-            GoodType::Cotton => self.cotton,
             GoodType::Rum => self.rum,
-            GoodType::Coffee => self.coffee,
+            GoodType::Cotton => self.cotton,
         }
     }
 
@@ -129,12 +129,12 @@ impl Inventory {
     pub fn add_good(&self, good: &GoodType, amount: u32) -> Inventory {
         let mut new_inventory = self.clone();
         match good {
+            GoodType::Tea => new_inventory.tea += amount,
+            GoodType::Coffee => new_inventory.coffee += amount,
             GoodType::Sugar => new_inventory.sugar += amount,
             GoodType::Tobacco => new_inventory.tobacco += amount,
-            GoodType::Tea => new_inventory.tea += amount,
-            GoodType::Cotton => new_inventory.cotton += amount,
             GoodType::Rum => new_inventory.rum += amount,
-            GoodType::Coffee => new_inventory.coffee += amount,
+            GoodType::Cotton => new_inventory.cotton += amount,
         }
         new_inventory
     }
@@ -142,12 +142,12 @@ impl Inventory {
     pub fn remove_good(&self, good: &GoodType, amount: u32) -> Inventory {
         let mut new_inventory = self.clone();
         match good {
+            GoodType::Tea => new_inventory.tea -= amount,
+            GoodType::Coffee => new_inventory.coffee -= amount,
             GoodType::Sugar => new_inventory.sugar -= amount,
             GoodType::Tobacco => new_inventory.tobacco -= amount,
-            GoodType::Tea => new_inventory.tea -= amount,
-            GoodType::Cotton => new_inventory.cotton -= amount,
             GoodType::Rum => new_inventory.rum -= amount,
-            GoodType::Coffee => new_inventory.coffee -= amount,
+            GoodType::Cotton => new_inventory.cotton -= amount,
         }
         new_inventory
     }
@@ -677,32 +677,32 @@ impl<'a> Display for StateError<'a> {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum GoodType {
+    Tea,
+    Coffee,
     Sugar,
     Tobacco,
-    Tea,
-    Cotton,
     Rum,
-    Coffee,
+    Cotton,
 }
 
 const GOOD_TYPES: &'static [GoodType] = &[
+    GoodType::Tea,
+    GoodType::Coffee,
     GoodType::Sugar,
     GoodType::Tobacco,
-    GoodType::Tea,
-    GoodType::Cotton,
     GoodType::Rum,
-    GoodType::Coffee,
+    GoodType::Cotton,
 ];
 
 impl Display for GoodType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let string = match self {
+            GoodType::Tea => "Tea",
+            GoodType::Coffee => "Coffee",
             GoodType::Sugar => "Sugar",
             GoodType::Tobacco => "Tobacco",
-            GoodType::Tea => "Tea",
-            GoodType::Cotton => "Cotton",
             GoodType::Rum => "Rum",
-            GoodType::Coffee => "Coffee",
+            GoodType::Cotton => "Cotton",
         };
         // Use `self.number` to refer to each positional data point.
         write!(f, "{}", string)

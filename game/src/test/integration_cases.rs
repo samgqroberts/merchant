@@ -4,8 +4,8 @@ use crate::{engine::UpdateResult, state::GameState, test::test_engine::TestEngin
 
 #[test]
 fn splash_screen_into_inventory() -> UpdateResult<()> {
-    let mut test_engine = TestEngine::new()?;
-    test_engine.expect_full(
+    let mut e = TestEngine::new()?;
+    assert!(e.expect_full(
         r"
 Merchant
 
@@ -15,28 +15,28 @@ By samgqroberts
 
 Press any key to begin
 ",
-    )?;
-    test_engine.charpress('a')?;
-    test_engine.expect_full(
+    ));
+    e.charpress('a')?;
+    assert!(e.expect_full(
         "
          March 1782             Hold Size 100
          Gold 1400               Location London
 
           Home base              Inventory
+             Tea: 0                 Tea: 0
+          Coffee: 0              Coffee: 0
            Sugar: 0               Sugar: 0
          Tobacco: 0             Tobacco: 0
-             Tea: 0                 Tea: 0
-          Cotton: 0              Cotton: 0
              Rum: 0                 Rum: 0
-          Coffee: 0              Coffee: 0
+          Cotton: 0              Cotton: 0
 
             Bank: 0
             Debt: 1400
 
      Captain, the prices of goods here are:
-           Sugar: 49            Tobacco: 106
-             Tea: 52             Cotton: 98
-             Rum: 48             Coffee: 40
+             Tea: 52            Tobacco: 106
+          Coffee: 40                Rum: 48
+           Sugar: 49             Cotton: 98
 
          (1) Buy
          (2) Sell
@@ -48,7 +48,7 @@ Press any key to begin
          (8) Bank deposit
          (9) Bank withdraw
 ",
-    )?;
+    ));
     Ok(())
 }
 
@@ -64,7 +64,7 @@ fn end_game_positive() -> UpdateResult<()> {
         }
         .initialize(),
     )?;
-    e.expect_full(
+    assert!(e.expect_full(
         r"
 Congratulations!!
 
@@ -73,7 +73,7 @@ After three years, you went from being
 to having
 39900 gold
 ",
-    )?;
+    ));
     Ok(())
 }
 
@@ -89,7 +89,7 @@ fn end_game_negative() -> UpdateResult<()> {
         }
         .initialize(),
     )?;
-    e.expect_full(
+    assert!(e.expect_full(
         r"
 Congratulations!!
 
@@ -98,7 +98,7 @@ After three years, you went from being
 to being
 39900 gold in debt
 ",
-    )?;
+    ));
     Ok(())
 }
 
@@ -119,8 +119,8 @@ fn sell_good() -> UpdateResult<()> {
     assert!(e.expect("(2) Sell"));
     e.charpress('2')?;
     assert!(e.expect("Which do you want to sell?"));
-    assert!(e.expect("(4) Cotton"));
-    e.charpress('4')?;
+    assert!(e.expect("(6) Cotton"));
+    e.charpress('6')?;
     assert!(e.expect("How much Cotton do you want to sell?"));
     assert!(e.expect("You have (15)"));
     e.charpress('1')?;
@@ -195,8 +195,8 @@ fn stash_withdraw() -> UpdateResult<()> {
     assert!(e.expect("(5) Stash withdraw"));
     e.charpress('5')?;
     assert!(e.expect("Which do you want to withdraw?"));
-    assert!(e.expect("(3) Tea"));
-    e.charpress('3')?;
+    assert!(e.expect("(1) Tea"));
+    e.charpress('1')?;
     assert!(e.expect("How much Tea do you want to withdraw?"));
     assert!(e.expect("There are (30)"));
     e.charpress('1')?;

@@ -49,12 +49,12 @@ impl FromKeyCode for GoodType {
     fn from_key_code(key_code: &KeyCode) -> Option<Self> {
         if let KeyCode::Char(c) = key_code {
             match c {
-                '1' => Some(GoodType::Sugar),
-                '2' => Some(GoodType::Tobacco),
-                '3' => Some(GoodType::Tea),
-                '4' => Some(GoodType::Cotton),
+                '1' => Some(GoodType::Tea),
+                '2' => Some(GoodType::Coffee),
+                '3' => Some(GoodType::Sugar),
+                '4' => Some(GoodType::Tobacco),
                 '5' => Some(GoodType::Rum),
-                '6' => Some(GoodType::Coffee),
+                '6' => Some(GoodType::Cotton),
                 _ => None,
             }
         } else {
