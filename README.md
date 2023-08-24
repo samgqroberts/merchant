@@ -12,8 +12,8 @@ TODO
   - [] confrontations (pirates?)
     - choices: get captured, run, fight, ignore
   - [] theft
-  - [] good sales (cheaper goods)
-  - [] increased good prices
+  - [x] good sales (cheaper goods)
+  - [x] increased good prices
   - [] find random goods
 - [] enliven UI
   - big ASCII ship?

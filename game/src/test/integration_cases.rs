@@ -310,3 +310,17 @@ fn arrive_at_cheap_good_event() -> UpdateResult<()> {
     assert!(e.expect("Captain, the prices of goods here are:"));
     Ok(())
 }
+
+#[test]
+fn arrive_at_expensive_good_event() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(42));
+        state.initialize();
+        state.mode = Mode::GameEvent(LocationEvent::ExpensiveGood(Good::Coffee));
+        state
+    })?;
+    assert!(e.expect("Expensive Coffee here!"));
+    e.charpress('a')?;
+    assert!(e.expect("Captain, the prices of goods here are:"));
+    Ok(())
+}

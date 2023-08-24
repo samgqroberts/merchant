@@ -22,6 +22,7 @@ pub struct Transaction {
 #[derive(PartialEq, Clone, Debug)]
 pub enum LocationEvent {
     CheapGood(Good),
+    ExpensiveGood(Good),
 }
 
 #[derive(PartialEq, Clone, Debug)]

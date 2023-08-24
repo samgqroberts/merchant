@@ -93,16 +93,25 @@ impl Locations {
         let mut new_location_info = LocationInfo::empty();
         new_location_info.prices = self.randomized_inventory(rng);
         if allow_events {
+            // % 2 means 50% chance of hitting some event
             new_location_info.event = if rng.next_u32() % 2 == 0 {
                 // we've hit an event
-                let event: LocationEvent = match rng.next_u32() {
-                    _ => {
-                        // select good to be cheap
+                let event: LocationEvent = match rng.next_u32() % 2 {
+                    0 => {
+                        // cheap good
                         let good = Good::random(rng);
                         // update location prices
                         let good_price = (&mut new_location_info).prices.get_good_mut(&good);
                         *good_price = ((*good_price as f64) * 0.5).floor() as u32;
                         LocationEvent::CheapGood(good)
+                    }
+                    _ => {
+                        // more expensive good
+                        let good = Good::random(rng);
+                        // update location prices
+                        let good_price = (&mut new_location_info).prices.get_good_mut(&good);
+                        *good_price = ((*good_price as f64) * 2.0).floor() as u32;
+                        LocationEvent::ExpensiveGood(good)
                     }
                 };
                 Some(event)

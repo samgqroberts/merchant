@@ -575,3 +575,19 @@ impl<'a> Command for CheapGoodDialog<'a> {
         Ok(())
     }
 }
+
+pub struct ExpensiveGoodDialog<'a>(pub &'a Good, pub u16, pub u16);
+
+impl<'a> Command for ExpensiveGoodDialog<'a> {
+    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+        let good = self.0;
+        let offset_x = self.1;
+        let offset_y = self.2;
+        comp!(
+            f,
+            MoveTo(offset_x, offset_y),
+            PrintStyledContent(format!("Expensive {} here!", good).with(Color::White)),
+        );
+        Ok(())
+    }
+}

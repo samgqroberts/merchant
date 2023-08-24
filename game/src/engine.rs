@@ -12,10 +12,10 @@ use std::{
 
 use crate::{
     components::{
-        BankDepositInput, BankWithdrawInput, BuyInput, BuyPrompt, CheapGoodDialog, GameEndScreen,
-        PayDebtInput, SailPrompt, SellInput, SellPrompt, SplashScreen, StashDepositInput,
-        StashDepositPrompt, StashWithdrawInput, StashWithdrawPrompt, ViewingInventoryActions,
-        ViewingInventoryBase,
+        BankDepositInput, BankWithdrawInput, BuyInput, BuyPrompt, CheapGoodDialog,
+        ExpensiveGoodDialog, GameEndScreen, PayDebtInput, SailPrompt, SellInput, SellPrompt,
+        SplashScreen, StashDepositInput, StashDepositPrompt, StashWithdrawInput,
+        StashWithdrawPrompt, ViewingInventoryActions, ViewingInventoryBase,
     },
     state::{GameState, Good, Location, LocationEvent, Mode, StateError},
 };
@@ -381,6 +381,13 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                 Mode::GameEvent(event) => match event {
                     LocationEvent::CheapGood(good) => {
                         queue!(writer, CheapGoodDialog(good, 9, 19))?;
+                        return Ok(Box::new(|_: KeyEvent, state: &mut GameState| {
+                            state.acknowledge_event()?;
+                            Ok(())
+                        }));
+                    }
+                    LocationEvent::ExpensiveGood(good) => {
+                        queue!(writer, ExpensiveGoodDialog(good, 9, 19))?;
                         return Ok(Box::new(|_: KeyEvent, state: &mut GameState| {
                             state.acknowledge_event()?;
                             Ok(())
