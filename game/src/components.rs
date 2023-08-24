@@ -203,13 +203,11 @@ impl<'a> Command for ViewingInventoryActions<'a> {
                 MoveTo(offset_x, offset_y + 4),
                 PrintStyledContent("(5) Stash withdraw".with(Color::White)),
                 MoveTo(offset_x, offset_y + 5),
-                PrintStyledContent("(6) Borrow gold".with(Color::White)),
+                PrintStyledContent("(6) Pay down debt".with(Color::White)),
                 MoveTo(offset_x, offset_y + 6),
-                PrintStyledContent("(7) Pay down debt".with(Color::White)),
+                PrintStyledContent("(7) Bank deposit".with(Color::White)),
                 MoveTo(offset_x, offset_y + 7),
-                PrintStyledContent("(8) Bank deposit".with(Color::White)),
-                MoveTo(offset_x, offset_y + 8),
-                PrintStyledContent("(9) Bank withdraw".with(Color::White)),
+                PrintStyledContent("(8) Bank withdraw".with(Color::White)),
             );
         }
         Ok(())
@@ -516,29 +514,6 @@ impl Command for StashWithdrawPrompt {
             MoveTo(offset_x, offset_y),
             PrintStyledContent("Which do you want to withdraw?".with(Color::White)),
             GoodOptions(offset_x, offset_y + 1),
-        );
-        Ok(())
-    }
-}
-
-pub struct BorrowGoldInput<'a>(pub &'a Option<u32>, pub u16, pub u16);
-
-impl<'a> Command for BorrowGoldInput<'a> {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
-        let amount = self.0;
-        let offset_x = self.1;
-        let offset_y = self.2;
-        let prompt = format!(
-            "How much gold do you want to borrow? {}",
-            amount.map_or("".to_owned(), |amount| amount.to_string())
-        );
-        let prompt_len: u16 = prompt.len().try_into().unwrap();
-        comp!(
-            f,
-            MoveTo(offset_x, offset_y),
-            PrintStyledContent(prompt.with(Color::White)),
-            MoveTo(offset_x + prompt_len, offset_y),
-            Show
         );
         Ok(())
     }

@@ -49,10 +49,9 @@ Press any key to begin
          (3) Sail
          (4) Stash deposit
          (5) Stash withdraw
-         (6) Borrow gold
-         (7) Pay down debt
-         (8) Bank deposit
-         (9) Bank withdraw
+         (6) Pay down debt
+         (7) Bank deposit
+         (8) Bank withdraw
 ",
         )
     );
@@ -224,34 +223,6 @@ fn stash_withdraw() -> UpdateResult<()> {
 }
 
 #[test]
-fn borrow_gold() -> UpdateResult<()> {
-    let mut e = TestEngine::from_game_state(
-        {
-            let mut state = GameState::new(StdRng::seed_from_u64(42));
-            state.debt = 500;
-            state.gold = 1000;
-            state
-        }
-        .initialize(),
-    )?;
-    assert!(e.expect("Gold 1000"));
-    assert!(e.expect("Debt: 500"));
-    assert!(e.expect("(6) Borrow gold"));
-    e.charpress('6')?;
-    assert!(e.expect("How much gold do you want to borrow?"));
-    e.charpress('3')?;
-    assert!(e.expect("How much gold do you want to borrow? 3"));
-    e.charpress('0')?;
-    assert!(e.expect("How much gold do you want to borrow? 30"));
-    e.charpress('0')?;
-    assert!(e.expect("How much gold do you want to borrow? 300"));
-    e.enterpress()?;
-    assert!(e.expect("Gold 1300"));
-    assert!(e.expect("Debt: 800"));
-    Ok(())
-}
-
-#[test]
 fn pay_debt() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state(
         {
@@ -264,8 +235,8 @@ fn pay_debt() -> UpdateResult<()> {
     )?;
     assert!(e.expect("Gold 1000"));
     assert!(e.expect("Debt: 500"));
-    assert!(e.expect("(7) Pay down debt"));
-    e.charpress('7')?;
+    assert!(e.expect("(6) Pay down debt"));
+    e.charpress('6')?;
     assert!(e.expect("How much debt do you want to pay down?"));
     e.charpress('3')?;
     assert!(e.expect("How much debt do you want to pay down? 3"));
@@ -292,8 +263,8 @@ fn bank_deposit() -> UpdateResult<()> {
     )?;
     assert!(e.expect("Gold 1000"));
     assert!(e.expect("Bank: 500"));
-    assert!(e.expect("(8) Bank deposit"));
-    e.charpress('8')?;
+    assert!(e.expect("(7) Bank deposit"));
+    e.charpress('7')?;
     assert!(e.expect("How much gold do you want to deposit in the bank?"));
     e.charpress('3')?;
     assert!(e.expect("How much gold do you want to deposit in the bank? 3"));
@@ -320,8 +291,8 @@ fn bank_withdraw() -> UpdateResult<()> {
     )?;
     assert!(e.expect("Gold 1000"));
     assert!(e.expect("Bank: 500"));
-    assert!(e.expect("(9) Bank withdraw"));
-    e.charpress('9')?;
+    assert!(e.expect("(8) Bank withdraw"));
+    e.charpress('8')?;
     assert!(e.expect("How much gold do you want to withdraw?"));
     e.charpress('3')?;
     assert!(e.expect("How much gold do you want to withdraw? 3"));

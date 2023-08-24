@@ -12,10 +12,9 @@ use std::{
 
 use crate::{
     components::{
-        BankDepositInput, BankWithdrawInput, BorrowGoldInput, BuyInput, BuyPrompt, GameEndScreen,
-        PayDebtInput, SailPrompt, SellInput, SellPrompt, SplashScreen, StashDepositInput,
-        StashDepositPrompt, StashWithdrawInput, StashWithdrawPrompt, ViewingInventoryActions,
-        ViewingInventoryBase,
+        BankDepositInput, BankWithdrawInput, BuyInput, BuyPrompt, GameEndScreen, PayDebtInput,
+        SailPrompt, SellInput, SellPrompt, SplashScreen, StashDepositInput, StashDepositPrompt,
+        StashWithdrawInput, StashWithdrawPrompt, ViewingInventoryActions, ViewingInventoryBase,
     },
     state::{GameState, GoodType, Location, Mode, StateError},
 };
@@ -149,10 +148,9 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                                 match ch {
                                     '4' => return Ok(Some(state.begin_stash_deposit()?)),
                                     '5' => return Ok(Some(state.begin_stash_withdraw()?)),
-                                    '6' => return Ok(Some(state.begin_borrow_gold()?)),
-                                    '7' => return Ok(Some(state.begin_pay_debt()?)),
-                                    '8' => return Ok(Some(state.begin_bank_deposit()?)),
-                                    '9' => return Ok(Some(state.begin_bank_withdraw()?)),
+                                    '6' => return Ok(Some(state.begin_pay_debt()?)),
+                                    '7' => return Ok(Some(state.begin_bank_deposit()?)),
+                                    '8' => return Ok(Some(state.begin_bank_withdraw()?)),
                                     _ => {}
                                 };
                             }
@@ -342,29 +340,6 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                             }
                         }));
                     }
-                }
-                Mode::BorrowGold(amount) => {
-                    queue!(writer, BorrowGoldInput(amount, 9, 19))?;
-                    return Ok(Box::new(|event: KeyEvent, state: &GameState| {
-                        if let KeyCode::Char(c) = event.code {
-                            if let Some(digit) = c.to_digit(10) {
-                                return Ok(Some(state.user_typed_digit(digit)?));
-                            }
-                        }
-                        if event.code == KeyCode::Backspace {
-                            return Ok(Some(state.user_typed_backspace()?));
-                        }
-                        if event.code == KeyCode::Enter {
-                            return match state.commit_borrow_gold() {
-                                Ok(new_state) => Ok(Some(new_state)),
-                                Err(variant) => match variant {
-                                    StateError::InsufficientStash => Ok(None),
-                                    x => Err(x.into()),
-                                },
-                            };
-                        }
-                        Ok(None)
-                    }));
                 }
                 Mode::PayDebt(amount) => {
                     queue!(writer, PayDebtInput(amount, 9, 19))?;

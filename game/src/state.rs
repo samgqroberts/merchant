@@ -201,7 +201,6 @@ pub enum Mode {
     Sailing,
     StashDeposit(Option<Transaction>),
     StashWithdraw(Option<Transaction>),
-    BorrowGold(Option<u32>),
     PayDebt(Option<u32>),
     BankDeposit(Option<u32>),
     BankWithdraw(Option<u32>),
@@ -302,14 +301,6 @@ impl GameState {
         self.require_location_home_base()?;
         let mut new_state = self.clone();
         new_state.mode = Mode::StashWithdraw(None);
-        return Ok(new_state);
-    }
-
-    pub fn begin_borrow_gold(&self) -> Result<GameState, StateError> {
-        self.require_viewing_inventory()?;
-        self.require_location_home_base()?;
-        let mut new_state = self.clone();
-        new_state.mode = Mode::BorrowGold(None);
         return Ok(new_state);
     }
 
@@ -425,7 +416,6 @@ impl GameState {
         } else {
             let binding: Option<&mut Option<u32>> = None;
             let amount = match &mut new_state.mode {
-                Mode::BorrowGold(amount) => Some(amount),
                 Mode::PayDebt(amount) => Some(amount),
                 Mode::BankDeposit(amount) => Some(amount),
                 Mode::BankWithdraw(amount) => Some(amount),
@@ -458,7 +448,6 @@ impl GameState {
         } else {
             let binding: Option<&mut Option<u32>> = None;
             let amount = match &mut new_state.mode {
-                Mode::BorrowGold(amount) => Some(amount),
                 Mode::PayDebt(amount) => Some(amount),
                 Mode::BankDeposit(amount) => Some(amount),
                 Mode::BankWithdraw(amount) => Some(amount),
@@ -584,18 +573,6 @@ impl GameState {
                     }
                 }
             }
-        }
-        Err(StateError::InvalidMode(&self.mode))
-    }
-
-    pub fn commit_borrow_gold(&self) -> Result<GameState, StateError> {
-        if let Mode::BorrowGold(amount) = &self.mode {
-            let amount = &amount.unwrap_or(0);
-            let mut new_state = self.clone();
-            new_state.debt += amount;
-            new_state.gold += amount;
-            new_state.mode = Mode::ViewingInventory;
-            return Ok(new_state);
         }
         Err(StateError::InvalidMode(&self.mode))
     }
