@@ -1,7 +1,6 @@
 TODO
 
 - [x] loan shark
-- [] debt limit
 - [x] bank
 - [x] home base stash
 - [x] end of game (30 month deadline?)

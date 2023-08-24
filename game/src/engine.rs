@@ -162,12 +162,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                 }
                 Mode::Buying(info) => {
                     if let Some(info) = info {
-                        let good = &info.good;
-                        let good_price = state
-                            .prices
-                            .location_prices(&state.location)
-                            .good_amount(&good);
-                        queue!(writer, BuyInput(info, state.gold, good_price, 9, 19))?;
+                        queue!(writer, BuyInput(info, state, 9, 19))?;
                         return Ok(Box::new(|event: KeyEvent, state: &GameState| {
                             if let KeyCode::Char(c) = event.code {
                                 if let Some(digit) = c.to_digit(10) {

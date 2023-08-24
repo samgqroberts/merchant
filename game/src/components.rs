@@ -281,17 +281,21 @@ impl<'a> Command for ViewingInventoryBase<'a> {
     }
 }
 
-pub struct BuyInput<'a>(pub &'a Transaction, pub u32, pub u32, pub u16, pub u16);
+pub struct BuyInput<'a>(pub &'a Transaction, pub &'a GameState, pub u16, pub u16);
 
 impl<'a> Command for BuyInput<'a> {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
         let info = self.0;
-        let gold = self.1;
-        let good_price = self.2;
-        let offset_x = self.3;
-        let offset_y = self.4;
+        let state = self.1;
+        let offset_x = self.2;
+        let offset_y = self.3;
         // user has indicated which good they want to buy
+        let gold = state.gold;
         let good = &info.good;
+        let good_price = state
+            .prices
+            .location_prices(&state.location)
+            .good_amount(&good);
         let prompt = format!(
             "How much {} do you want? {}",
             good,
@@ -307,9 +311,18 @@ impl<'a> Command for BuyInput<'a> {
             PrintStyledContent(prompt.with(Color::White)),
             MoveTo(offset_x, offset_y + 1),
             PrintStyledContent(format!("You can afford ({})", can_afford).with(Color::White)),
-            MoveTo(offset_x + prompt_len, offset_y),
-            Show
         );
+        let remaining_hold = state.hold_size - state.inventory.total_amount();
+        if remaining_hold < can_afford {
+            comp!(
+                f,
+                MoveTo(offset_x, offset_y + 2),
+                PrintStyledContent(
+                    format!("You have space for ({})", remaining_hold).with(Color::White)
+                ),
+            )
+        }
+        comp!(f, MoveTo(offset_x + prompt_len, offset_y), Show);
         Ok(())
     }
 }
