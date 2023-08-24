@@ -5,8 +5,8 @@ TODO
 - [x] bank
 - [x] home base stash
 - [x] end of game (30 month deadline?)
-- [] start with less cash than debt
-- [] different good prices (which of these goods is most expensive?)
+- [x] start with less cash than debt
+- [x] different good prices (which of these goods is most expensive?)
 - events
   - [] buy guns (cannons?)
   - [] buy more hold space

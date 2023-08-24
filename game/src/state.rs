@@ -28,7 +28,19 @@ impl Display for Location {
 }
 
 #[derive(Clone, Debug)]
+pub struct PriceConfig {
+    pub starting_gold: u32,
+    pub tea: (f32, f32),
+    pub coffee: (f32, f32),
+    pub sugar: (f32, f32),
+    pub tobacco: (f32, f32),
+    pub rum: (f32, f32),
+    pub cotton: (f32, f32),
+}
+
+#[derive(Clone, Debug)]
 pub struct Prices {
+    pub config: PriceConfig,
     pub london: Inventory,
     pub savannah: Inventory,
     pub lisbon: Inventory,
@@ -38,38 +50,60 @@ pub struct Prices {
 }
 
 impl Prices {
-    pub fn new(rng: &mut StdRng) -> Prices {
-        Prices {
-            london: Prices::randomized_inventory(rng),
-            savannah: Prices::randomized_inventory(rng),
-            lisbon: Prices::randomized_inventory(rng),
-            amsterdam: Prices::randomized_inventory(rng),
-            capetown: Prices::randomized_inventory(rng),
-            venice: Prices::randomized_inventory(rng),
-        }
+    pub fn new(rng: &mut StdRng, starting_gold: u32) -> Prices {
+        let config = PriceConfig {
+            starting_gold,
+            tea: (10.0, 14.0),
+            coffee: (4.25, 6.0),
+            sugar: (1.0, 2.2),
+            tobacco: (0.15, 0.35),
+            rum: (0.04, 0.14),
+            cotton: (0.005, 0.025),
+        };
+        let mut res = Prices {
+            config,
+            london: Inventory::new(),
+            savannah: Inventory::new(),
+            lisbon: Inventory::new(),
+            amsterdam: Inventory::new(),
+            capetown: Inventory::new(),
+            venice: Inventory::new(),
+        };
+        res.randomize_location_inventory(rng, &Location::London);
+        res.randomize_location_inventory(rng, &Location::Savannah);
+        res.randomize_location_inventory(rng, &Location::Lisbon);
+        res.randomize_location_inventory(rng, &Location::Amsterdam);
+        res.randomize_location_inventory(rng, &Location::CapeTown);
+        res.randomize_location_inventory(rng, &Location::Venice);
+        res
     }
 
-    pub fn randomized_inventory(rng: &mut StdRng) -> Inventory {
-        // number between 39 and 111
-        let mut gen = || rng.next_u32() % (111 - 39) + 39;
+    pub fn randomized_inventory(&self, rng: &mut StdRng) -> Inventory {
+        let config = &self.config;
+        let starting_gold = config.starting_gold;
+        let mut gen = |low_multiple: f32, high_multiple: f32| -> u32 {
+            let low = (starting_gold as f32 * low_multiple).floor() as u32;
+            let high = (starting_gold as f32 * high_multiple).floor() as u32;
+            rng.next_u32() % (high - low) + low
+        };
         Inventory {
-            sugar: gen(),
-            tobacco: gen(),
-            tea: gen(),
-            cotton: gen(),
-            rum: gen(),
-            coffee: gen(),
+            tea: gen(config.tea.0, config.tea.1),
+            coffee: gen(config.coffee.0, config.coffee.1),
+            sugar: gen(config.sugar.0, config.sugar.1),
+            tobacco: gen(config.tobacco.0, config.tobacco.1),
+            rum: gen(config.rum.0, config.rum.1),
+            cotton: gen(config.cotton.0, config.cotton.1),
         }
     }
 
     pub fn randomize_location_inventory(&mut self, rng: &mut StdRng, location: &Location) -> () {
         match location {
-            Location::London => self.london = Prices::randomized_inventory(rng),
-            Location::Savannah => self.savannah = Prices::randomized_inventory(rng),
-            Location::Lisbon => self.lisbon = Prices::randomized_inventory(rng),
-            Location::Amsterdam => self.amsterdam = Prices::randomized_inventory(rng),
-            Location::CapeTown => self.capetown = Prices::randomized_inventory(rng),
-            Location::Venice => self.venice = Prices::randomized_inventory(rng),
+            Location::London => self.london = self.randomized_inventory(rng),
+            Location::Savannah => self.savannah = self.randomized_inventory(rng),
+            Location::Lisbon => self.lisbon = self.randomized_inventory(rng),
+            Location::Amsterdam => self.amsterdam = self.randomized_inventory(rng),
+            Location::CapeTown => self.capetown = self.randomized_inventory(rng),
+            Location::Venice => self.venice = self.randomized_inventory(rng),
         }
     }
 
@@ -192,8 +226,9 @@ pub struct GameState {
 
 impl GameState {
     pub fn new(mut rng: StdRng) -> GameState {
-        let starting_gold = 1400;
-        let prices = Prices::new(&mut rng);
+        let starting_gold = 500;
+        let debt = starting_gold * 3;
+        let prices = Prices::new(&mut rng, starting_gold);
         GameState {
             rng,
             initialized: false,
@@ -205,7 +240,7 @@ impl GameState {
             stash: Inventory::new(),
             inventory: Inventory::new(),
             prices,
-            debt: starting_gold,
+            debt,
             mode: Mode::ViewingInventory,
             game_end: false,
         }

@@ -1,3 +1,4 @@
+use pretty_assertions::assert_eq;
 use rand::{rngs::StdRng, SeedableRng};
 
 use crate::{engine::UpdateResult, state::GameState, test::test_engine::TestEngine};
@@ -5,8 +6,10 @@ use crate::{engine::UpdateResult, state::GameState, test::test_engine::TestEngin
 #[test]
 fn splash_screen_into_inventory() -> UpdateResult<()> {
     let mut e = TestEngine::new()?;
-    assert!(e.expect_full(
-        r"
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r"
 Merchant
 
 Navigate shifting markets and unreliable sources.
@@ -15,12 +18,15 @@ By samgqroberts
 
 Press any key to begin
 ",
-    ));
+        )
+    );
     e.charpress('a')?;
-    assert!(e.expect_full(
-        "
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r"
          March 1782             Hold Size 100
-         Gold 1400               Location London
+         Gold 500                Location London
 
           Home base              Inventory
              Tea: 0                 Tea: 0
@@ -31,12 +37,12 @@ Press any key to begin
           Cotton: 0              Cotton: 0
 
             Bank: 0
-            Debt: 1400
+            Debt: 1500
 
      Captain, the prices of goods here are:
-             Tea: 52            Tobacco: 106
-          Coffee: 40                Rum: 48
-           Sugar: 49             Cotton: 98
+             Tea: 5626          Tobacco: 102
+          Coffee: 2976              Rum: 59
+           Sugar: 897            Cotton: 7
 
          (1) Buy
          (2) Sell
@@ -48,7 +54,8 @@ Press any key to begin
          (8) Bank deposit
          (9) Bank withdraw
 ",
-    ));
+        )
+    );
     Ok(())
 }
 
@@ -64,8 +71,10 @@ fn end_game_positive() -> UpdateResult<()> {
         }
         .initialize(),
     )?;
-    assert!(e.expect_full(
-        r"
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r"
 Congratulations!!
 
 After three years, you went from being
@@ -73,7 +82,8 @@ After three years, you went from being
 to having
 39900 gold
 ",
-    ));
+        )
+    );
     Ok(())
 }
 
@@ -89,8 +99,10 @@ fn end_game_negative() -> UpdateResult<()> {
         }
         .initialize(),
     )?;
-    assert!(e.expect_full(
-        r"
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r"
 Congratulations!!
 
 After three years, you went from being
@@ -98,7 +110,8 @@ After three years, you went from being
 to being
 39900 gold in debt
 ",
-    ));
+        )
+    );
     Ok(())
 }
 
@@ -107,6 +120,7 @@ fn sell_good() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state(
         {
             let mut state = GameState::new(StdRng::seed_from_u64(42));
+            state.gold = 1400;
             state.inventory.cotton = 15;
             state.prices.london.cotton = 30;
             state
@@ -138,14 +152,14 @@ fn sail() -> UpdateResult<()> {
     let mut e =
         TestEngine::from_game_state(GameState::new(StdRng::seed_from_u64(42)).initialize())?;
     assert!(e.expect("Location London"));
-    assert!(e.expect("Debt: 1400"));
+    assert!(e.expect("Debt: 1500"));
     assert!(e.expect("(3) Sail"));
     e.charpress('3')?;
     assert!(e.expect("Where do you want to sail?"));
     assert!(e.expect("(6) Venice"));
     e.charpress('6')?;
     assert!(e.expect("Location Venice"));
-    assert!(e.expect("Debt: 1540"));
+    assert!(e.expect("Debt: 1650"));
     Ok(())
 }
 

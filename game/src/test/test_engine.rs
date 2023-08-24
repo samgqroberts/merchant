@@ -49,14 +49,14 @@ impl TestEngine {
         result
     }
 
-    pub fn expect_full(&self, expectation: &str) -> bool {
+    pub fn expect_full(&self, expectation: &str) -> String {
         let expectation = expectation.trim_matches('\n');
         let formatted = self.get_current_formatted();
         let result = formatted == expectation.to_owned();
         if !result {
             println!("----------------\n{}\n----------------", formatted);
         }
-        result
+        expectation.to_string()
     }
 
     #[allow(unused_must_use)]
