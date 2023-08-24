@@ -22,7 +22,6 @@ impl Display for Good {
             Good::Rum => "Rum",
             Good::Cotton => "Cotton",
         };
-        // Use `self.number` to refer to each positional data point.
         write!(f, "{}", string)
     }
 }

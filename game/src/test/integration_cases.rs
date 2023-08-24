@@ -64,16 +64,14 @@ Press any key to begin
 
 #[test]
 fn end_game_positive() -> UpdateResult<()> {
-    let e = TestEngine::from_game_state(
-        {
-            let mut state = GameState::new(StdRng::seed_from_u64(42));
-            state.gold = 40000;
-            state.debt = 100;
-            state.game_end = true;
-            state
-        }
-        .initialize(),
-    )?;
+    let e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(42));
+        state.initialize();
+        state.gold = 40000;
+        state.debt = 100;
+        state.game_end = true;
+        state
+    })?;
     assert_eq!(
         e.get_current_formatted(),
         e.expect_full(
@@ -92,16 +90,14 @@ to having
 
 #[test]
 fn end_game_negative() -> UpdateResult<()> {
-    let e = TestEngine::from_game_state(
-        {
-            let mut state = GameState::new(StdRng::seed_from_u64(42));
-            state.gold = 100;
-            state.debt = 40000;
-            state.game_end = true;
-            state
-        }
-        .initialize(),
-    )?;
+    let e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(42));
+        state.initialize();
+        state.gold = 100;
+        state.debt = 40000;
+        state.game_end = true;
+        state
+    })?;
     assert_eq!(
         e.get_current_formatted(),
         e.expect_full(
@@ -120,16 +116,14 @@ to being
 
 #[test]
 fn sell_good() -> UpdateResult<()> {
-    let mut e = TestEngine::from_game_state(
-        {
-            let mut state = GameState::new(StdRng::seed_from_u64(42));
-            state.gold = 1400;
-            state.inventory.cotton = 15;
-            state.locations.london.prices.cotton = 30;
-            state
-        }
-        .initialize(),
-    )?;
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(42));
+        state.initialize();
+        state.gold = 1400;
+        state.inventory.cotton = 15;
+        state.locations.london.prices.cotton = 30;
+        state
+    })?;
     assert!(e.expect("Gold 1400"));
     assert!(e.expect("Cotton: 15"));
     assert!(e.expect("Cotton: 30"));
@@ -152,8 +146,11 @@ fn sell_good() -> UpdateResult<()> {
 
 #[test]
 fn sail() -> UpdateResult<()> {
-    let mut e =
-        TestEngine::from_game_state(GameState::new(StdRng::seed_from_u64(42)).initialize())?;
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(42));
+        state.initialize();
+        state
+    })?;
     assert!(e.expect("Location London"));
     assert!(e.expect("Debt: 1500"));
     assert!(e.expect("(3) Sail"));
@@ -168,15 +165,13 @@ fn sail() -> UpdateResult<()> {
 
 #[test]
 fn stash_deposit() -> UpdateResult<()> {
-    let mut e = TestEngine::from_game_state(
-        {
-            let mut state = GameState::new(StdRng::seed_from_u64(42));
-            state.stash.rum = 5;
-            state.inventory.rum = 20;
-            state
-        }
-        .initialize(),
-    )?;
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(42));
+        state.initialize();
+        state.stash.rum = 5;
+        state.inventory.rum = 20;
+        state
+    })?;
     assert!(e.expect("Rum: 5"));
     assert!(e.expect("Rum: 20"));
     assert!(e.expect("(4) Stash deposit"));
@@ -198,15 +193,13 @@ fn stash_deposit() -> UpdateResult<()> {
 
 #[test]
 fn stash_withdraw() -> UpdateResult<()> {
-    let mut e = TestEngine::from_game_state(
-        {
-            let mut state = GameState::new(StdRng::seed_from_u64(42));
-            state.stash.tea = 30;
-            state.inventory.tea = 14;
-            state
-        }
-        .initialize(),
-    )?;
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(42));
+        state.initialize();
+        state.stash.tea = 30;
+        state.inventory.tea = 14;
+        state
+    })?;
     assert!(e.expect("Tea: 30"));
     assert!(e.expect("Tea: 14"));
     assert!(e.expect("(5) Stash withdraw"));
@@ -228,15 +221,13 @@ fn stash_withdraw() -> UpdateResult<()> {
 
 #[test]
 fn pay_debt() -> UpdateResult<()> {
-    let mut e = TestEngine::from_game_state(
-        {
-            let mut state = GameState::new(StdRng::seed_from_u64(42));
-            state.debt = 500;
-            state.gold = 1000;
-            state
-        }
-        .initialize(),
-    )?;
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(42));
+        state.initialize();
+        state.debt = 500;
+        state.gold = 1000;
+        state
+    })?;
     assert!(e.expect("Gold 1000"));
     assert!(e.expect("Debt: 500"));
     assert!(e.expect("(6) Pay down debt"));
@@ -256,15 +247,13 @@ fn pay_debt() -> UpdateResult<()> {
 
 #[test]
 fn bank_deposit() -> UpdateResult<()> {
-    let mut e = TestEngine::from_game_state(
-        {
-            let mut state = GameState::new(StdRng::seed_from_u64(42));
-            state.gold = 1000;
-            state.bank = 500;
-            state
-        }
-        .initialize(),
-    )?;
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(42));
+        state.initialize();
+        state.gold = 1000;
+        state.bank = 500;
+        state
+    })?;
     assert!(e.expect("Gold 1000"));
     assert!(e.expect("Bank: 500"));
     assert!(e.expect("(7) Bank deposit"));
@@ -284,15 +273,13 @@ fn bank_deposit() -> UpdateResult<()> {
 
 #[test]
 fn bank_withdraw() -> UpdateResult<()> {
-    let mut e = TestEngine::from_game_state(
-        {
-            let mut state = GameState::new(StdRng::seed_from_u64(42));
-            state.gold = 1000;
-            state.bank = 500;
-            state
-        }
-        .initialize(),
-    )?;
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(42));
+        state.initialize();
+        state.gold = 1000;
+        state.bank = 500;
+        state
+    })?;
     assert!(e.expect("Gold 1000"));
     assert!(e.expect("Bank: 500"));
     assert!(e.expect("(8) Bank withdraw"));
@@ -312,14 +299,12 @@ fn bank_withdraw() -> UpdateResult<()> {
 
 #[test]
 fn arrive_at_cheap_good_event() -> UpdateResult<()> {
-    let mut e = TestEngine::from_game_state(
-        {
-            let mut state = GameState::new(StdRng::seed_from_u64(42));
-            state.mode = Mode::GameEvent(LocationEvent::CheapGood(Good::Coffee));
-            state
-        }
-        .initialize(),
-    )?;
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(42));
+        state.initialize();
+        state.mode = Mode::GameEvent(LocationEvent::CheapGood(Good::Coffee));
+        state
+    })?;
     assert!(e.expect("Cheap Coffee here!"));
     e.charpress('a')?;
     assert!(e.expect("Captain, the prices of goods here are:"));

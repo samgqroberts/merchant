@@ -36,15 +36,11 @@ fn main() -> io::Result<()> {
                 engine.exit_message(&lines)?;
                 break;
             }
-            Ok((should_exit, new_game_state)) => {
+            Ok(should_exit) => {
                 if should_exit {
                     // main loop told us user requested an exit
                     engine.exit_message(&["Thank you for playing!"])?;
                     break;
-                }
-                if let Some(new_game_state) = new_game_state {
-                    // main loop gave back a new game state
-                    game_state = new_game_state
                 }
             }
         }

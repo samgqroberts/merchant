@@ -300,7 +300,7 @@ impl<'a> Command for BuyInput<'a> {
             .locations
             .location_info(&state.location)
             .prices
-            .good_amount(&good);
+            .get_good(&good);
         let prompt = format!(
             "How much {} do you want? {}",
             good,
@@ -373,7 +373,7 @@ impl Command for GoodOptions {
     }
 }
 
-pub struct SellInput<'a>(pub &'a Transaction, pub u32, pub u16, pub u16);
+pub struct SellInput<'a>(pub &'a Transaction, pub &'a u32, pub u16, pub u16);
 
 impl<'a> Command for SellInput<'a> {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
@@ -445,7 +445,7 @@ impl Command for SailPrompt {
     }
 }
 
-pub struct StashDepositInput<'a>(pub &'a Transaction, pub u32, pub u16, pub u16);
+pub struct StashDepositInput<'a>(pub &'a Transaction, pub &'a u32, pub u16, pub u16);
 
 impl<'a> Command for StashDepositInput<'a> {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
@@ -491,7 +491,7 @@ impl Command for StashDepositPrompt {
     }
 }
 
-pub struct StashWithdrawInput<'a>(pub &'a Transaction, pub u32, pub u16, pub u16);
+pub struct StashWithdrawInput<'a>(pub &'a Transaction, pub &'a u32, pub u16, pub u16);
 
 impl<'a> Command for StashWithdrawInput<'a> {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {

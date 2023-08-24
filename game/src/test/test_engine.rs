@@ -22,11 +22,11 @@ impl TestEngine {
     }
 
     #[allow(unused_must_use)]
-    pub fn from_game_state(game_state: GameState) -> UpdateResult<Self> {
+    pub fn from_game_state(mut game_state: GameState) -> UpdateResult<Self> {
         let writer = CapturedWrite::new();
         let writer_box: RefCell<CapturedWrite> = RefCell::from(writer);
         let mut engine = Engine::new(&writer_box);
-        engine.draw_scene(&game_state)?;
+        engine.draw_scene(&mut game_state)?;
         Ok(Self {
             writer_ref: writer_box,
             game_state,
@@ -63,14 +63,13 @@ impl TestEngine {
     pub fn keypress(&mut self, key_code: KeyCode) -> UpdateResult<()> {
         self.writer_ref.borrow_mut().reset();
         let mut engine = Engine::new(&self.writer_ref);
-        let update = engine.draw_scene(&self.game_state)?;
-        self.game_state = update(
+        let update = engine.draw_scene(&mut self.game_state)?;
+        update(
             KeyEvent::new(key_code, KeyModifiers::empty()),
-            &self.game_state,
-        )?
-        .unwrap();
+            &mut self.game_state,
+        )?;
         self.writer_ref.borrow_mut().reset();
-        engine.draw_scene(&self.game_state)?;
+        engine.draw_scene(&mut self.game_state)?;
         Ok(())
     }
 

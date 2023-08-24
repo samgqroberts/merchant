@@ -29,7 +29,7 @@ impl From<io::Error> for UpdateError {
     }
 }
 
-impl<'a> From<StateError<'a>> for UpdateError {
+impl From<StateError> for UpdateError {
     fn from(value: StateError) -> Self {
         Self(value.to_string())
     }
@@ -37,7 +37,7 @@ impl<'a> From<StateError<'a>> for UpdateError {
 
 pub type UpdateResult<T> = Result<T, UpdateError>;
 
-pub type UpdateFn = dyn FnOnce(KeyEvent, &GameState) -> UpdateResult<Option<GameState>>;
+pub type UpdateFn = dyn FnOnce(KeyEvent, &mut GameState) -> UpdateResult<()>;
 trait FromKeyCode
 where
     Self: Sized,
@@ -90,10 +90,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
         Self { writer }
     }
 
-    pub fn draw_and_prompt(
-        &mut self,
-        game_state: &GameState,
-    ) -> Result<(bool, Option<GameState>), UpdateError> {
+    pub fn draw_and_prompt(&mut self, game_state: &mut GameState) -> Result<bool, UpdateError> {
         // draw the game state
         let update_fn = self.draw_scene(game_state)?;
         // Wait for any user event
@@ -108,10 +105,12 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         if event.modifiers == KeyModifiers::CONTROL
                             && event.code == KeyCode::Char('c')
                         {
-                            return Ok((true, None));
+                            return Ok(true);
                         }
-                        // move forward game state
-                        return update_fn(event, game_state).map(|st| (false, st));
+                        // update game state
+                        update_fn(event, game_state)?;
+                        // indicate we do not want to exit
+                        return Ok(false);
                     }
                     _ => continue,
                 }
@@ -126,174 +125,159 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
         if !state.initialized {
             // initial splash screen
             queue!(writer, SplashScreen())?;
-            return Ok(Box::new(|_: KeyEvent, state: &GameState| {
-                Ok(Some(state.initialize()))
+            return Ok(Box::new(|_: KeyEvent, state: &mut GameState| {
+                state.initialize();
+                Ok(())
             }));
         } else if state.game_end {
             queue!(writer, GameEndScreen(state))?;
-            return Ok(Box::new(|_: KeyEvent, _: &GameState| Ok(None)));
+            return Ok(Box::new(|_: KeyEvent, _: &mut GameState| Ok(())));
         } else {
             queue!(writer, ViewingInventoryBase(state))?;
             match &state.mode {
                 Mode::ViewingInventory => {
                     queue!(writer, ViewingInventoryActions(&state.location, 9, 19))?;
-                    return Ok(Box::new(|event: KeyEvent, state: &GameState| {
+                    return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char(ch) = event.code {
-                            match ch {
-                                '1' => return Ok(Some(state.begin_buying()?)),
-                                '2' => return Ok(Some(state.begin_selling()?)),
-                                '3' => return Ok(Some(state.begin_sailing()?)),
-                                _ => {}
+                            if ch == '1' {
+                                state.begin_buying()?;
+                            } else if ch == '2' {
+                                state.begin_selling()?;
+                            } else if ch == '3' {
+                                state.begin_sailing()?;
                             };
-                            if state.location == Location::London {
+                            if &state.location == &Location::London {
                                 match ch {
-                                    '4' => return Ok(Some(state.begin_stash_deposit()?)),
-                                    '5' => return Ok(Some(state.begin_stash_withdraw()?)),
-                                    '6' => return Ok(Some(state.begin_pay_debt()?)),
-                                    '7' => return Ok(Some(state.begin_bank_deposit()?)),
-                                    '8' => return Ok(Some(state.begin_bank_withdraw()?)),
-                                    _ => {}
-                                };
+                                    '4' => state.begin_stash_deposit(),
+                                    '5' => state.begin_stash_withdraw(),
+                                    '6' => state.begin_pay_debt(),
+                                    '7' => state.begin_bank_deposit(),
+                                    '8' => state.begin_bank_withdraw(),
+                                    _ => Ok(state),
+                                }?;
                             }
-                            Ok(None)
-                        } else {
-                            Ok(None)
                         }
+                        Ok(())
                     }));
                 }
                 Mode::Buying(info) => {
                     if let Some(info) = info {
                         queue!(writer, BuyInput(info, state, 9, 19))?;
-                        return Ok(Box::new(|event: KeyEvent, state: &GameState| {
+                        return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                             if let KeyCode::Char(c) = event.code {
                                 if let Some(digit) = c.to_digit(10) {
-                                    return Ok(Some(state.user_typed_digit(digit)?));
+                                    state.user_typed_digit(digit)?;
                                 }
+                            } else if event.code == KeyCode::Backspace {
+                                state.user_typed_backspace()?;
+                            } else if event.code == KeyCode::Enter {
+                                return state.commit_buy().map(|_| ()).or_else(|e| match e {
+                                    StateError::CannotAfford | StateError::InsufficientHold => {
+                                        Ok(())
+                                    }
+                                    x => Err(x.into()),
+                                });
                             }
-                            if event.code == KeyCode::Backspace {
-                                return Ok(Some(state.user_typed_backspace()?));
-                            }
-                            if event.code == KeyCode::Enter {
-                                return match state.commit_buy() {
-                                    Ok(new_state) => Ok(Some(new_state)),
-                                    Err(variant) => match variant {
-                                        StateError::CannotAfford | StateError::InsufficientHold => {
-                                            Ok(None)
-                                        }
-                                        x => Err(x.into()),
-                                    },
-                                };
-                            }
-                            return Ok(None);
+                            return Ok(());
                         }));
                     } else {
                         queue!(writer, BuyPrompt(9, 19))?;
-                        return Ok(Box::new(|event: KeyEvent, state: &GameState| {
+                        return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                             if let Some(good) = Good::from_key_code(&event.code) {
-                                Ok(Some(state.choose_buy_good(good)?))
+                                state.choose_buy_good(good)?;
                             } else if event.code == KeyCode::Backspace {
-                                Ok(Some(state.cancel_buy()?))
-                            } else {
-                                Ok(None)
+                                state.cancel_buy()?;
                             }
+                            Ok(())
                         }));
                     }
                 }
                 Mode::Selling(info) => {
                     if let Some(info) = info {
                         // user has indicated which good they want to sell
-                        let current_amount = state.inventory.good_amount(&info.good);
+                        let current_amount = state.inventory.get_good(&info.good);
                         queue!(writer, SellInput(info, current_amount, 9, 19))?;
-                        return Ok(Box::new(|event: KeyEvent, state: &GameState| {
+                        return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                             if let KeyCode::Char(c) = event.code {
                                 if let Some(digit) = c.to_digit(10) {
-                                    return Ok(Some(state.user_typed_digit(digit)?));
+                                    state.user_typed_digit(digit)?;
                                 }
+                            } else if event.code == KeyCode::Backspace {
+                                state.user_typed_backspace()?;
+                            } else if event.code == KeyCode::Enter {
+                                return state.commit_sell().map(|_| ()).or_else(|e| match e {
+                                    StateError::InsufficientInventory => Ok(()),
+                                    x => Err(x.into()),
+                                });
                             }
-                            if event.code == KeyCode::Backspace {
-                                return Ok(Some(state.user_typed_backspace()?));
-                            }
-                            if event.code == KeyCode::Enter {
-                                return match state.commit_sell() {
-                                    Ok(new_state) => Ok(Some(new_state)),
-                                    Err(variant) => match variant {
-                                        StateError::InsufficientInventory => Ok(None),
-                                        x => Err(x.into()),
-                                    },
-                                };
-                            }
-                            Ok(None)
+                            Ok(())
                         }));
                     } else {
                         // user is choosing which good to sell
                         queue!(writer, SellPrompt(9, 19))?;
-                        return Ok(Box::new(|event: KeyEvent, state: &GameState| {
+                        return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                             if let Some(good) = Good::from_key_code(&event.code) {
-                                Ok(Some(state.choose_sell_good(good)?))
+                                state.choose_sell_good(good)?;
                             } else if event.code == KeyCode::Backspace {
-                                Ok(Some(state.cancel_sell()?))
-                            } else {
-                                Ok(None)
+                                state.cancel_sell()?;
                             }
+                            Ok(())
                         }));
                     }
                 }
                 Mode::Sailing => {
                     // user is choosing where to sail
                     queue!(writer, SailPrompt(9, 19))?;
-                    return Ok(Box::new(|event: KeyEvent, state: &GameState| {
+                    return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let Some(destination) = Location::from_key_code(&event.code) {
-                            match state.sail_to(&destination) {
-                                Ok(new_state) => Ok(Some(new_state)),
-                                Err(variant) => match variant {
-                                    StateError::AlreadyInLocation => Ok(None),
+                            return state
+                                .sail_to(&destination)
+                                .map(|_| ())
+                                .or_else(|e| match e {
+                                    StateError::AlreadyInLocation => Ok(()),
                                     x => Err(x.into()),
-                                },
-                            }
+                                });
                         } else if event.code == KeyCode::Backspace {
-                            Ok(Some(state.cancel_sail_to()?))
-                        } else {
-                            Ok(None)
+                            state.cancel_sail_to()?;
                         }
+                        Ok(())
                     }));
                 }
                 Mode::StashDeposit(info) => {
                     if let Some(info) = info {
                         // user has indicated which good they want to stash
                         let good = &info.good;
-                        let current_amount = state.inventory.good_amount(good);
+                        let current_amount = state.inventory.get_good(good);
                         queue!(writer, StashDepositInput(info, current_amount, 9, 19))?;
-                        return Ok(Box::new(|event: KeyEvent, state: &GameState| {
+                        return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                             if let KeyCode::Char(c) = event.code {
                                 if let Some(digit) = c.to_digit(10) {
-                                    return Ok(Some(state.user_typed_digit(digit)?));
+                                    state.user_typed_digit(digit)?;
                                 }
                             }
                             if event.code == KeyCode::Backspace {
-                                return Ok(Some(state.user_typed_backspace()?));
+                                state.user_typed_backspace()?;
                             }
                             if event.code == KeyCode::Enter {
-                                return match state.commit_stash_deposit() {
-                                    Ok(new_state) => Ok(Some(new_state)),
-                                    Err(variant) => match variant {
-                                        StateError::InsufficientInventory => Ok(None),
+                                return state.commit_stash_deposit().map(|_| ()).or_else(
+                                    |e| match e {
+                                        StateError::InsufficientInventory => Ok(()),
                                         x => Err(x.into()),
                                     },
-                                };
+                                );
                             }
-                            Ok(None)
+                            Ok(())
                         }));
                     } else {
                         // user is choosing which good to stash
                         queue!(writer, StashDepositPrompt(9, 19))?;
-                        return Ok(Box::new(|event: KeyEvent, state: &GameState| {
+                        return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                             if let Some(good) = Good::from_key_code(&event.code) {
-                                Ok(Some(state.choose_stash_deposit_good(good)?))
+                                state.choose_stash_deposit_good(good)?;
                             } else if event.code == KeyCode::Backspace {
-                                Ok(Some(state.cancel_stash_deposit()?))
-                            } else {
-                                Ok(None)
+                                state.cancel_stash_deposit()?;
                             }
+                            Ok(())
                         }));
                     }
                 }
@@ -301,117 +285,105 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                     if let Some(info) = info {
                         // user has indicated which good they want to withdraw from stash
                         let good = &info.good;
-                        let current_amount = state.stash.good_amount(good);
+                        let current_amount = state.stash.get_good(good);
                         queue!(writer, StashWithdrawInput(info, current_amount, 9, 19))?;
-                        return Ok(Box::new(|event: KeyEvent, state: &GameState| {
+                        return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                             if let KeyCode::Char(c) = event.code {
                                 if let Some(digit) = c.to_digit(10) {
-                                    return Ok(Some(state.user_typed_digit(digit)?));
+                                    state.user_typed_digit(digit)?;
                                 }
-                            }
-                            if event.code == KeyCode::Backspace {
-                                return Ok(Some(state.user_typed_backspace()?));
-                            }
-                            if event.code == KeyCode::Enter {
-                                return match state.commit_stash_withdraw() {
-                                    Ok(new_state) => Ok(Some(new_state)),
-                                    Err(variant) => match variant {
-                                        StateError::InsufficientStash => Ok(None),
+                            } else if event.code == KeyCode::Backspace {
+                                state.user_typed_backspace()?;
+                            } else if event.code == KeyCode::Enter {
+                                return state.commit_stash_withdraw().map(|_| ()).or_else(
+                                    |e| match e {
+                                        StateError::InsufficientStash => Ok(()),
                                         x => Err(x.into()),
                                     },
-                                };
+                                );
                             }
-                            Ok(None)
+                            Ok(())
                         }));
                     } else {
                         // user is choosing which good to withdraw from stash
                         queue!(writer, StashWithdrawPrompt(9, 19))?;
-                        return Ok(Box::new(|event: KeyEvent, state: &GameState| {
+                        return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                             if let Some(good) = Good::from_key_code(&event.code) {
-                                Ok(Some(state.choose_stash_withdraw_good(good)?))
+                                state.choose_stash_withdraw_good(good)?;
                             } else if event.code == KeyCode::Backspace {
-                                Ok(Some(state.cancel_stash_withdraw()?))
-                            } else {
-                                Ok(None)
+                                state.cancel_stash_withdraw()?;
                             }
+                            Ok(())
                         }));
                     }
                 }
                 Mode::PayDebt(amount) => {
                     queue!(writer, PayDebtInput(amount, 9, 19))?;
-                    return Ok(Box::new(|event: KeyEvent, state: &GameState| {
+                    return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char(c) = event.code {
                             if let Some(digit) = c.to_digit(10) {
-                                return Ok(Some(state.user_typed_digit(digit)?));
+                                state.user_typed_digit(digit)?;
                             }
+                        } else if event.code == KeyCode::Backspace {
+                            state.user_typed_backspace()?;
+                        } else if event.code == KeyCode::Enter {
+                            return state.commit_pay_debt().map(|_| ()).or_else(|e| match e {
+                                StateError::PayDownAmountHigherThanDebt => Ok(()),
+                                StateError::CannotAfford => Ok(()),
+                                x => Err(x.into()),
+                            });
                         }
-                        if event.code == KeyCode::Backspace {
-                            return Ok(Some(state.user_typed_backspace()?));
-                        }
-                        if event.code == KeyCode::Enter {
-                            return match state.commit_pay_debt() {
-                                Ok(new_state) => Ok(Some(new_state)),
-                                Err(variant) => match variant {
-                                    StateError::PayDownAmountHigherThanDebt => Ok(None),
-                                    StateError::CannotAfford => Ok(None),
-                                    x => Err(x.into()),
-                                },
-                            };
-                        }
-                        Ok(None)
+                        Ok(())
                     }));
                 }
                 Mode::BankDeposit(amount) => {
                     queue!(writer, BankDepositInput(amount, 9, 19))?;
-                    return Ok(Box::new(|event: KeyEvent, state: &GameState| {
+                    return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char(c) = event.code {
                             if let Some(digit) = c.to_digit(10) {
-                                return Ok(Some(state.user_typed_digit(digit)?));
+                                state.user_typed_digit(digit)?;
                             }
-                        }
-                        if event.code == KeyCode::Backspace {
-                            return Ok(Some(state.user_typed_backspace()?));
-                        }
-                        if event.code == KeyCode::Enter {
-                            return match state.commit_bank_deposit() {
-                                Ok(new_state) => Ok(Some(new_state)),
-                                Err(variant) => match variant {
-                                    StateError::CannotAfford => Ok(None),
+                        } else if event.code == KeyCode::Backspace {
+                            state.user_typed_backspace()?;
+                        } else if event.code == KeyCode::Enter {
+                            return state
+                                .commit_bank_deposit()
+                                .map(|_| ())
+                                .or_else(|e| match e {
+                                    StateError::CannotAfford => Ok(()),
                                     x => Err(x.into()),
-                                },
-                            };
+                                });
                         }
-                        Ok(None)
+                        Ok(())
                     }));
                 }
                 Mode::BankWithdraw(amount) => {
                     queue!(writer, BankWithdrawInput(amount, 9, 19))?;
-                    return Ok(Box::new(|event: KeyEvent, state: &GameState| {
+                    return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char(c) = event.code {
                             if let Some(digit) = c.to_digit(10) {
-                                return Ok(Some(state.user_typed_digit(digit)?));
+                                state.user_typed_digit(digit)?;
                             }
-                        }
-                        if event.code == KeyCode::Backspace {
-                            return Ok(Some(state.user_typed_backspace()?));
-                        }
-                        if event.code == KeyCode::Enter {
-                            return match state.commit_bank_withdraw() {
-                                Ok(new_state) => Ok(Some(new_state)),
-                                Err(variant) => match variant {
-                                    StateError::InsufficientBank => Ok(None),
+                        } else if event.code == KeyCode::Backspace {
+                            state.user_typed_backspace()?;
+                        } else if event.code == KeyCode::Enter {
+                            return state
+                                .commit_bank_withdraw()
+                                .map(|_| ())
+                                .or_else(|e| match e {
+                                    StateError::InsufficientBank => Ok(()),
                                     x => Err(x.into()),
-                                },
-                            };
+                                });
                         }
-                        Ok(None)
+                        Ok(())
                     }));
                 }
                 Mode::GameEvent(event) => match event {
                     LocationEvent::CheapGood(good) => {
                         queue!(writer, CheapGoodDialog(good, 9, 19))?;
-                        return Ok(Box::new(|_: KeyEvent, state: &GameState| {
-                            Ok(Some(state.acknowledge_event()?))
+                        return Ok(Box::new(|_: KeyEvent, state: &mut GameState| {
+                            state.acknowledge_event()?;
+                            Ok(())
                         }));
                     }
                 },
@@ -419,7 +391,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
         }
     }
 
-    pub fn draw_scene(&mut self, state: &GameState) -> io::Result<Box<UpdateFn>> {
+    pub fn draw_scene(&mut self, state: &mut GameState) -> io::Result<Box<UpdateFn>> {
         let writer = &mut *self.writer.borrow_mut();
         let update = Engine::queue_scene(writer, state)?;
         writer.flush()?;
