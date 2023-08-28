@@ -6,6 +6,7 @@ TODO
 - [x] end of game (30 month deadline?)
 - [x] start with less cash than debt
 - [x] different good prices (which of these goods is most expensive?)
+- [x] stop showing pay down debt option when debt is 0
 - events
   - [] buy guns (cannons?)
   - [] buy more hold space
@@ -15,6 +16,10 @@ TODO
   - [x] increased good prices
   - [] theft
   - [x] find random goods
+    - [ ] find random goods is rarer for more valuable goods
+  - [] no-effect events. "it's a sunny day"?
+    - or maybe these are GPT-generated events, and indicate something
+  - [] multiple events at single location?
 - [] enliven UI
   - big ASCII ship?
 - [] window resize / size awareness

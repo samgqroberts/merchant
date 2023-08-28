@@ -178,13 +178,14 @@ impl<'a> Command for CurrentPrices<'a> {
     }
 }
 
-pub struct ViewingInventoryActions<'a>(pub &'a Location, pub u16, pub u16);
+pub struct ViewingInventoryActions<'a>(pub &'a Location, pub &'a u32, pub u16, pub u16);
 
 impl<'a> Command for ViewingInventoryActions<'a> {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
         let location = self.0;
-        let offset_x = self.1;
-        let offset_y = self.2;
+        let debt = self.1;
+        let offset_x = self.2;
+        let offset_y = self.3;
         comp!(
             f,
             // actions
@@ -203,12 +204,17 @@ impl<'a> Command for ViewingInventoryActions<'a> {
                 MoveTo(offset_x, offset_y + 4),
                 PrintStyledContent("(5) Stash withdraw".with(Color::White)),
                 MoveTo(offset_x, offset_y + 5),
-                PrintStyledContent("(6) Pay down debt".with(Color::White)),
+                PrintStyledContent("(6) Bank deposit".with(Color::White)),
                 MoveTo(offset_x, offset_y + 6),
-                PrintStyledContent("(7) Bank deposit".with(Color::White)),
-                MoveTo(offset_x, offset_y + 7),
-                PrintStyledContent("(8) Bank withdraw".with(Color::White)),
+                PrintStyledContent("(7) Bank withdraw".with(Color::White)),
             );
+            if debt > &0 {
+                comp!(
+                    f,
+                    MoveTo(offset_x, offset_y + 7),
+                    PrintStyledContent("(8) Pay down debt".with(Color::White)),
+                );
+            }
         }
         Ok(())
     }

@@ -137,7 +137,10 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
             queue!(writer, ViewingInventoryBase(state))?;
             match &state.mode {
                 Mode::ViewingInventory => {
-                    queue!(writer, ViewingInventoryActions(&state.location, 9, 19))?;
+                    queue!(
+                        writer,
+                        ViewingInventoryActions(&state.location, &state.debt, 9, 19)
+                    )?;
                     return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char(ch) = event.code {
                             if ch == '1' {
@@ -148,14 +151,20 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                                 state.begin_sailing()?;
                             };
                             if &state.location == &Location::London {
-                                match ch {
-                                    '4' => state.begin_stash_deposit(),
-                                    '5' => state.begin_stash_withdraw(),
-                                    '6' => state.begin_pay_debt(),
-                                    '7' => state.begin_bank_deposit(),
-                                    '8' => state.begin_bank_withdraw(),
-                                    _ => Ok(state),
-                                }?;
+                                if ch == '4' {
+                                    state.begin_stash_deposit()?;
+                                } else if ch == '5' {
+                                    state.begin_stash_withdraw()?;
+                                } else if ch == '6' {
+                                    state.begin_bank_deposit()?;
+                                } else if ch == '7' {
+                                    state.begin_bank_withdraw()?;
+                                }
+                                if &state.debt > &0 {
+                                    if ch == '8' {
+                                        state.begin_pay_debt()?;
+                                    }
+                                }
                             }
                         }
                         Ok(())
