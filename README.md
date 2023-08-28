@@ -21,6 +21,6 @@ TODO
     - or maybe these are GPT-generated events, and indicate something
   - [] multiple events at single location?
 - [] enliven UI
-  - big ASCII ship?
+  - [x] big ASCII ship
 - [] window resize / size awareness
 - [] make merchant metaphors / style better

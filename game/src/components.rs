@@ -277,15 +277,60 @@ impl<'a> Command for ViewingInventoryBase<'a> {
             MoveTo(12, 12),
             PrintStyledContent(format!("Debt: {}", state.debt).with(Color::White)),
             // inventory
-            MoveTo(33, 3),
-            PrintStyledContent("Inventory".with(Color::White)),
-            InventoryList(&state.inventory, 32, 4),
+            Ship(state, 22, 3),
             // current prices
             CurrentPrices(
                 &state.locations.location_info(&state.location).prices,
                 5,
                 14
             ),
+        );
+        Ok(())
+    }
+}
+
+pub struct Ship<'a>(pub &'a GameState, pub u16, pub u16);
+
+impl<'a> Command for Ship<'a> {
+    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+        const SHIP: &str = r"
+              |     |     |                 
+             )_)   )_)   )_)              
+            )___) )___) )___)\            
+           )____))____))_____)\\
+         _____|_____|_____|____\\\______
+       \                              /
+        \                            /
+---------\                          /---------
+  ^^^^^ ^^^^^^^^^^^^^^^^^^^^^   ^^^
+    ^^^^      ^^^^     ^^^    ^^
+         ^^^^      ^^^
+";
+        let state = self.0;
+        let offset_x = self.1;
+        let offset_y = self.2;
+        for (i, line) in SHIP.trim_matches('\n').lines().into_iter().enumerate() {
+            comp!(
+                f,
+                MoveTo(offset_x, offset_y + (i as u16)),
+                PrintStyledContent(format!("{}", line).with(Color::Grey)),
+            );
+        }
+        let inventory = &state.inventory;
+        comp!(
+            f,
+            MoveTo(offset_x + 14, offset_y + 5),
+            PrintStyledContent(format!("Tea: {}", inventory.tea).with(Color::White)),
+            MoveTo(offset_x + 11, offset_y + 6),
+            PrintStyledContent(format!("Coffee: {}", inventory.coffee).with(Color::White)),
+            MoveTo(offset_x + 12, offset_y + 7),
+            PrintStyledContent(format!("Sugar: {}", inventory.sugar).with(Color::White)),
+            MoveTo(offset_x + 24, offset_y + 5),
+            PrintStyledContent(format!("Tobacco: {}", inventory.tobacco).with(Color::White)),
+            MoveTo(offset_x + 28, offset_y + 6),
+            PrintStyledContent(format!("Rum: {}", inventory.rum).with(Color::White)),
+            MoveTo(offset_x + 25, offset_y + 7),
+            PrintStyledContent(format!("Cotton: {}", inventory.cotton).with(Color::White)),
         );
         Ok(())
     }

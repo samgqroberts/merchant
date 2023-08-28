@@ -32,17 +32,17 @@ Press any key to begin
          March 1782             Hold Size 100
          Gold 500                Location London
 
-          Home base              Inventory
-             Tea: 0                 Tea: 0
-          Coffee: 0              Coffee: 0
-           Sugar: 0               Sugar: 0
-         Tobacco: 0             Tobacco: 0
-             Rum: 0                 Rum: 0
-          Cotton: 0              Cotton: 0
-
-            Bank: 0
-            Debt: 1500
-
+          Home base                 |     |     |                 
+             Tea: 0                )_)   )_)   )_)              
+          Coffee: 0               )___) )___) )___)\            
+           Sugar: 0              )____))____))_____)\\
+         Tobacco: 0            _____|_____|_____|____\\\______
+             Rum: 0          \      Tea: 0    Tobacco: 0    /
+          Cotton: 0           \  Coffee: 0        Rum: 0   /
+                      ---------\  Sugar: 0     Cotton: 0  /---------
+            Bank: 0     ^^^^^ ^^^^^^^^^^^^^^^^^^^^^   ^^^
+            Debt: 1500    ^^^^      ^^^^     ^^^    ^^
+                               ^^^^      ^^^
      Captain, the prices of goods here are:
              Tea: 5626          Tobacco: 102
           Coffee: 2976              Rum: 59
