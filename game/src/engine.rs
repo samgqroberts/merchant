@@ -14,9 +14,9 @@ use std::{
 use crate::{
     components::{
         BankDepositInput, BankWithdrawInput, BuyInput, BuyPrompt, CheapGoodDialog,
-        ExpensiveGoodDialog, FindGoodsDialog, GameEndScreen, PayDebtInput, SailPrompt, SellInput,
-        SellPrompt, SplashScreen, StashDepositInput, StashDepositPrompt, StashWithdrawInput,
-        StashWithdrawPrompt, ViewingInventoryActions, ViewingInventoryBase,
+        ExpensiveGoodDialog, FindGoodsDialog, GameEndScreen, GoodsStolenDialog, PayDebtInput,
+        SailPrompt, SellInput, SellPrompt, SplashScreen, StashDepositInput, StashDepositPrompt,
+        StashWithdrawInput, StashWithdrawPrompt, ViewingInventoryActions, ViewingInventoryBase,
     },
     state::{GameState, Good, Location, LocationEvent, Mode, StateError},
 };
@@ -39,6 +39,7 @@ impl From<StateError> for UpdateError {
 pub type UpdateResult<T> = Result<T, UpdateError>;
 
 pub type UpdateFn = dyn FnOnce(KeyEvent, &mut GameState) -> UpdateResult<()>;
+
 trait FromKeyCode
 where
     Self: Sized,
@@ -122,7 +123,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
         }
     }
 
-    fn queue_scene(writer: &mut Writer, state: &GameState) -> io::Result<Box<UpdateFn>> {
+    fn queue_scene(writer: &mut Writer, state: &mut GameState) -> io::Result<Box<UpdateFn>> {
         if !state.initialized {
             // initial splash screen
             queue!(writer, SplashScreen())?;
@@ -416,6 +417,15 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                                 let amount_to_add = min(amount, remaining_hold);
                                 state.inventory.add_good(&good, amount_to_add);
                             }
+                            state.acknowledge_event()?;
+                            Ok(())
+                        }));
+                    }
+                    LocationEvent::GoodsStolen(info) => {
+                        let info = info.unwrap_or_else(|| state.compute_goods_stolen());
+                        queue!(writer, GoodsStolenDialog(info.clone()))?;
+                        return Ok(Box::new(move |_: KeyEvent, state: &mut GameState| {
+                            state.remove_stolen_goods(info);
                             state.acknowledge_event()?;
                             Ok(())
                         }));

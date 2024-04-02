@@ -63,4 +63,25 @@ impl Inventory {
         *good = *good - amount;
         good
     }
+
+    pub(crate) fn iter(&self) -> std::vec::IntoIter<(Good, u32)> {
+        self.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a Inventory {
+    type Item = (Good, u32);
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let v = vec![
+            (Good::Tea, self.tea),
+            (Good::Coffee, self.coffee),
+            (Good::Sugar, self.sugar),
+            (Good::Tobacco, self.tobacco),
+            (Good::Rum, self.rum),
+            (Good::Cotton, self.cotton),
+        ];
+        v.into_iter()
+    }
 }

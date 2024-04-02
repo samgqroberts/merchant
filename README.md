@@ -27,7 +27,7 @@ TODO
   - [x] good sales (cheaper goods)
     - in drug wars: "Pigs are selling cheap heroin from last weeks raid !!"
   - [x] increased good prices
-  - [] theft
+  - [x] theft
   - [x] find random goods
     - [ ] find random goods is rarer for more valuable goods
   - [] no-effect events. "it's a sunny day"?
@@ -47,12 +47,14 @@ TODO
   - [] use colors
     - highlight choices like (1) (and/or bold?).
     - inactive (flavor-only) elements like the boat and the house should be duller / faded
+  - [] Update splash screen and game end screen to use at least new frame
 - [] window resize / size awareness
 - [] make merchant metaphors / style better
 - [] cap values
   - inventory values to 9999 (and they can be u16s)
   - bank, debt, and gold to 9999999
 - [] can go "back" in different menus, like buy and sell
+- [] find goods event needs to be balanced - cap the cash value you can find
 
 
 Design:

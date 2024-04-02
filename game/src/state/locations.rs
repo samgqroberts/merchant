@@ -96,7 +96,7 @@ impl Locations {
             // % 2 means 50% chance of hitting some event
             new_location_info.event = if rng.next_u32() % 2 == 0 {
                 // we've hit an event
-                let event: LocationEvent = match rng.next_u32() % 3 {
+                let event: LocationEvent = match rng.next_u32() % 4 {
                     0 => {
                         // cheap good
                         let good = Good::random(rng);
@@ -113,11 +113,15 @@ impl Locations {
                         *good_price = ((*good_price as f64) * 2.0).floor() as u32;
                         LocationEvent::ExpensiveGood(good)
                     }
-                    _ => {
+                    2 => {
                         // find goods
                         let good = Good::random(rng);
                         let amount = (rng.next_u32() % 10) + 1;
                         LocationEvent::FindGoods(good, amount)
+                    }
+                    _ => {
+                        // stolen goods
+                        LocationEvent::GoodsStolen(None)
                     }
                 };
                 Some(event)

@@ -2,7 +2,7 @@ use std::fmt::{self, Display};
 
 use rand::{rngs::StdRng, RngCore};
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Good {
     Tea,
     Coffee,

@@ -9,7 +9,7 @@ use crossterm::{
 
 use crate::{
     comp,
-    state::{GameState, Good, Inventory, Location, Transaction},
+    state::{GameState, Good, GoodsStolenResult, Inventory, Location, Transaction},
 };
 
 pub struct SplashScreen();
@@ -947,6 +947,30 @@ impl<'a> Command for FindGoodsDialog<'a> {
                     format!("You have space for ({})", remaining_hold).with(Color::White)
                 ),
             )
+        }
+        Ok(())
+    }
+}
+
+pub struct GoodsStolenDialog(pub GoodsStolenResult);
+
+impl Command for GoodsStolenDialog {
+    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+        match self.0 {
+            GoodsStolenResult::NothingStolen => comp!(
+                f,
+                MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y),
+                PrintStyledContent("Thieves were on the prowl, but they".with(Color::White)),
+                MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 1),
+                PrintStyledContent("couldn't find anything to steal".with(Color::White)),
+            ),
+            GoodsStolenResult::WasStolen { good, amount } => comp!(
+                f,
+                MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y),
+                PrintStyledContent("Prowling harbor thieves stole".with(Color::White)),
+                MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 1),
+                PrintStyledContent(format!("{} {} from you!", amount, good).with(Color::White)),
+            ),
         }
         Ok(())
     }

@@ -53,7 +53,7 @@ fn tokenize_ansi<'a>(s: &'a str) -> Vec<Output<'a>> {
 }
 
 /// Takes a string slice containing ANSI escape sequences and returns a
-/// String that looks like the terminal formatted it, but without any styling visual.
+/// String that looks like the terminal formatted it, but without any visual styling.
 ///
 /// The important part of the terminal formatting that this emulates is cursor position.
 /// In the resulting string, ANSI cursor position has been taken into account to produce simple
@@ -61,7 +61,7 @@ fn tokenize_ansi<'a>(s: &'a str) -> Vec<Output<'a>> {
 ///
 /// # Examples
 ///
-/// If an ANSI sequence directed the terminal to move the cursor right 4 characters,
+/// If an ANSI sequence directed the terminal to move the cursor right 4 characters and
 /// then write the text "Hello", the resulting string from this function would be `"    Hello"`.
 ///
 /// ```rust

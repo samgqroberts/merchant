@@ -3,10 +3,12 @@ pub mod inventory;
 pub mod location;
 pub mod locations;
 
+use std::borrow::BorrowMut;
 use std::fmt::{self, Display};
 
 use chrono::Month;
 use rand::rngs::StdRng;
+use rand::Rng;
 
 pub use self::good::Good;
 pub use self::inventory::Inventory;
@@ -24,6 +26,7 @@ pub enum LocationEvent {
     CheapGood(Good),
     ExpensiveGood(Good),
     FindGoods(Good, u32),
+    GoodsStolen(Option<GoodsStolenResult>),
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -473,6 +476,51 @@ impl GameState {
             .checked_sub(self.inventory.total_amount())
             .unwrap_or(0)
     }
+
+    pub(crate) fn compute_goods_stolen(&mut self) -> GoodsStolenResult {
+        if let Mode::GameEvent(event) = &mut self.mode {
+            if let LocationEvent::GoodsStolen(info) = event.borrow_mut() {
+                if let Some(info) = info {
+                    return info.clone();
+                } else {
+                    // randomly select a good that we have inventory of
+                    let goods_with_inventory = self
+                        .inventory
+                        .iter()
+                        .filter(|x| x.1 > 0)
+                        .collect::<Vec<(Good, u32)>>();
+                    let computed_info = if goods_with_inventory.is_empty() {
+                        GoodsStolenResult::NothingStolen
+                    } else {
+                        let index = self.rng.gen_range(0..goods_with_inventory.len());
+                        // safe unwrap, we generated the index to be in range
+                        let good_to_steal = goods_with_inventory.get(index).unwrap();
+                        // choose some amount of good to steal
+                        let amount = self.rng.gen_range(1..good_to_steal.1);
+                        GoodsStolenResult::WasStolen {
+                            good: good_to_steal.0,
+                            amount,
+                        }
+                    };
+                    *info = Some(computed_info);
+                    return computed_info.clone();
+                }
+            }
+        }
+        GoodsStolenResult::NothingStolen
+    }
+
+    pub(crate) fn remove_stolen_goods(&mut self, goods_stolen_info: GoodsStolenResult) -> () {
+        if let GoodsStolenResult::WasStolen { good, amount } = goods_stolen_info {
+            self.inventory.remove_good(&good, amount);
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum GoodsStolenResult {
+    NothingStolen,
+    WasStolen { good: Good, amount: u32 },
 }
 
 #[derive(Debug)]

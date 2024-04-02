@@ -402,3 +402,36 @@ fn arrive_at_find_goods_event_not_enough_hold() -> UpdateResult<()> {
     assert!(e.expect("Coffee:   11"));
     Ok(())
 }
+
+#[test]
+fn arrive_at_stolen_goods_event_some_stolen() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(42));
+        state.initialize();
+        state.inventory.coffee = 10;
+        state.mode = Mode::GameEvent(LocationEvent::GoodsStolen(None));
+        state
+    })?;
+    assert!(e.expect("Prowling harbor thieves stole"));
+    assert!(e.expect("1 Coffee from you!"));
+    assert!(e.expect("Coffee:   10"));
+    e.charpress('a')?;
+    assert!(e.expect("Coffee:    9"));
+    Ok(())
+}
+
+#[test]
+fn arrive_at_stolen_goods_event_nothing_stolen() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(42));
+        state.initialize();
+        state.inventory.coffee = 0;
+        state.mode = Mode::GameEvent(LocationEvent::GoodsStolen(None));
+        state
+    })?;
+    assert!(e.expect("Thieves were on the prowl, but they"));
+    assert!(e.expect("couldn't find anything to steal"));
+    e.charpress('a')?;
+    assert!(e.expect("(1) Buy"));
+    Ok(())
+}
