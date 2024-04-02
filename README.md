@@ -37,18 +37,22 @@ TODO
     - eg. instead of "you find x tobacco" how about "as you dock your ship, you see a crate and nobody in sight. inside you find x tobacco!." 
 - [] enliven UI
   - [x] big ASCII ship
-  - [] ASCII home base
-  - [] put like with like – eg. hold size should be near (about) ship
-  - [] borders around top info
+  - [x] ASCII home base
+  - [x] put like with like – eg. hold size should be near (about) ship
+  - [x] borders around top info
   - UI overhaul
     - Split screen into 4 quadrants: top right is Ship / hold, Bottom right is market at the port you're at, Top left is home base info (including stash, bank and debt). Bottom left is choices (and event info?)
     - Maybe across whole top is date and gold
     - maybe event info is across whole bottom similarly
-  - use colors
+  - [] use colors
     - highlight choices like (1) (and/or bold?).
     - inactive (flavor-only) elements like the boat and the house should be duller / faded
 - [] window resize / size awareness
 - [] make merchant metaphors / style better
+- [] cap values
+  - inventory values to 9999 (and they can be u16s)
+  - bank, debt, and gold to 9999999
+- [] can go "back" in different menus, like buy and sell
 
 
 Design:

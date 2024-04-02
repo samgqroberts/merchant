@@ -139,7 +139,10 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                 Mode::ViewingInventory => {
                     queue!(
                         writer,
-                        ViewingInventoryActions(&state.location, &state.debt, 9, 19)
+                        ViewingInventoryActions {
+                            location: &state.location,
+                            debt: state.debt
+                        }
                     )?;
                     return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char(ch) = event.code {
@@ -172,7 +175,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                 }
                 Mode::Buying(info) => {
                     if let Some(info) = info {
-                        queue!(writer, BuyInput(info, state, 9, 19))?;
+                        queue!(writer, BuyInput { info, state })?;
                         return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                             if let KeyCode::Char(c) = event.code {
                                 if let Some(digit) = c.to_digit(10) {
@@ -191,7 +194,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                             return Ok(());
                         }));
                     } else {
-                        queue!(writer, BuyPrompt(9, 19))?;
+                        queue!(writer, BuyPrompt)?;
                         return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                             if let Some(good) = Good::from_key_code(&event.code) {
                                 state.choose_buy_good(good)?;
@@ -206,7 +209,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                     if let Some(info) = info {
                         // user has indicated which good they want to sell
                         let current_amount = state.inventory.get_good(&info.good);
-                        queue!(writer, SellInput(info, current_amount, 9, 19))?;
+                        queue!(writer, SellInput(info, current_amount))?;
                         return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                             if let KeyCode::Char(c) = event.code {
                                 if let Some(digit) = c.to_digit(10) {
@@ -224,7 +227,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         }));
                     } else {
                         // user is choosing which good to sell
-                        queue!(writer, SellPrompt(9, 19))?;
+                        queue!(writer, SellPrompt)?;
                         return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                             if let Some(good) = Good::from_key_code(&event.code) {
                                 state.choose_sell_good(good)?;
@@ -237,7 +240,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                 }
                 Mode::Sailing => {
                     // user is choosing where to sail
-                    queue!(writer, SailPrompt(9, 19))?;
+                    queue!(writer, SailPrompt)?;
                     return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let Some(destination) = Location::from_key_code(&event.code) {
                             return state
@@ -258,7 +261,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         // user has indicated which good they want to stash
                         let good = &info.good;
                         let current_amount = state.inventory.get_good(good);
-                        queue!(writer, StashDepositInput(info, current_amount, 9, 19))?;
+                        queue!(writer, StashDepositInput(info, current_amount))?;
                         return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                             if let KeyCode::Char(c) = event.code {
                                 if let Some(digit) = c.to_digit(10) {
@@ -280,7 +283,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         }));
                     } else {
                         // user is choosing which good to stash
-                        queue!(writer, StashDepositPrompt(9, 19))?;
+                        queue!(writer, StashDepositPrompt)?;
                         return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                             if let Some(good) = Good::from_key_code(&event.code) {
                                 state.choose_stash_deposit_good(good)?;
@@ -296,7 +299,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         // user has indicated which good they want to withdraw from stash
                         let good = &info.good;
                         let current_amount = state.stash.get_good(good);
-                        queue!(writer, StashWithdrawInput(info, current_amount, 9, 19))?;
+                        queue!(writer, StashWithdrawInput(info, current_amount))?;
                         return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                             if let KeyCode::Char(c) = event.code {
                                 if let Some(digit) = c.to_digit(10) {
@@ -316,7 +319,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         }));
                     } else {
                         // user is choosing which good to withdraw from stash
-                        queue!(writer, StashWithdrawPrompt(9, 19))?;
+                        queue!(writer, StashWithdrawPrompt)?;
                         return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                             if let Some(good) = Good::from_key_code(&event.code) {
                                 state.choose_stash_withdraw_good(good)?;
@@ -328,7 +331,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                     }
                 }
                 Mode::PayDebt(amount) => {
-                    queue!(writer, PayDebtInput(amount, 9, 19))?;
+                    queue!(writer, PayDebtInput(amount))?;
                     return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char(c) = event.code {
                             if let Some(digit) = c.to_digit(10) {
@@ -347,7 +350,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                     }));
                 }
                 Mode::BankDeposit(amount) => {
-                    queue!(writer, BankDepositInput(amount, 9, 19))?;
+                    queue!(writer, BankDepositInput(amount))?;
                     return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char(c) = event.code {
                             if let Some(digit) = c.to_digit(10) {
@@ -368,7 +371,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                     }));
                 }
                 Mode::BankWithdraw(amount) => {
-                    queue!(writer, BankWithdrawInput(amount, 9, 19))?;
+                    queue!(writer, BankWithdrawInput(amount))?;
                     return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char(c) = event.code {
                             if let Some(digit) = c.to_digit(10) {
@@ -390,21 +393,21 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                 }
                 Mode::GameEvent(event) => match event {
                     LocationEvent::CheapGood(good) => {
-                        queue!(writer, CheapGoodDialog(good, 9, 19))?;
+                        queue!(writer, CheapGoodDialog(good))?;
                         return Ok(Box::new(|_: KeyEvent, state: &mut GameState| {
                             state.acknowledge_event()?;
                             Ok(())
                         }));
                     }
                     LocationEvent::ExpensiveGood(good) => {
-                        queue!(writer, ExpensiveGoodDialog(good, 9, 19))?;
+                        queue!(writer, ExpensiveGoodDialog(good))?;
                         return Ok(Box::new(|_: KeyEvent, state: &mut GameState| {
                             state.acknowledge_event()?;
                             Ok(())
                         }));
                     }
                     LocationEvent::FindGoods(good, amount) => {
-                        queue!(writer, FindGoodsDialog(good, amount, state, 9, 19))?;
+                        queue!(writer, FindGoodsDialog(good, amount, state))?;
                         let good = good.clone();
                         let amount = amount.clone();
                         return Ok(Box::new(move |_: KeyEvent, state: &mut GameState| {

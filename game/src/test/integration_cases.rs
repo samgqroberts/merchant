@@ -28,35 +28,41 @@ Press any key to begin
     assert_eq!(
         e.get_current_formatted(),
         e.expect_full(
-            r"
-         March 1782             Hold Size 100
-         Gold 500                Location London
-
-          Home base                 |     |     |                 
-             Tea: 0                )_)   )_)   )_)              
-          Coffee: 0               )___) )___) )___)\            
-           Sugar: 0              )____))____))_____)\\
-         Tobacco: 0            _____|_____|_____|____\\\______
-             Rum: 0          \      Tea: 0    Tobacco: 0    /
-          Cotton: 0           \  Coffee: 0        Rum: 0   /
-                      ---------\  Sugar: 0     Cotton: 0  /---------
-            Bank: 0     ^^^^^ ^^^^^^^^^^^^^^^^^^^^^   ^^^
-            Debt: 1500    ^^^^      ^^^^     ^^^    ^^
-                               ^^^^      ^^^
-     Captain, the prices of goods here are:
-             Tea: 5626          Tobacco: 102
-          Coffee: 2976              Rum: 59
-           Sugar: 897            Cotton: 7
-
-         (1) Buy
-         (2) Sell
-         (3) Sail
-         (4) Stash deposit
-         (5) Stash withdraw
-         (6) Bank deposit
-         (7) Bank withdraw
-         (8) Pay down debt
-",
+            r###"
+----------------------------------------|=================|----------------------------------------
+|                                       | March      1782 |                                       |
+|---------------------------------------|=================|---------------------------------------|
+|     _____[LLL]______[LLL]____                                     |                             |
+|    /     [LLL]      [LLL]    \                        |          )_)                            |
+|   /___________________________\                      )_)        )___)         |                 |
+|    )=========================(                      )___)       )____)       )_)\               |
+|    '|I .--. I     Tea:    0 I|                      )____)     /)_____)      )__)\              |
+|     |I | +| I  Coffee:    0 I|                     )_____)    /)______)\    )___) \             |
+|     |I_|_+|_I   Sugar:    0 I|                    )______)  //)_______) \\ )_____) \\           |
+|    /_I______I Tobacco:    0 I_\             _____//___|___///_____|______\\\__|_____\\\__=====  |
+|     )========     Rum:    0 =(              \      Tea:    0 Coffee:    0  Sugar:    0  /       |
+|     |I .--. I  Cotton:    0 I|               \ Tobacco:    0    Rum:    0 Cotton:    0 /        |
+|     |I |<>| I               I|                \                                       /____     |
+|     |I |~ | I Bank:       0 I|       --------- \  Gold:     500 Hold:  100           //.../---  |
+|     |I |  | I Debt:    1500 I|          ^^^^^ ^^^^^^^^^^^^^^^^^^^^^   ^^^^^^^^^^  ^^^/.../      |
+|     |I_|__|_I_______________I|                ^^^^      ^^^    ^^^^^^^^^    ^^^^^  /..../       |
+|   ###(______)##################                        ^^^      ^^^^             /...../        |
+|    ##(________)   ~"^"^~   ##                                                  /....../         |
+|======(_________)========================<------------->======================/......../=========|
+|      (__________)                       |   London    |                    /........./          |
+|                                         <------------->                                         |
+|                                                                                                 |
+|         (1) Buy                                    Captain, the prices of goods here are:       |
+|         (2) Sell                                                  Tea: 5626                     |
+|         (3) Sail                                               Coffee: 2976                     |
+|         (4) Stash deposit                                       Sugar:  897                     |
+|         (5) Stash withdraw                                    Tobacco:  102                     |
+|         (6) Bank deposit                                          Rum:   59                     |
+|         (7) Bank withdraw                                      Cotton:    7                     |
+|         (8) Pay down debt                                                                       |
+|                                                                                                 |
+---------------------------------------------------------------------------------------------------
+"###,
         )
     );
     Ok(())
@@ -124,23 +130,26 @@ fn sell_good() -> UpdateResult<()> {
         state.locations.london.prices.cotton = 30;
         state
     })?;
-    assert!(e.expect("Gold 1400"));
-    assert!(e.expect("Cotton: 15"));
-    assert!(e.expect("Cotton: 30"));
+    assert!(e.expect("Gold:    1400"));
+    assert!(e.expect("Cotton:   15"));
+    assert!(e.expect("Cotton:   30"));
     assert!(e.expect("(2) Sell"));
     e.charpress('2')?;
     assert!(e.expect("Which do you want to sell?"));
     assert!(e.expect("(6) Cotton"));
     e.charpress('6')?;
-    assert!(e.expect("How much Cotton do you want to sell?"));
+    assert!(e.expect("How much Cotton do you"));
+    assert!(e.expect("want to sell?"));
     assert!(e.expect("You have (15)"));
     e.charpress('1')?;
-    assert!(e.expect("How much Cotton do you want to sell? 1"));
+    assert!(e.expect("How much Cotton do you"));
+    assert!(e.expect("want to sell? 1"));
     e.charpress('0')?;
-    assert!(e.expect("How much Cotton do you want to sell? 10"));
+    assert!(e.expect("How much Cotton do you"));
+    assert!(e.expect("want to sell? 10"));
     e.enterpress()?;
-    assert!(e.expect("Cotton: 5"));
-    assert!(e.expect("Gold 1700"));
+    assert!(e.expect("Cotton:    5"));
+    assert!(e.expect("Gold:    1700"));
     Ok(())
 }
 
@@ -151,15 +160,15 @@ fn sail() -> UpdateResult<()> {
         state.initialize();
         state
     })?;
-    assert!(e.expect("Location London"));
-    assert!(e.expect("Debt: 1500"));
+    assert!(e.expect("|   London    |"));
+    assert!(e.expect("Debt:    1500"));
     assert!(e.expect("(3) Sail"));
     e.charpress('3')?;
     assert!(e.expect("Where do you want to sail?"));
     assert!(e.expect("(6) Venice"));
     e.charpress('6')?;
-    assert!(e.expect("Location Venice"));
-    assert!(e.expect("Debt: 1650"));
+    assert!(e.expect("|   Venice    |"));
+    assert!(e.expect("Debt:    1650"));
     Ok(())
 }
 
@@ -172,22 +181,25 @@ fn stash_deposit() -> UpdateResult<()> {
         state.inventory.rum = 20;
         state
     })?;
-    assert!(e.expect("Rum: 5"));
-    assert!(e.expect("Rum: 20"));
+    assert!(e.expect("Rum:   5"));
+    assert!(e.expect("Rum:   20"));
     assert!(e.expect("(4) Stash deposit"));
     e.charpress('4')?;
     assert!(e.expect("Which do you want to stash?"));
     assert!(e.expect("(5) Rum"));
     e.charpress('5')?;
-    assert!(e.expect("How much Rum do you want to stash?"));
+    assert!(e.expect("How much Rum do you"));
+    assert!(e.expect("want to stash?"));
     assert!(e.expect("You have (20)"));
     e.charpress('1')?;
-    assert!(e.expect("How much Rum do you want to stash? 1"));
+    assert!(e.expect("How much Rum do you"));
+    assert!(e.expect("want to stash? 1"));
     e.charpress('2')?;
-    assert!(e.expect("How much Rum do you want to stash? 12"));
+    assert!(e.expect("How much Rum do you"));
+    assert!(e.expect("want to stash? 12"));
     e.enterpress()?;
-    assert!(e.expect("Rum: 17"));
-    assert!(e.expect("Rum: 8"));
+    assert!(e.expect("Rum:   17"));
+    assert!(e.expect("Rum:    8"));
     Ok(())
 }
 
@@ -200,22 +212,25 @@ fn stash_withdraw() -> UpdateResult<()> {
         state.inventory.tea = 14;
         state
     })?;
-    assert!(e.expect("Tea: 30"));
-    assert!(e.expect("Tea: 14"));
+    assert!(e.expect("Tea:   30"));
+    assert!(e.expect("Tea:   14"));
     assert!(e.expect("(5) Stash withdraw"));
     e.charpress('5')?;
     assert!(e.expect("Which do you want to withdraw?"));
     assert!(e.expect("(1) Tea"));
     e.charpress('1')?;
-    assert!(e.expect("How much Tea do you want to withdraw?"));
+    assert!(e.expect("How much Tea do you"));
+    assert!(e.expect("want to withdraw?"));
     assert!(e.expect("There are (30)"));
     e.charpress('1')?;
-    assert!(e.expect("How much Tea do you want to withdraw? 1"));
+    assert!(e.expect("How much Tea do you"));
+    assert!(e.expect("want to withdraw? 1"));
     e.charpress('2')?;
-    assert!(e.expect("How much Tea do you want to withdraw? 12"));
+    assert!(e.expect("How much Tea do you"));
+    assert!(e.expect("want to withdraw? 12"));
     e.enterpress()?;
-    assert!(e.expect("Tea: 18"));
-    assert!(e.expect("Tea: 26"));
+    assert!(e.expect("Tea:   18"));
+    assert!(e.expect("Tea:   26"));
     Ok(())
 }
 
@@ -228,20 +243,24 @@ fn pay_debt() -> UpdateResult<()> {
         state.gold = 1000;
         state
     })?;
-    assert!(e.expect("Gold 1000"));
-    assert!(e.expect("Debt: 500"));
+    assert!(e.expect("Gold:    1000"));
+    assert!(e.expect("Debt:     500"));
     assert!(e.expect("(8) Pay down debt"));
     e.charpress('8')?;
-    assert!(e.expect("How much debt do you want to pay down?"));
+    assert!(e.expect("How much debt do you"));
+    assert!(e.expect("want to pay down?"));
     e.charpress('3')?;
-    assert!(e.expect("How much debt do you want to pay down? 3"));
+    assert!(e.expect("How much debt do you"));
+    assert!(e.expect("want to pay down? 3"));
     e.charpress('0')?;
-    assert!(e.expect("How much debt do you want to pay down? 30"));
+    assert!(e.expect("How much debt do you"));
+    assert!(e.expect("want to pay down? 30"));
     e.charpress('0')?;
-    assert!(e.expect("How much debt do you want to pay down? 300"));
+    assert!(e.expect("How much debt do you"));
+    assert!(e.expect("want to pay down? 300"));
     e.enterpress()?;
-    assert!(e.expect("Gold 700"));
-    assert!(e.expect("Debt: 200"));
+    assert!(e.expect("Gold:     700"));
+    assert!(e.expect("Debt:     200"));
     assert!(e.expect("(8) Pay down debt"));
     Ok(())
 }
@@ -254,7 +273,7 @@ fn pay_debt_no_debt_left() -> UpdateResult<()> {
         state.debt = 0;
         state
     })?;
-    assert!(e.expect("Debt: 0"));
+    assert!(e.expect("Debt:       0"));
     // does not show pay down debt option
     assert!(e.nexpect("Pay down debt"));
     // no effect when pressing the pay down debt option key
@@ -273,20 +292,24 @@ fn bank_deposit() -> UpdateResult<()> {
         state.bank = 500;
         state
     })?;
-    assert!(e.expect("Gold 1000"));
-    assert!(e.expect("Bank: 500"));
+    assert!(e.expect("Gold:    1000"));
+    assert!(e.expect("Bank:     500"));
     assert!(e.expect("(6) Bank deposit"));
     e.charpress('6')?;
-    assert!(e.expect("How much gold do you want to deposit in the bank?"));
+    assert!(e.expect("How much gold do you want"));
+    assert!(e.expect("to deposit in the bank?"));
     e.charpress('3')?;
-    assert!(e.expect("How much gold do you want to deposit in the bank? 3"));
+    assert!(e.expect("How much gold do you want"));
+    assert!(e.expect("to deposit in the bank? 3"));
     e.charpress('0')?;
-    assert!(e.expect("How much gold do you want to deposit in the bank? 30"));
+    assert!(e.expect("How much gold do you want"));
+    assert!(e.expect("to deposit in the bank? 30"));
     e.charpress('0')?;
-    assert!(e.expect("How much gold do you want to deposit in the bank? 300"));
+    assert!(e.expect("How much gold do you want"));
+    assert!(e.expect("to deposit in the bank? 300"));
     e.enterpress()?;
-    assert!(e.expect("Gold 700"));
-    assert!(e.expect("Bank: 800"));
+    assert!(e.expect("Gold:     700"));
+    assert!(e.expect("Bank:     800"));
     Ok(())
 }
 
@@ -299,20 +322,24 @@ fn bank_withdraw() -> UpdateResult<()> {
         state.bank = 500;
         state
     })?;
-    assert!(e.expect("Gold 1000"));
-    assert!(e.expect("Bank: 500"));
+    assert!(e.expect("Gold:    1000"));
+    assert!(e.expect("Bank:     500"));
     assert!(e.expect("(7) Bank withdraw"));
     e.charpress('7')?;
-    assert!(e.expect("How much gold do you want to withdraw?"));
+    assert!(e.expect("How much gold do you"));
+    assert!(e.expect("want to withdraw?"));
     e.charpress('3')?;
-    assert!(e.expect("How much gold do you want to withdraw? 3"));
+    assert!(e.expect("How much gold do you"));
+    assert!(e.expect("want to withdraw? 3"));
     e.charpress('0')?;
-    assert!(e.expect("How much gold do you want to withdraw? 30"));
+    assert!(e.expect("How much gold do you"));
+    assert!(e.expect("want to withdraw? 30"));
     e.charpress('0')?;
-    assert!(e.expect("How much gold do you want to withdraw? 300"));
+    assert!(e.expect("How much gold do you"));
+    assert!(e.expect("want to withdraw? 300"));
     e.enterpress()?;
-    assert!(e.expect("Gold 1300"));
-    assert!(e.expect("Bank: 200"));
+    assert!(e.expect("Gold:    1300"));
+    assert!(e.expect("Bank:     200"));
     Ok(())
 }
 
@@ -355,7 +382,7 @@ fn arrive_at_find_goods_event() -> UpdateResult<()> {
     })?;
     assert!(e.expect("You randomly find 10 Coffee!"));
     e.charpress('a')?;
-    assert!(e.expect("Coffee: 14"));
+    assert!(e.expect("Coffee:   14"));
     Ok(())
 }
 
@@ -372,6 +399,6 @@ fn arrive_at_find_goods_event_not_enough_hold() -> UpdateResult<()> {
     assert!(e.expect("You randomly find 10 Coffee!"));
     assert!(e.expect("You have space for (7)"));
     e.charpress('a')?;
-    assert!(e.expect("Coffee: 11"));
+    assert!(e.expect("Coffee:   11"));
     Ok(())
 }

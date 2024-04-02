@@ -1,7 +1,7 @@
 use std::fmt::{self};
 
 use crossterm::{
-    cursor::{Hide, MoveTo, MoveToNextLine, Show},
+    cursor::{Hide, MoveDown, MoveRight, MoveTo, MoveToNextLine, Show},
     style::{style, Attribute, Color, PrintStyledContent, Stylize},
     terminal::Clear,
     Command,
@@ -101,26 +101,52 @@ impl<'a> Command for GameEndScreen<'a> {
     }
 }
 
-pub struct BankWithdrawInput<'a>(pub &'a Option<u32>, pub u16, pub u16);
+pub struct BankWithdrawInput<'a>(pub &'a Option<u32>);
 
 impl<'a> Command for BankWithdrawInput<'a> {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
         let amount = self.0;
-        let offset_x = self.1;
-        let offset_y = self.2;
+        const OFFSET_X: u16 = PROMPT_OFFSET_X;
+        const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         let prompt = format!(
-            "How much gold do you want to withdraw? {}",
+            "want to withdraw? {}",
             amount.map_or("".to_owned(), |amount| amount.to_string())
         );
         let prompt_len: u16 = prompt.len().try_into().unwrap();
         comp!(
             f,
-            MoveTo(offset_x, offset_y),
+            MoveTo(OFFSET_X, OFFSET_Y),
+            PrintStyledContent("How much gold do you".with(Color::White)),
+            MoveTo(OFFSET_X, OFFSET_Y + 1),
             PrintStyledContent(prompt.with(Color::White)),
-            MoveTo(offset_x + prompt_len, offset_y),
+            MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
         );
         Ok(())
+    }
+}
+
+pub struct Numeric4Digits(u32);
+
+impl std::fmt::Display for Numeric4Digits {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut value = self.0.to_string();
+        while value.len() < 4 {
+            value.insert(0, ' ')
+        }
+        write!(f, "{}", value)
+    }
+}
+
+pub struct Numeric7Digits(u32);
+
+impl std::fmt::Display for Numeric7Digits {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut value = self.0.to_string();
+        while value.len() < 7 {
+            value.insert(0, ' ')
+        }
+        write!(f, "{}", value)
     }
 }
 
@@ -134,84 +160,88 @@ impl<'a> Command for InventoryList<'a> {
         comp!(
             f,
             MoveTo(offset_x + 4, offset_y),
-            PrintStyledContent(format!("Tea: {}", inventory.tea).with(Color::White)),
+            PrintStyledContent(
+                format!("Tea: {}", Numeric4Digits(inventory.tea)).with(Color::White)
+            ),
             MoveTo(offset_x + 1, offset_y + 1),
-            PrintStyledContent(format!("Coffee: {}", inventory.coffee).with(Color::White)),
+            PrintStyledContent(
+                format!("Coffee: {}", Numeric4Digits(inventory.coffee)).with(Color::White)
+            ),
             MoveTo(offset_x + 2, offset_y + 2),
-            PrintStyledContent(format!("Sugar: {}", inventory.sugar).with(Color::White)),
+            PrintStyledContent(
+                format!("Sugar: {}", Numeric4Digits(inventory.sugar)).with(Color::White)
+            ),
             MoveTo(offset_x, offset_y + 3),
-            PrintStyledContent(format!("Tobacco: {}", inventory.tobacco).with(Color::White)),
+            PrintStyledContent(
+                format!("Tobacco: {}", Numeric4Digits(inventory.tobacco)).with(Color::White)
+            ),
             MoveTo(offset_x + 4, offset_y + 4),
-            PrintStyledContent(format!("Rum: {}", inventory.rum).with(Color::White)),
+            PrintStyledContent(
+                format!("Rum: {}", Numeric4Digits(inventory.rum)).with(Color::White)
+            ),
             MoveTo(offset_x + 1, offset_y + 5),
-            PrintStyledContent(format!("Cotton: {}", inventory.cotton).with(Color::White)),
+            PrintStyledContent(
+                format!("Cotton: {}", Numeric4Digits(inventory.cotton)).with(Color::White)
+            ),
         );
         Ok(())
     }
 }
 
-pub struct CurrentPrices<'a>(pub &'a Inventory, pub u16, pub u16);
+pub struct CurrentPrices<'a>(pub &'a Inventory);
 
 impl<'a> Command for CurrentPrices<'a> {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
         let prices = self.0;
-        let offset_x = self.1;
-        let offset_y = self.2;
+        const OFFSET_X: u16 = 53;
+        const OFFSET_Y: u16 = 23;
         comp!(
             f,
-            MoveTo(offset_x, offset_y),
+            MoveTo(OFFSET_X, OFFSET_Y),
             PrintStyledContent("Captain, the prices of goods here are:".with(Color::White)),
-            MoveTo(offset_x + 8, offset_y + 1),
-            PrintStyledContent(format!("Tea: {}", prices.tea).with(Color::White)),
-            MoveTo(offset_x + 5, offset_y + 2),
-            PrintStyledContent(format!("Coffee: {}", prices.coffee).with(Color::White)),
-            MoveTo(offset_x + 6, offset_y + 3),
-            PrintStyledContent(format!("Sugar: {}", prices.sugar).with(Color::White)),
-            MoveTo(offset_x + 27, offset_y + 1),
-            PrintStyledContent(format!("Tobacco: {}", prices.tobacco).with(Color::White)),
-            MoveTo(offset_x + 31, offset_y + 2),
-            PrintStyledContent(format!("Rum: {}", prices.rum).with(Color::White)),
-            MoveTo(offset_x + 28, offset_y + 3),
-            PrintStyledContent(format!("Cotton: {}", prices.cotton).with(Color::White)),
+            InventoryList(prices, OFFSET_X + 11, OFFSET_Y + 1),
         );
         Ok(())
     }
 }
 
-pub struct ViewingInventoryActions<'a>(pub &'a Location, pub &'a u32, pub u16, pub u16);
+pub struct ViewingInventoryActions<'a> {
+    pub location: &'a Location,
+    pub debt: u32,
+}
 
 impl<'a> Command for ViewingInventoryActions<'a> {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
-        let location = self.0;
-        let debt = self.1;
-        let offset_x = self.2;
-        let offset_y = self.3;
+        let location = self.location;
+        let debt = self.debt;
+        const OFFSET_X: u16 = PROMPT_OFFSET_X;
+        const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         comp!(
             f,
             // actions
-            MoveTo(offset_x, offset_y),
+            MoveTo(OFFSET_X, OFFSET_Y),
             PrintStyledContent("(1) Buy".with(Color::White)),
-            MoveTo(offset_x, offset_y + 1),
+            MoveTo(OFFSET_X, OFFSET_Y + 1),
             PrintStyledContent("(2) Sell".with(Color::White)),
-            MoveTo(offset_x, offset_y + 2),
+            MoveTo(OFFSET_X, OFFSET_Y + 2),
             PrintStyledContent("(3) Sail".with(Color::White)),
         );
         if location == &Location::London {
             comp!(
                 f,
-                MoveTo(offset_x, offset_y + 3),
+                MoveTo(OFFSET_X, OFFSET_Y + 3),
                 PrintStyledContent("(4) Stash deposit".with(Color::White)),
-                MoveTo(offset_x, offset_y + 4),
+                MoveTo(OFFSET_X, OFFSET_Y + 4),
                 PrintStyledContent("(5) Stash withdraw".with(Color::White)),
-                MoveTo(offset_x, offset_y + 5),
+                MoveTo(OFFSET_X, OFFSET_Y + 5),
                 PrintStyledContent("(6) Bank deposit".with(Color::White)),
-                MoveTo(offset_x, offset_y + 6),
+                MoveTo(OFFSET_X, OFFSET_Y + 6),
                 PrintStyledContent("(7) Bank withdraw".with(Color::White)),
             );
-            if debt > &0 {
+            if debt > 0 {
                 comp!(
                     f,
-                    MoveTo(offset_x, offset_y + 7),
+                    MoveTo(OFFSET_X, OFFSET_Y + 7),
                     PrintStyledContent("(8) Pay down debt".with(Color::White)),
                 );
             }
@@ -220,24 +250,222 @@ impl<'a> Command for ViewingInventoryActions<'a> {
     }
 }
 
-pub struct BankDepositInput<'a>(pub &'a Option<u32>, pub u16, pub u16);
+pub struct BankDepositInput<'a>(pub &'a Option<u32>);
 
 impl<'a> Command for BankDepositInput<'a> {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
         let amount = self.0;
-        let offset_x = self.1;
-        let offset_y = self.2;
+        const OFFSET_X: u16 = PROMPT_OFFSET_X;
+        const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         let prompt = format!(
-            "How much gold do you want to deposit in the bank? {}",
+            "to deposit in the bank? {}",
             amount.map_or("".to_owned(), |amount| amount.to_string())
         );
         let prompt_len: u16 = prompt.len().try_into().unwrap();
         comp!(
             f,
-            MoveTo(offset_x, offset_y),
+            MoveTo(OFFSET_X, OFFSET_Y),
+            PrintStyledContent("How much gold do you want".with(Color::White)),
+            MoveTo(OFFSET_X, OFFSET_Y + 1),
             PrintStyledContent(prompt.with(Color::White)),
-            MoveTo(offset_x + prompt_len, offset_y),
+            MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
+        );
+        Ok(())
+    }
+}
+
+const FRAME_WIDTH: u16 = 99;
+const FRAME_HEIGHT: u16 = 32;
+
+pub struct Frame;
+
+impl Command for Frame {
+    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+        // 2 horizontal lines at top and bottom ends
+        for i in 0..(FRAME_WIDTH) {
+            comp!(f, MoveTo(i, 0), PrintStyledContent("-".with(Color::White)));
+        }
+        for i in 0..(FRAME_WIDTH) {
+            comp!(
+                f,
+                MoveTo(i, FRAME_HEIGHT),
+                PrintStyledContent("-".with(Color::White)),
+                MoveRight(1)
+            );
+        }
+        // additional horizontal line under date
+        for i in 0..(FRAME_WIDTH) {
+            comp!(
+                f,
+                MoveTo(i, 2),
+                PrintStyledContent("-".with(Color::White)),
+                MoveRight(1)
+            );
+        }
+        // additional thick horizontal line near location
+        for i in 0..(FRAME_WIDTH) {
+            comp!(
+                f,
+                MoveTo(i, 19),
+                PrintStyledContent("=".with(Color::White)),
+                MoveRight(1)
+            );
+        }
+        // 2 vertical lines at left and right ends
+        for i in 0..(FRAME_HEIGHT - 1) {
+            comp!(
+                f,
+                MoveTo(0, 1 + i),
+                PrintStyledContent("|".with(Color::White)),
+                MoveDown(1)
+            );
+        }
+        for i in 0..(FRAME_HEIGHT - 1) {
+            comp!(
+                f,
+                MoveTo(FRAME_WIDTH - 1, 1 + i),
+                PrintStyledContent("|".with(Color::White)),
+                MoveDown(1)
+            );
+        }
+        Ok(())
+    }
+}
+
+pub struct Date;
+
+impl Command for Date {
+    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+        comp!(
+            f,
+            MoveTo(40, 0),
+            PrintStyledContent("|=================|".with(Color::White)),
+            MoveTo(40, 1),
+            PrintStyledContent("| March      1782 |".with(Color::White)),
+            MoveTo(40, 2),
+            PrintStyledContent("|=================|".with(Color::White)),
+        );
+        Ok(())
+    }
+}
+
+pub struct HomeBase<'a> {
+    stash: &'a Inventory,
+    bank: u32,
+    debt: u32,
+    location: &'a Location,
+}
+
+impl<'a> From<&'a GameState> for HomeBase<'a> {
+    fn from(value: &'a GameState) -> Self {
+        HomeBase {
+            stash: &value.stash,
+            bank: value.bank,
+            debt: value.debt,
+            location: &value.location,
+        }
+    }
+}
+
+impl<'a> Command for HomeBase<'a> {
+    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+        const HOME: &str = r###"
+  _____[LLL]______[LLL]____
+ /     [LLL]      [LLL]    \
+/___________________________\
+ )=========================(
+ '|I .--. I               I|
+  |I | +| I               I|
+  |I_|_+|_I               I|
+ /_I______I               I_\
+  )========               =(
+  |I .--. I               I|
+  |I |<>| I               I|
+  |I |~ | I               I|
+  |I |  | I               I|
+  |I_|__|_I_______________I|
+###(______)##################
+ ##(________)   ~"^"^~   ## 
+"###;
+        const OFFSET_X: u16 = 4;
+        const OFFSET_Y: u16 = 3;
+        for (i, line) in HOME.trim_matches('\n').lines().into_iter().enumerate() {
+            comp!(
+                f,
+                MoveTo(OFFSET_X, OFFSET_Y + (i as u16)),
+                PrintStyledContent(format!("{}", line).with(Color::Grey)),
+            );
+        }
+        comp!(
+            f,
+            InventoryList(self.stash, OFFSET_X + 12, OFFSET_Y + 4),
+            MoveTo(OFFSET_X + 12, OFFSET_Y + 11),
+            PrintStyledContent(format!("Bank: {}", Numeric7Digits(self.bank)).with(Color::White)),
+            MoveTo(OFFSET_X + 12, OFFSET_Y + 12),
+            PrintStyledContent(format!("Debt: {}", Numeric7Digits(self.debt)).with(Color::White)),
+        );
+        const PATH_CONTINUATION: &str = r###"
+(_________)
+(__________)
+"###;
+        if self.location == &Location::London {
+            for (i, line) in PATH_CONTINUATION
+                .trim_matches('\n')
+                .lines()
+                .into_iter()
+                .enumerate()
+            {
+                comp!(
+                    f,
+                    MoveTo(OFFSET_X + 3, OFFSET_Y + 16 + (i as u16)),
+                    PrintStyledContent(format!("{}", line).with(Color::Grey)),
+                );
+            }
+        }
+        Ok(())
+    }
+}
+
+struct CenteredText(String, u32);
+
+impl std::fmt::Display for CenteredText {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut value = self.0.clone();
+        let mut add_before = value.len() % 2 == 1;
+        while value.len() < self.1.try_into().unwrap() {
+            let position = if add_before { 0 } else { value.len() };
+            value.insert(position, ' ');
+            add_before = !add_before
+        }
+        write!(f, "{}", value)
+    }
+}
+
+pub struct CurrentLocation<'a> {
+    location: &'a Location,
+}
+
+impl<'a> From<&'a GameState> for CurrentLocation<'a> {
+    fn from(value: &'a GameState) -> Self {
+        CurrentLocation {
+            location: &value.location,
+        }
+    }
+}
+
+impl<'a> Command for CurrentLocation<'a> {
+    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+        comp!(
+            f,
+            MoveTo(42, 19),
+            PrintStyledContent("<------------->".with(Color::White)),
+            MoveTo(42, 20),
+            PrintStyledContent(
+                format!("|{}|", CenteredText(self.location.to_string(), 13)).with(Color::White)
+            ),
+            MoveTo(42, 21),
+            PrintStyledContent("<------------->".with(Color::White)),
         );
         Ok(())
     }
@@ -250,100 +478,143 @@ impl<'a> Command for ViewingInventoryBase<'a> {
         let state = self.0;
         comp!(
             f,
-            // clear terminal
-            Clear(crossterm::terminal::ClearType::All),
-            // hide cursor
-            Hide,
-            // date
-            MoveTo(9, 0),
-            PrintStyledContent(
-                format!("{} {}", state.date.1.name(), state.date.0.to_string()).with(Color::White)
-            ),
-            // hold size
-            MoveTo(32, 0),
-            PrintStyledContent(format!("Hold Size {}", state.hold_size).with(Color::White)),
-            // gold
-            MoveTo(9, 1),
-            PrintStyledContent(format!("Gold {}", state.gold).with(Color::White)),
-            // location
-            MoveTo(33, 1),
-            PrintStyledContent(format!("Location {}", state.location).with(Color::White)),
-            // home base
-            MoveTo(10, 3),
-            PrintStyledContent("Home base".with(Color::White)),
-            InventoryList(&state.stash, 9, 4),
-            MoveTo(12, 11),
-            PrintStyledContent(format!("Bank: {}", state.bank).with(Color::White)),
-            MoveTo(12, 12),
-            PrintStyledContent(format!("Debt: {}", state.debt).with(Color::White)),
-            // inventory
-            Ship(state, 22, 3),
-            // current prices
-            CurrentPrices(
-                &state.locations.location_info(&state.location).prices,
-                5,
-                14
-            ),
+            Clear(crossterm::terminal::ClearType::All), // clear the terminal
+            Hide,                                       // hide the cursor
+            Frame,
+            Date,
+            HomeBase::from(state),
+            Ship::from(state),
+            CurrentLocation::from(state),
+            CurrentPrices(&state.locations.location_info(&state.location).prices)
         );
         Ok(())
     }
 }
 
-pub struct Ship<'a>(pub &'a GameState, pub u16, pub u16);
+pub struct Ship<'a> {
+    inventory: &'a Inventory,
+    gold: u32,
+    hold_size: u32,
+}
+
+impl<'a> From<&'a GameState> for Ship<'a> {
+    fn from(value: &'a GameState) -> Self {
+        Ship {
+            inventory: &value.inventory,
+            gold: value.gold,
+            hold_size: value.hold_size,
+        }
+    }
+}
 
 impl<'a> Command for Ship<'a> {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
-        const SHIP: &str = r"
-              |     |     |                 
-             )_)   )_)   )_)              
-            )___) )___) )___)\            
-           )____))____))_____)\\
-         _____|_____|_____|____\\\______
-       \                              /
-        \                            /
----------\                          /---------
-  ^^^^^ ^^^^^^^^^^^^^^^^^^^^^   ^^^
-    ^^^^      ^^^^     ^^^    ^^
-         ^^^^      ^^^
-";
-        let state = self.0;
-        let offset_x = self.1;
-        let offset_y = self.2;
+        const SHIP: &str = r###"
+                             |                            
+                 |          )_)                           
+                )_)        )___)         |                
+               )___)       )____)       )_)\              
+               )____)     /)_____)      )__)\             
+              )_____)    /)______)\    )___) \            
+             )______)  //)_______) \\ )_____) \\          
+       _____//___|___///_____|______\\\__|_____\\\__=====
+       \                                           /     
+        \                                         /      
+         \                                       /____   
+--------- \                                     //.../---
+   ^^^^^ ^^^^^^^^^^^^^^^^^^^^^   ^^^^^^^^^^  ^^^/.../    
+         ^^^^      ^^^    ^^^^^^^^^    ^^^^^  /..../     
+                  ^^^      ^^^^             /...../      
+                                          /....../       
+"###;
+        const OFFSET_X: u16 = 39;
+        const OFFSET_Y: u16 = 3;
         for (i, line) in SHIP.trim_matches('\n').lines().into_iter().enumerate() {
             comp!(
                 f,
-                MoveTo(offset_x, offset_y + (i as u16)),
+                MoveTo(OFFSET_X, OFFSET_Y + (i as u16)),
                 PrintStyledContent(format!("{}", line).with(Color::Grey)),
             );
         }
-        let inventory = &state.inventory;
+        let inventory = self.inventory;
         comp!(
             f,
-            MoveTo(offset_x + 14, offset_y + 5),
-            PrintStyledContent(format!("Tea: {}", inventory.tea).with(Color::White)),
-            MoveTo(offset_x + 11, offset_y + 6),
-            PrintStyledContent(format!("Coffee: {}", inventory.coffee).with(Color::White)),
-            MoveTo(offset_x + 12, offset_y + 7),
-            PrintStyledContent(format!("Sugar: {}", inventory.sugar).with(Color::White)),
-            MoveTo(offset_x + 24, offset_y + 5),
-            PrintStyledContent(format!("Tobacco: {}", inventory.tobacco).with(Color::White)),
-            MoveTo(offset_x + 28, offset_y + 6),
-            PrintStyledContent(format!("Rum: {}", inventory.rum).with(Color::White)),
-            MoveTo(offset_x + 25, offset_y + 7),
-            PrintStyledContent(format!("Cotton: {}", inventory.cotton).with(Color::White)),
+            MoveTo(OFFSET_X + 14, OFFSET_Y + 8),
+            PrintStyledContent(
+                format!("Tea: {}", Numeric4Digits(inventory.tea)).with(Color::White)
+            ),
+            MoveTo(OFFSET_X + 24, OFFSET_Y + 8),
+            PrintStyledContent(
+                format!("Coffee: {}", Numeric4Digits(inventory.coffee)).with(Color::White)
+            ),
+            MoveTo(OFFSET_X + 38, OFFSET_Y + 8),
+            PrintStyledContent(
+                format!("Sugar: {}", Numeric4Digits(inventory.sugar)).with(Color::White)
+            ),
+            MoveTo(OFFSET_X + 10, OFFSET_Y + 9),
+            PrintStyledContent(
+                format!("Tobacco: {}", Numeric4Digits(inventory.tobacco)).with(Color::White)
+            ),
+            MoveTo(OFFSET_X + 27, OFFSET_Y + 9),
+            PrintStyledContent(
+                format!("Rum: {}", Numeric4Digits(inventory.rum)).with(Color::White)
+            ),
+            MoveTo(OFFSET_X + 37, OFFSET_Y + 9),
+            PrintStyledContent(
+                format!("Cotton: {}", Numeric4Digits(inventory.cotton)).with(Color::White)
+            ),
+            MoveTo(OFFSET_X + 13, OFFSET_Y + 11),
+            PrintStyledContent(format!("Gold: {}", Numeric7Digits(self.gold)).with(Color::White)),
+            MoveTo(OFFSET_X + 27, OFFSET_Y + 11),
+            PrintStyledContent(
+                format!("Hold: {}", Numeric4Digits(self.hold_size)).with(Color::White)
+            ),
         );
+        const DOCK_CONTINUATION_1: &str = r###"
+/......../
+"###;
+        const DOCK_CONTINUATION_2: &str = r###"
+/........./
+"###;
+        for (i, line) in DOCK_CONTINUATION_1
+            .trim_matches('\n')
+            .lines()
+            .into_iter()
+            .enumerate()
+        {
+            comp!(
+                f,
+                MoveTo(OFFSET_X + 40, OFFSET_Y + 16 + (i as u16)),
+                PrintStyledContent(format!("{}", line).with(Color::Grey)),
+            );
+        }
+        for (i, line) in DOCK_CONTINUATION_2
+            .trim_matches('\n')
+            .lines()
+            .into_iter()
+            .enumerate()
+        {
+            comp!(
+                f,
+                MoveTo(OFFSET_X + 38, OFFSET_Y + 17 + (i as u16)),
+                PrintStyledContent(format!("{}", line).with(Color::Grey)),
+            );
+        }
         Ok(())
     }
 }
 
-pub struct BuyInput<'a>(pub &'a Transaction, pub &'a GameState, pub u16, pub u16);
+pub struct BuyInput<'a> {
+    pub info: &'a Transaction,
+    pub state: &'a GameState,
+}
 
 impl<'a> Command for BuyInput<'a> {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
-        let info = self.0;
-        let state = self.1;
-        let offset_x = self.2;
-        let offset_y = self.3;
+        let info = self.info;
+        let state = self.state;
+        const OFFSET_X: u16 = PROMPT_OFFSET_X;
+        const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         // user has indicated which good they want to buy
         let gold = state.gold;
         let good = &info.good;
@@ -363,37 +634,40 @@ impl<'a> Command for BuyInput<'a> {
         comp!(
             f,
             // prompt what to buy
-            MoveTo(offset_x, offset_y),
+            MoveTo(OFFSET_X, OFFSET_Y),
             PrintStyledContent(prompt.with(Color::White)),
-            MoveTo(offset_x, offset_y + 1),
+            MoveTo(OFFSET_X, OFFSET_Y + 1),
             PrintStyledContent(format!("You can afford ({})", can_afford).with(Color::White)),
         );
         let remaining_hold = state.remaining_hold();
         if remaining_hold < can_afford {
             comp!(
                 f,
-                MoveTo(offset_x, offset_y + 2),
+                MoveTo(OFFSET_X, OFFSET_Y + 2),
                 PrintStyledContent(
                     format!("You have space for ({})", remaining_hold).with(Color::White)
                 ),
             )
         }
-        comp!(f, MoveTo(offset_x + prompt_len, offset_y), Show);
+        comp!(f, MoveTo(OFFSET_X + prompt_len, OFFSET_Y), Show);
         Ok(())
     }
 }
 
-pub struct BuyPrompt(pub u16, pub u16);
+const PROMPT_OFFSET_X: u16 = 10;
+const PROMPT_OFFSET_Y: u16 = 23;
+
+pub struct BuyPrompt;
 
 impl Command for BuyPrompt {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
-        let offset_x = self.0;
-        let offset_y = self.1;
+        const OFFSET_X: u16 = PROMPT_OFFSET_X;
+        const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         comp!(
             f,
-            MoveTo(offset_x, offset_y),
+            MoveTo(OFFSET_X, OFFSET_Y),
             PrintStyledContent("Which do you want to buy?".with(Color::White)),
-            GoodOptions(offset_x, offset_y + 1)
+            GoodOptions(OFFSET_X, OFFSET_Y + 1)
         );
         Ok(())
     }
@@ -424,114 +698,116 @@ impl Command for GoodOptions {
     }
 }
 
-pub struct SellInput<'a>(pub &'a Transaction, pub &'a u32, pub u16, pub u16);
+pub struct SellInput<'a>(pub &'a Transaction, pub &'a u32);
 
 impl<'a> Command for SellInput<'a> {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
         let info = self.0;
         let current_amount = self.1;
-        let offset_x = self.2;
-        let offset_y = self.3;
+        const OFFSET_X: u16 = PROMPT_OFFSET_X;
+        const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         let good = &info.good;
         let prompt = format!(
-            "How much {} do you want to sell? {}",
-            good,
+            "want to sell? {}",
             info.amount
                 .map_or("".to_owned(), |amount| amount.to_string())
         );
         let prompt_len: u16 = prompt.len().try_into().unwrap();
         comp!(
             f,
-            MoveTo(offset_x, offset_y),
+            MoveTo(OFFSET_X, OFFSET_Y),
+            PrintStyledContent(format!("How much {} do you", good).with(Color::White)),
+            MoveTo(OFFSET_X, OFFSET_Y + 1),
             PrintStyledContent(prompt.with(Color::White)),
-            MoveTo(offset_x, offset_y + 1),
+            MoveTo(OFFSET_X, OFFSET_Y + 2),
             PrintStyledContent(format!("You have ({})", current_amount).with(Color::White)),
-            MoveTo(offset_x + prompt_len, offset_y),
+            MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
         );
         Ok(())
     }
 }
 
-pub struct SellPrompt(pub u16, pub u16);
+pub struct SellPrompt;
 
 impl Command for SellPrompt {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
-        let offset_x = self.0;
-        let offset_y = self.1;
+        const OFFSET_X: u16 = PROMPT_OFFSET_X;
+        const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         comp!(
             f,
-            MoveTo(offset_x, offset_y),
+            MoveTo(OFFSET_X, OFFSET_Y),
             PrintStyledContent("Which do you want to sell?".with(Color::White)),
-            GoodOptions(offset_x, offset_y + 1),
+            GoodOptions(OFFSET_X, OFFSET_Y + 1),
         );
         Ok(())
     }
 }
 
-pub struct SailPrompt(pub u16, pub u16);
+pub struct SailPrompt;
 
 impl Command for SailPrompt {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
-        let offset_x = self.0;
-        let offset_y = self.1;
+        const OFFSET_X: u16 = PROMPT_OFFSET_X;
+        const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         comp!(
             f,
-            MoveTo(offset_x, offset_y),
+            MoveTo(OFFSET_X, OFFSET_Y),
             PrintStyledContent("Where do you want to sail?".with(Color::White)),
-            MoveTo(offset_x, offset_y + 1),
+            MoveTo(OFFSET_X, OFFSET_Y + 1),
             PrintStyledContent("(1) London".with(Color::White)),
-            MoveTo(offset_x, offset_y + 2),
+            MoveTo(OFFSET_X, OFFSET_Y + 2),
             PrintStyledContent("(2) Savannah".with(Color::White)),
-            MoveTo(offset_x, offset_y + 3),
+            MoveTo(OFFSET_X, OFFSET_Y + 3),
             PrintStyledContent("(3) Lisbon".with(Color::White)),
-            MoveTo(offset_x, offset_y + 4),
+            MoveTo(OFFSET_X, OFFSET_Y + 4),
             PrintStyledContent("(4) Amsterdam".with(Color::White)),
-            MoveTo(offset_x, offset_y + 5),
+            MoveTo(OFFSET_X, OFFSET_Y + 5),
             PrintStyledContent("(5) Cape Town".with(Color::White)),
-            MoveTo(offset_x, offset_y + 6),
+            MoveTo(OFFSET_X, OFFSET_Y + 6),
             PrintStyledContent("(6) Venice".with(Color::White)),
         );
         Ok(())
     }
 }
 
-pub struct StashDepositInput<'a>(pub &'a Transaction, pub &'a u32, pub u16, pub u16);
+pub struct StashDepositInput<'a>(pub &'a Transaction, pub &'a u32);
 
 impl<'a> Command for StashDepositInput<'a> {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
         let info = self.0;
         let current_amount = self.1;
-        let offset_x = self.2;
-        let offset_y = self.3;
+        const OFFSET_X: u16 = PROMPT_OFFSET_X;
+        const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         // user has indicated which good they want to stash
         let good = &info.good;
         let prompt = format!(
-            "How much {} do you want to stash? {}",
-            good,
+            "want to stash? {}",
             info.amount
                 .map_or("".to_owned(), |amount| amount.to_string())
         );
         let prompt_len: u16 = prompt.len().try_into().unwrap();
         comp!(
             f,
-            MoveTo(offset_x, offset_y),
+            MoveTo(OFFSET_X, OFFSET_Y),
+            PrintStyledContent(format!("How much {} do you", good).with(Color::White)),
+            MoveTo(OFFSET_X, OFFSET_Y + 1),
             PrintStyledContent(prompt.with(Color::White)),
-            MoveTo(offset_x, offset_y + 1),
+            MoveTo(OFFSET_X, OFFSET_Y + 2),
             PrintStyledContent(format!("You have ({})", current_amount).with(Color::White)),
-            MoveTo(offset_x + prompt_len, offset_y),
+            MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
         );
         Ok(())
     }
 }
 
-pub struct StashDepositPrompt(pub u16, pub u16);
+pub struct StashDepositPrompt;
 
 impl Command for StashDepositPrompt {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
-        let offset_x = self.0;
-        let offset_y = self.1;
+        let offset_x: u16 = PROMPT_OFFSET_X;
+        let offset_y: u16 = PROMPT_OFFSET_Y;
         comp!(
             f,
             MoveTo(offset_x, offset_y),
@@ -542,125 +818,122 @@ impl Command for StashDepositPrompt {
     }
 }
 
-pub struct StashWithdrawInput<'a>(pub &'a Transaction, pub &'a u32, pub u16, pub u16);
+pub struct StashWithdrawInput<'a>(pub &'a Transaction, pub &'a u32);
 
 impl<'a> Command for StashWithdrawInput<'a> {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
         let info = self.0;
         let current_amount = self.1;
-        let offset_x = self.2;
-        let offset_y = self.3;
+        const OFFSET_X: u16 = PROMPT_OFFSET_X;
+        const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         // user has indicated which good they want to stash
         let good = &info.good;
         let prompt = format!(
-            "How much {} do you want to withdraw? {}",
-            good,
+            "want to withdraw? {}",
             info.amount
                 .map_or("".to_owned(), |amount| amount.to_string())
         );
         let prompt_len: u16 = prompt.len().try_into().unwrap();
         comp!(
             f,
-            MoveTo(offset_x, offset_y),
+            MoveTo(OFFSET_X, OFFSET_Y),
+            PrintStyledContent(format!("How much {} do you", good).with(Color::White)),
+            MoveTo(OFFSET_X, OFFSET_Y + 1),
             PrintStyledContent(prompt.with(Color::White)),
-            MoveTo(offset_x, offset_y + 1),
+            MoveTo(OFFSET_X, OFFSET_Y + 2),
             PrintStyledContent(format!("There are ({})", current_amount).with(Color::White)),
-            MoveTo(offset_x + prompt_len, offset_y),
+            MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
         );
         Ok(())
     }
 }
 
-pub struct StashWithdrawPrompt(pub u16, pub u16);
+pub struct StashWithdrawPrompt;
 
 impl Command for StashWithdrawPrompt {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
-        let offset_x = self.0;
-        let offset_y = self.1;
+        const OFFSET_X: u16 = PROMPT_OFFSET_X;
+        const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         comp!(
             f,
-            MoveTo(offset_x, offset_y),
+            MoveTo(OFFSET_X, OFFSET_Y),
             PrintStyledContent("Which do you want to withdraw?".with(Color::White)),
-            GoodOptions(offset_x, offset_y + 1),
+            GoodOptions(OFFSET_X, OFFSET_Y + 1),
         );
         Ok(())
     }
 }
 
-pub struct PayDebtInput<'a>(pub &'a Option<u32>, pub u16, pub u16);
+pub struct PayDebtInput<'a>(pub &'a Option<u32>);
 
 impl<'a> Command for PayDebtInput<'a> {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
         let amount = self.0;
-        let offset_x = self.1;
-        let offset_y = self.2;
+        const OFFSET_X: u16 = PROMPT_OFFSET_X;
+        const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         let prompt = format!(
-            "How much debt do you want to pay down? {}",
+            "want to pay down? {}",
             amount.map_or("".to_owned(), |amount| amount.to_string())
         );
         let prompt_len: u16 = prompt.len().try_into().unwrap();
         comp!(
             f,
-            MoveTo(offset_x, offset_y),
+            MoveTo(OFFSET_X, OFFSET_Y),
+            PrintStyledContent("How much debt do you".with(Color::White)),
+            MoveTo(OFFSET_X, OFFSET_Y + 1),
             PrintStyledContent(prompt.with(Color::White)),
-            MoveTo(offset_x + prompt_len, offset_y),
+            MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
         );
         Ok(())
     }
 }
 
-pub struct CheapGoodDialog<'a>(pub &'a Good, pub u16, pub u16);
+pub struct CheapGoodDialog<'a>(pub &'a Good);
 
 impl<'a> Command for CheapGoodDialog<'a> {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
         let good = self.0;
-        let offset_x = self.1;
-        let offset_y = self.2;
+        const OFFSET_X: u16 = PROMPT_OFFSET_X;
+        const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         comp!(
             f,
-            MoveTo(offset_x, offset_y),
+            MoveTo(OFFSET_X, OFFSET_Y),
             PrintStyledContent(format!("Cheap {} here!", good).with(Color::White)),
         );
         Ok(())
     }
 }
 
-pub struct ExpensiveGoodDialog<'a>(pub &'a Good, pub u16, pub u16);
+pub struct ExpensiveGoodDialog<'a>(pub &'a Good);
 
 impl<'a> Command for ExpensiveGoodDialog<'a> {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
         let good = self.0;
-        let offset_x = self.1;
-        let offset_y = self.2;
+        const OFFSET_X: u16 = PROMPT_OFFSET_X;
+        const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         comp!(
             f,
-            MoveTo(offset_x, offset_y),
+            MoveTo(OFFSET_X, OFFSET_Y),
             PrintStyledContent(format!("Expensive {} here!", good).with(Color::White)),
         );
         Ok(())
     }
 }
 
-pub struct FindGoodsDialog<'a>(
-    pub &'a Good,
-    pub &'a u32,
-    pub &'a GameState,
-    pub u16,
-    pub u16,
-);
+pub struct FindGoodsDialog<'a>(pub &'a Good, pub &'a u32, pub &'a GameState);
 
 impl<'a> Command for FindGoodsDialog<'a> {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
         let good = self.0;
         let amount = self.1;
         let state = self.2;
-        let offset_x = self.3;
-        let offset_y = self.4;
+        const OFFSET_X: u16 = PROMPT_OFFSET_X;
+        const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         comp!(
             f,
-            MoveTo(offset_x, offset_y),
+            MoveTo(OFFSET_X, OFFSET_Y),
             PrintStyledContent(
                 format!("You randomly find {} {}!", amount, good).with(Color::White)
             ),
@@ -669,7 +942,7 @@ impl<'a> Command for FindGoodsDialog<'a> {
         if &remaining_hold < amount {
             comp!(
                 f,
-                MoveTo(offset_x, offset_y + 1),
+                MoveTo(OFFSET_X, OFFSET_Y + 1),
                 PrintStyledContent(
                     format!("You have space for ({})", remaining_hold).with(Color::White)
                 ),
