@@ -2,7 +2,7 @@ use std::fmt::{self};
 
 use crossterm::{
     cursor::{Hide, MoveDown, MoveRight, MoveTo, MoveToNextLine, Show},
-    style::{style, Attribute, Color, PrintStyledContent, Stylize},
+    style::{style, Attribute, Print, Stylize},
     terminal::Clear,
     Command,
 };
@@ -20,34 +20,14 @@ impl Command for SplashScreen {
             f,
             Clear(crossterm::terminal::ClearType::All),
             MoveTo(0, 0),
-            PrintStyledContent(
-                "Merchant"
-                    .with(Color::Yellow)
-                    .on(Color::Blue)
-                    .attribute(Attribute::Bold)
-            ),
+            Print("Merchant".attribute(Attribute::Bold)),
             MoveTo(0, 2),
-            PrintStyledContent(
-                "Navigate shifting markets and unreliable sources."
-                    .with(Color::Yellow)
-                    .on(Color::Blue)
-                    .attribute(Attribute::Bold)
-            ),
+            Print("Navigate shifting markets and unreliable sources.".attribute(Attribute::Bold)),
             MoveTo(0, 4),
-            PrintStyledContent(
-                "By samgqroberts"
-                    .with(Color::Yellow)
-                    .on(Color::Blue)
-                    .attribute(Attribute::Bold)
-            ),
+            Print("By samgqroberts".attribute(Attribute::Bold)),
             // prompt user
             MoveToNextLine(2),
-            PrintStyledContent(
-                style("Press any key to begin")
-                    .with(Color::Blue)
-                    .on(Color::Yellow)
-                    .attribute(Attribute::Bold),
-            ),
+            Print(style("Press any key to begin").attribute(Attribute::Bold),),
             Hide
         );
         Ok(())
@@ -70,26 +50,18 @@ impl<'a> Command for GameEndScreen<'a> {
             Clear(crossterm::terminal::ClearType::All),
             Hide,
             MoveTo(0, 0),
-            PrintStyledContent(
-                "Congratulations!!"
-                    .with(Color::White)
-                    .attribute(Attribute::Bold)
-            ),
+            Print("Congratulations!!".attribute(Attribute::Bold)),
             MoveTo(0, 2),
-            PrintStyledContent("After three years, you went from being".with(Color::White)),
+            Print("After three years, you went from being"),
             MoveTo(0, 3),
-            PrintStyledContent(
-                format!("1400 gold in debt")
-                    .with(Color::White)
-                    .attribute(Attribute::Bold)
-            ),
+            Print(format!("1400 gold in debt").attribute(Attribute::Bold)),
             MoveTo(0, 4),
-            PrintStyledContent(
-                format!("to {}", if final_gold >= 0 { "having" } else { "being" })
-                    .with(Color::White)
-            ),
+            Print(format!(
+                "to {}",
+                if final_gold >= 0 { "having" } else { "being" }
+            )),
             MoveTo(0, 5),
-            PrintStyledContent(
+            Print(
                 format!(
                     "{}",
                     if final_gold >= 0 {
@@ -98,7 +70,6 @@ impl<'a> Command for GameEndScreen<'a> {
                         format!("{} gold in debt", final_gold.abs())
                     }
                 )
-                .with(Color::White)
                 .attribute(Attribute::Bold)
             ),
         );
@@ -126,9 +97,9 @@ impl<'a> Command for BankWithdrawInput<'a> {
         comp!(
             f,
             MoveTo(OFFSET_X, OFFSET_Y),
-            PrintStyledContent("How much gold do you".with(Color::White)),
+            Print("How much gold do you"),
             MoveTo(OFFSET_X, OFFSET_Y + 1),
-            PrintStyledContent(prompt.with(Color::White)),
+            Print(prompt),
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
         );
@@ -175,29 +146,17 @@ impl<'a> Command for InventoryList<'a> {
         comp!(
             f,
             MoveTo(offset_x + 4, offset_y),
-            PrintStyledContent(
-                format!("Tea: {}", Numeric4Digits(inventory.tea)).with(Color::White)
-            ),
+            Print(format!("Tea: {}", Numeric4Digits(inventory.tea))),
             MoveTo(offset_x + 1, offset_y + 1),
-            PrintStyledContent(
-                format!("Coffee: {}", Numeric4Digits(inventory.coffee)).with(Color::White)
-            ),
+            Print(format!("Coffee: {}", Numeric4Digits(inventory.coffee))),
             MoveTo(offset_x + 2, offset_y + 2),
-            PrintStyledContent(
-                format!("Sugar: {}", Numeric4Digits(inventory.sugar)).with(Color::White)
-            ),
+            Print(format!("Sugar: {}", Numeric4Digits(inventory.sugar))),
             MoveTo(offset_x, offset_y + 3),
-            PrintStyledContent(
-                format!("Tobacco: {}", Numeric4Digits(inventory.tobacco)).with(Color::White)
-            ),
+            Print(format!("Tobacco: {}", Numeric4Digits(inventory.tobacco))),
             MoveTo(offset_x + 4, offset_y + 4),
-            PrintStyledContent(
-                format!("Rum: {}", Numeric4Digits(inventory.rum)).with(Color::White)
-            ),
+            Print(format!("Rum: {}", Numeric4Digits(inventory.rum))),
             MoveTo(offset_x + 1, offset_y + 5),
-            PrintStyledContent(
-                format!("Cotton: {}", Numeric4Digits(inventory.cotton)).with(Color::White)
-            ),
+            Print(format!("Cotton: {}", Numeric4Digits(inventory.cotton))),
         );
         Ok(())
     }
@@ -218,7 +177,7 @@ impl<'a> Command for CurrentPrices<'a> {
         comp!(
             f,
             MoveTo(OFFSET_X, OFFSET_Y),
-            PrintStyledContent("Captain, the prices of goods here are:".with(Color::White)),
+            Print("Captain, the prices of goods here are:"),
             InventoryList(prices, OFFSET_X + 11, OFFSET_Y + 1),
         );
         Ok(())
@@ -245,29 +204,29 @@ impl<'a> Command for ViewingInventoryActions<'a> {
             f,
             // actions
             MoveTo(OFFSET_X, OFFSET_Y),
-            PrintStyledContent("(1) Buy".with(Color::White)),
+            Print("(1) Buy"),
             MoveTo(OFFSET_X, OFFSET_Y + 1),
-            PrintStyledContent("(2) Sell".with(Color::White)),
+            Print("(2) Sell"),
             MoveTo(OFFSET_X, OFFSET_Y + 2),
-            PrintStyledContent("(3) Sail".with(Color::White)),
+            Print("(3) Sail"),
         );
         if location == &Location::London {
             comp!(
                 f,
                 MoveTo(OFFSET_X, OFFSET_Y + 3),
-                PrintStyledContent("(4) Stash deposit".with(Color::White)),
+                Print("(4) Stash deposit"),
                 MoveTo(OFFSET_X, OFFSET_Y + 4),
-                PrintStyledContent("(5) Stash withdraw".with(Color::White)),
+                Print("(5) Stash withdraw"),
                 MoveTo(OFFSET_X, OFFSET_Y + 5),
-                PrintStyledContent("(6) Bank deposit".with(Color::White)),
+                Print("(6) Bank deposit"),
                 MoveTo(OFFSET_X, OFFSET_Y + 6),
-                PrintStyledContent("(7) Bank withdraw".with(Color::White)),
+                Print("(7) Bank withdraw"),
             );
             if debt > 0 {
                 comp!(
                     f,
                     MoveTo(OFFSET_X, OFFSET_Y + 7),
-                    PrintStyledContent("(8) Pay down debt".with(Color::White)),
+                    Print("(8) Pay down debt"),
                 );
             }
         }
@@ -295,9 +254,9 @@ impl<'a> Command for BankDepositInput<'a> {
         comp!(
             f,
             MoveTo(OFFSET_X, OFFSET_Y),
-            PrintStyledContent("How much gold do you want".with(Color::White)),
+            Print("How much gold do you want"),
             MoveTo(OFFSET_X, OFFSET_Y + 1),
-            PrintStyledContent(prompt.with(Color::White)),
+            Print(prompt),
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
         );
@@ -319,50 +278,25 @@ impl Command for Frame {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
         // 2 horizontal lines at top and bottom ends
         for i in 0..(FRAME_WIDTH) {
-            comp!(f, MoveTo(i, 0), PrintStyledContent("-".with(Color::White)));
+            comp!(f, MoveTo(i, 0), Print("-"));
         }
         for i in 0..(FRAME_WIDTH) {
-            comp!(
-                f,
-                MoveTo(i, FRAME_HEIGHT),
-                PrintStyledContent("-".with(Color::White)),
-                MoveRight(1)
-            );
+            comp!(f, MoveTo(i, FRAME_HEIGHT), Print("-"), MoveRight(1));
         }
         // additional horizontal line under date
         for i in 0..(FRAME_WIDTH) {
-            comp!(
-                f,
-                MoveTo(i, 2),
-                PrintStyledContent("-".with(Color::White)),
-                MoveRight(1)
-            );
+            comp!(f, MoveTo(i, 2), Print("-"), MoveRight(1));
         }
         // additional thick horizontal line near location
         for i in 0..(FRAME_WIDTH) {
-            comp!(
-                f,
-                MoveTo(i, 19),
-                PrintStyledContent("=".with(Color::White)),
-                MoveRight(1)
-            );
+            comp!(f, MoveTo(i, 19), Print("="), MoveRight(1));
         }
         // 2 vertical lines at left and right ends
         for i in 0..(FRAME_HEIGHT - 1) {
-            comp!(
-                f,
-                MoveTo(0, 1 + i),
-                PrintStyledContent("|".with(Color::White)),
-                MoveDown(1)
-            );
+            comp!(f, MoveTo(0, 1 + i), Print("|"), MoveDown(1));
         }
         for i in 0..(FRAME_HEIGHT - 1) {
-            comp!(
-                f,
-                MoveTo(FRAME_WIDTH - 1, 1 + i),
-                PrintStyledContent("|".with(Color::White)),
-                MoveDown(1)
-            );
+            comp!(f, MoveTo(FRAME_WIDTH - 1, 1 + i), Print("|"), MoveDown(1));
         }
         Ok(())
     }
@@ -380,11 +314,11 @@ impl Command for Date {
         comp!(
             f,
             MoveTo(40, 0),
-            PrintStyledContent("|=================|".with(Color::White)),
+            Print("|=================|"),
             MoveTo(40, 1),
-            PrintStyledContent("| March      1782 |".with(Color::White)),
+            Print("| March      1782 |"),
             MoveTo(40, 2),
-            PrintStyledContent("|=================|".with(Color::White)),
+            Print("|=================|"),
         );
         Ok(())
     }
@@ -439,16 +373,16 @@ impl<'a> Command for HomeBase<'a> {
             comp!(
                 f,
                 MoveTo(OFFSET_X, OFFSET_Y + (i as u16)),
-                PrintStyledContent(format!("{}", line).with(Color::Grey)),
+                Print(format!("{}", line)),
             );
         }
         comp!(
             f,
             InventoryList(self.stash, OFFSET_X + 12, OFFSET_Y + 4),
             MoveTo(OFFSET_X + 12, OFFSET_Y + 11),
-            PrintStyledContent(format!("Bank: {}", Numeric7Digits(self.bank)).with(Color::White)),
+            Print(format!("Bank: {}", Numeric7Digits(self.bank))),
             MoveTo(OFFSET_X + 12, OFFSET_Y + 12),
-            PrintStyledContent(format!("Debt: {}", Numeric7Digits(self.debt)).with(Color::White)),
+            Print(format!("Debt: {}", Numeric7Digits(self.debt))),
         );
         const PATH_CONTINUATION: &str = r###"
 (_________)
@@ -464,7 +398,7 @@ impl<'a> Command for HomeBase<'a> {
                 comp!(
                     f,
                     MoveTo(OFFSET_X + 3, OFFSET_Y + 16 + (i as u16)),
-                    PrintStyledContent(format!("{}", line).with(Color::Grey)),
+                    Print(format!("{}", line)),
                 );
             }
         }
@@ -509,13 +443,11 @@ impl<'a> Command for CurrentLocation<'a> {
         comp!(
             f,
             MoveTo(42, 19),
-            PrintStyledContent("<------------->".with(Color::White)),
+            Print("<------------->"),
             MoveTo(42, 20),
-            PrintStyledContent(
-                format!("|{}|", CenteredText(self.location.to_string(), 13)).with(Color::White)
-            ),
+            Print(format!("|{}|", CenteredText(self.location.to_string(), 13))),
             MoveTo(42, 21),
-            PrintStyledContent("<------------->".with(Color::White)),
+            Print("<------------->"),
         );
         Ok(())
     }
@@ -593,42 +525,28 @@ impl<'a> Command for Ship<'a> {
             comp!(
                 f,
                 MoveTo(OFFSET_X, OFFSET_Y + (i as u16)),
-                PrintStyledContent(format!("{}", line).with(Color::Grey)),
+                Print(format!("{}", line)),
             );
         }
         let inventory = self.inventory;
         comp!(
             f,
             MoveTo(OFFSET_X + 14, OFFSET_Y + 8),
-            PrintStyledContent(
-                format!("Tea: {}", Numeric4Digits(inventory.tea)).with(Color::White)
-            ),
+            Print(format!("Tea: {}", Numeric4Digits(inventory.tea))),
             MoveTo(OFFSET_X + 24, OFFSET_Y + 8),
-            PrintStyledContent(
-                format!("Coffee: {}", Numeric4Digits(inventory.coffee)).with(Color::White)
-            ),
+            Print(format!("Coffee: {}", Numeric4Digits(inventory.coffee))),
             MoveTo(OFFSET_X + 38, OFFSET_Y + 8),
-            PrintStyledContent(
-                format!("Sugar: {}", Numeric4Digits(inventory.sugar)).with(Color::White)
-            ),
+            Print(format!("Sugar: {}", Numeric4Digits(inventory.sugar))),
             MoveTo(OFFSET_X + 10, OFFSET_Y + 9),
-            PrintStyledContent(
-                format!("Tobacco: {}", Numeric4Digits(inventory.tobacco)).with(Color::White)
-            ),
+            Print(format!("Tobacco: {}", Numeric4Digits(inventory.tobacco))),
             MoveTo(OFFSET_X + 27, OFFSET_Y + 9),
-            PrintStyledContent(
-                format!("Rum: {}", Numeric4Digits(inventory.rum)).with(Color::White)
-            ),
+            Print(format!("Rum: {}", Numeric4Digits(inventory.rum))),
             MoveTo(OFFSET_X + 37, OFFSET_Y + 9),
-            PrintStyledContent(
-                format!("Cotton: {}", Numeric4Digits(inventory.cotton)).with(Color::White)
-            ),
+            Print(format!("Cotton: {}", Numeric4Digits(inventory.cotton))),
             MoveTo(OFFSET_X + 13, OFFSET_Y + 11),
-            PrintStyledContent(format!("Gold: {}", Numeric7Digits(self.gold)).with(Color::White)),
+            Print(format!("Gold: {}", Numeric7Digits(self.gold))),
             MoveTo(OFFSET_X + 27, OFFSET_Y + 11),
-            PrintStyledContent(
-                format!("Hold: {}", Numeric4Digits(self.hold_size)).with(Color::White)
-            ),
+            Print(format!("Hold: {}", Numeric4Digits(self.hold_size))),
         );
         const DOCK_CONTINUATION_1: &str = r###"
 /......../
@@ -645,7 +563,7 @@ impl<'a> Command for Ship<'a> {
             comp!(
                 f,
                 MoveTo(OFFSET_X + 40, OFFSET_Y + 16 + (i as u16)),
-                PrintStyledContent(format!("{}", line).with(Color::Grey)),
+                Print(format!("{}", line)),
             );
         }
         for (i, line) in DOCK_CONTINUATION_2
@@ -657,7 +575,7 @@ impl<'a> Command for Ship<'a> {
             comp!(
                 f,
                 MoveTo(OFFSET_X + 38, OFFSET_Y + 17 + (i as u16)),
-                PrintStyledContent(format!("{}", line).with(Color::Grey)),
+                Print(format!("{}", line)),
             );
         }
         Ok(())
@@ -700,18 +618,16 @@ impl<'a> Command for BuyInput<'a> {
             f,
             // prompt what to buy
             MoveTo(OFFSET_X, OFFSET_Y),
-            PrintStyledContent(prompt.with(Color::White)),
+            Print(prompt),
             MoveTo(OFFSET_X, OFFSET_Y + 1),
-            PrintStyledContent(format!("You can afford ({})", can_afford).with(Color::White)),
+            Print(format!("You can afford ({})", can_afford)),
         );
         let remaining_hold = state.remaining_hold();
         if remaining_hold < can_afford {
             comp!(
                 f,
                 MoveTo(OFFSET_X, OFFSET_Y + 2),
-                PrintStyledContent(
-                    format!("You have space for ({})", remaining_hold).with(Color::White)
-                ),
+                Print(format!("You have space for ({})", remaining_hold)),
             )
         }
         comp!(f, MoveTo(OFFSET_X + prompt_len, OFFSET_Y), Show);
@@ -736,7 +652,7 @@ impl Command for BuyPrompt {
         comp!(
             f,
             MoveTo(OFFSET_X, OFFSET_Y),
-            PrintStyledContent("Which do you want to buy?".with(Color::White)),
+            Print("Which do you want to buy?"),
             GoodOptions(OFFSET_X, OFFSET_Y + 1)
         );
         Ok(())
@@ -757,17 +673,17 @@ impl Command for GoodOptions {
         comp!(
             f,
             MoveTo(offset_x, offset_y),
-            PrintStyledContent("(1) Tea".with(Color::White)),
+            Print("(1) Tea"),
             MoveTo(offset_x, offset_y + 1),
-            PrintStyledContent("(2) Coffee".with(Color::White)),
+            Print("(2) Coffee"),
             MoveTo(offset_x, offset_y + 2),
-            PrintStyledContent("(3) Sugar".with(Color::White)),
+            Print("(3) Sugar"),
             MoveTo(offset_x, offset_y + 3),
-            PrintStyledContent("(4) Tobacco".with(Color::White)),
+            Print("(4) Tobacco"),
             MoveTo(offset_x, offset_y + 4),
-            PrintStyledContent("(5) Rum".with(Color::White)),
+            Print("(5) Rum"),
             MoveTo(offset_x, offset_y + 5),
-            PrintStyledContent("(6) Cotton".with(Color::White)),
+            Print("(6) Cotton"),
         );
         Ok(())
     }
@@ -796,11 +712,11 @@ impl<'a> Command for SellInput<'a> {
         comp!(
             f,
             MoveTo(OFFSET_X, OFFSET_Y),
-            PrintStyledContent(format!("How much {} do you", good).with(Color::White)),
+            Print(format!("How much {} do you", good)),
             MoveTo(OFFSET_X, OFFSET_Y + 1),
-            PrintStyledContent(prompt.with(Color::White)),
+            Print(prompt),
             MoveTo(OFFSET_X, OFFSET_Y + 2),
-            PrintStyledContent(format!("You have ({})", current_amount).with(Color::White)),
+            Print(format!("You have ({})", current_amount)),
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
         );
@@ -822,7 +738,7 @@ impl Command for SellPrompt {
         comp!(
             f,
             MoveTo(OFFSET_X, OFFSET_Y),
-            PrintStyledContent("Which do you want to sell?".with(Color::White)),
+            Print("Which do you want to sell?"),
             GoodOptions(OFFSET_X, OFFSET_Y + 1),
         );
         Ok(())
@@ -843,19 +759,19 @@ impl Command for SailPrompt {
         comp!(
             f,
             MoveTo(OFFSET_X, OFFSET_Y),
-            PrintStyledContent("Where do you want to sail?".with(Color::White)),
+            Print("Where do you want to sail?"),
             MoveTo(OFFSET_X, OFFSET_Y + 1),
-            PrintStyledContent("(1) London".with(Color::White)),
+            Print("(1) London"),
             MoveTo(OFFSET_X, OFFSET_Y + 2),
-            PrintStyledContent("(2) Savannah".with(Color::White)),
+            Print("(2) Savannah"),
             MoveTo(OFFSET_X, OFFSET_Y + 3),
-            PrintStyledContent("(3) Lisbon".with(Color::White)),
+            Print("(3) Lisbon"),
             MoveTo(OFFSET_X, OFFSET_Y + 4),
-            PrintStyledContent("(4) Amsterdam".with(Color::White)),
+            Print("(4) Amsterdam"),
             MoveTo(OFFSET_X, OFFSET_Y + 5),
-            PrintStyledContent("(5) Cape Town".with(Color::White)),
+            Print("(5) Cape Town"),
             MoveTo(OFFSET_X, OFFSET_Y + 6),
-            PrintStyledContent("(6) Venice".with(Color::White)),
+            Print("(6) Venice"),
         );
         Ok(())
     }
@@ -885,11 +801,11 @@ impl<'a> Command for StashDepositInput<'a> {
         comp!(
             f,
             MoveTo(OFFSET_X, OFFSET_Y),
-            PrintStyledContent(format!("How much {} do you", good).with(Color::White)),
+            Print(format!("How much {} do you", good)),
             MoveTo(OFFSET_X, OFFSET_Y + 1),
-            PrintStyledContent(prompt.with(Color::White)),
+            Print(prompt),
             MoveTo(OFFSET_X, OFFSET_Y + 2),
-            PrintStyledContent(format!("You have ({})", current_amount).with(Color::White)),
+            Print(format!("You have ({})", current_amount)),
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
         );
@@ -911,7 +827,7 @@ impl Command for StashDepositPrompt {
         comp!(
             f,
             MoveTo(offset_x, offset_y),
-            PrintStyledContent("Which do you want to stash?".with(Color::White)),
+            Print("Which do you want to stash?"),
             GoodOptions(offset_x, offset_y + 1),
         );
         Ok(())
@@ -942,11 +858,11 @@ impl<'a> Command for StashWithdrawInput<'a> {
         comp!(
             f,
             MoveTo(OFFSET_X, OFFSET_Y),
-            PrintStyledContent(format!("How much {} do you", good).with(Color::White)),
+            Print(format!("How much {} do you", good)),
             MoveTo(OFFSET_X, OFFSET_Y + 1),
-            PrintStyledContent(prompt.with(Color::White)),
+            Print(prompt),
             MoveTo(OFFSET_X, OFFSET_Y + 2),
-            PrintStyledContent(format!("There are ({})", current_amount).with(Color::White)),
+            Print(format!("There are ({})", current_amount)),
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
         );
@@ -968,7 +884,7 @@ impl Command for StashWithdrawPrompt {
         comp!(
             f,
             MoveTo(OFFSET_X, OFFSET_Y),
-            PrintStyledContent("Which do you want to withdraw?".with(Color::White)),
+            Print("Which do you want to withdraw?"),
             GoodOptions(OFFSET_X, OFFSET_Y + 1),
         );
         Ok(())
@@ -995,9 +911,9 @@ impl<'a> Command for PayDebtInput<'a> {
         comp!(
             f,
             MoveTo(OFFSET_X, OFFSET_Y),
-            PrintStyledContent("How much debt do you".with(Color::White)),
+            Print("How much debt do you"),
             MoveTo(OFFSET_X, OFFSET_Y + 1),
-            PrintStyledContent(prompt.with(Color::White)),
+            Print(prompt),
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
         );
@@ -1020,7 +936,7 @@ impl<'a> Command for CheapGoodDialog<'a> {
         comp!(
             f,
             MoveTo(OFFSET_X, OFFSET_Y),
-            PrintStyledContent(format!("Cheap {} here!", good).with(Color::White)),
+            Print(format!("Cheap {} here!", good)),
         );
         Ok(())
     }
@@ -1041,7 +957,7 @@ impl<'a> Command for ExpensiveGoodDialog<'a> {
         comp!(
             f,
             MoveTo(OFFSET_X, OFFSET_Y),
-            PrintStyledContent(format!("Expensive {} here!", good).with(Color::White)),
+            Print(format!("Expensive {} here!", good)),
         );
         Ok(())
     }
@@ -1064,18 +980,14 @@ impl<'a> Command for FindGoodsDialog<'a> {
         comp!(
             f,
             MoveTo(OFFSET_X, OFFSET_Y),
-            PrintStyledContent(
-                format!("You randomly find {} {}!", amount, good).with(Color::White)
-            ),
+            Print(format!("You randomly find {} {}!", amount, good)),
         );
         let remaining_hold = state.remaining_hold();
         if &remaining_hold < amount {
             comp!(
                 f,
                 MoveTo(OFFSET_X, OFFSET_Y + 1),
-                PrintStyledContent(
-                    format!("You have space for ({})", remaining_hold).with(Color::White)
-                ),
+                Print(format!("You have space for ({})", remaining_hold)),
             )
         }
         Ok(())
@@ -1095,16 +1007,16 @@ impl Command for GoodsStolenDialog {
             GoodsStolenResult::NothingStolen => comp!(
                 f,
                 MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y),
-                PrintStyledContent("Thieves were on the prowl, but they".with(Color::White)),
+                Print("Thieves were on the prowl, but they"),
                 MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 1),
-                PrintStyledContent("couldn't find anything to steal".with(Color::White)),
+                Print("couldn't find anything to steal"),
             ),
             GoodsStolenResult::WasStolen { good, amount } => comp!(
                 f,
                 MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y),
-                PrintStyledContent("Prowling harbor thieves stole".with(Color::White)),
+                Print("Prowling harbor thieves stole"),
                 MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 1),
-                PrintStyledContent(format!("{} {} from you!", amount, good).with(Color::White)),
+                Print(format!("{} {} from you!", amount, good)),
             ),
         }
         Ok(())
