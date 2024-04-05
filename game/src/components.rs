@@ -52,6 +52,11 @@ impl Command for SplashScreen {
         );
         Ok(())
     }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
+    }
 }
 
 pub struct GameEndScreen<'a>(pub &'a GameState);
@@ -99,6 +104,11 @@ impl<'a> Command for GameEndScreen<'a> {
         );
         Ok(())
     }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
+    }
 }
 
 pub struct BankWithdrawInput<'a>(pub &'a Option<u32>);
@@ -123,6 +133,11 @@ impl<'a> Command for BankWithdrawInput<'a> {
             Show
         );
         Ok(())
+    }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
     }
 }
 
@@ -186,6 +201,11 @@ impl<'a> Command for InventoryList<'a> {
         );
         Ok(())
     }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
+    }
 }
 
 pub struct CurrentPrices<'a>(pub &'a Inventory);
@@ -202,6 +222,11 @@ impl<'a> Command for CurrentPrices<'a> {
             InventoryList(prices, OFFSET_X + 11, OFFSET_Y + 1),
         );
         Ok(())
+    }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
     }
 }
 
@@ -248,6 +273,11 @@ impl<'a> Command for ViewingInventoryActions<'a> {
         }
         Ok(())
     }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
+    }
 }
 
 pub struct BankDepositInput<'a>(pub &'a Option<u32>);
@@ -272,6 +302,11 @@ impl<'a> Command for BankDepositInput<'a> {
             Show
         );
         Ok(())
+    }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
     }
 }
 
@@ -331,6 +366,11 @@ impl Command for Frame {
         }
         Ok(())
     }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
+    }
 }
 
 pub struct Date;
@@ -347,6 +387,11 @@ impl Command for Date {
             PrintStyledContent("|=================|".with(Color::White)),
         );
         Ok(())
+    }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
     }
 }
 
@@ -425,6 +470,11 @@ impl<'a> Command for HomeBase<'a> {
         }
         Ok(())
     }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
+    }
 }
 
 struct CenteredText(String, u32);
@@ -469,6 +519,11 @@ impl<'a> Command for CurrentLocation<'a> {
         );
         Ok(())
     }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
+    }
 }
 
 pub struct ViewingInventoryBase<'a>(pub &'a GameState);
@@ -488,6 +543,11 @@ impl<'a> Command for ViewingInventoryBase<'a> {
             CurrentPrices(&state.locations.location_info(&state.location).prices)
         );
         Ok(())
+    }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
     }
 }
 
@@ -602,6 +662,11 @@ impl<'a> Command for Ship<'a> {
         }
         Ok(())
     }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
+    }
 }
 
 pub struct BuyInput<'a> {
@@ -652,6 +717,11 @@ impl<'a> Command for BuyInput<'a> {
         comp!(f, MoveTo(OFFSET_X + prompt_len, OFFSET_Y), Show);
         Ok(())
     }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
+    }
 }
 
 const PROMPT_OFFSET_X: u16 = 10;
@@ -670,6 +740,11 @@ impl Command for BuyPrompt {
             GoodOptions(OFFSET_X, OFFSET_Y + 1)
         );
         Ok(())
+    }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
     }
 }
 
@@ -695,6 +770,11 @@ impl Command for GoodOptions {
             PrintStyledContent("(6) Cotton".with(Color::White)),
         );
         Ok(())
+    }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
     }
 }
 
@@ -726,6 +806,11 @@ impl<'a> Command for SellInput<'a> {
         );
         Ok(())
     }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
+    }
 }
 
 pub struct SellPrompt;
@@ -741,6 +826,11 @@ impl Command for SellPrompt {
             GoodOptions(OFFSET_X, OFFSET_Y + 1),
         );
         Ok(())
+    }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
     }
 }
 
@@ -768,6 +858,11 @@ impl Command for SailPrompt {
             PrintStyledContent("(6) Venice".with(Color::White)),
         );
         Ok(())
+    }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
     }
 }
 
@@ -800,6 +895,11 @@ impl<'a> Command for StashDepositInput<'a> {
         );
         Ok(())
     }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
+    }
 }
 
 pub struct StashDepositPrompt;
@@ -815,6 +915,11 @@ impl Command for StashDepositPrompt {
             GoodOptions(offset_x, offset_y + 1),
         );
         Ok(())
+    }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
     }
 }
 
@@ -847,6 +952,11 @@ impl<'a> Command for StashWithdrawInput<'a> {
         );
         Ok(())
     }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
+    }
 }
 
 pub struct StashWithdrawPrompt;
@@ -862,6 +972,11 @@ impl Command for StashWithdrawPrompt {
             GoodOptions(OFFSET_X, OFFSET_Y + 1),
         );
         Ok(())
+    }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
     }
 }
 
@@ -888,6 +1003,11 @@ impl<'a> Command for PayDebtInput<'a> {
         );
         Ok(())
     }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
+    }
 }
 
 pub struct CheapGoodDialog<'a>(pub &'a Good);
@@ -904,6 +1024,11 @@ impl<'a> Command for CheapGoodDialog<'a> {
         );
         Ok(())
     }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
+    }
 }
 
 pub struct ExpensiveGoodDialog<'a>(pub &'a Good);
@@ -919,6 +1044,11 @@ impl<'a> Command for ExpensiveGoodDialog<'a> {
             PrintStyledContent(format!("Expensive {} here!", good).with(Color::White)),
         );
         Ok(())
+    }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
     }
 }
 
@@ -950,6 +1080,11 @@ impl<'a> Command for FindGoodsDialog<'a> {
         }
         Ok(())
     }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
+    }
 }
 
 pub struct GoodsStolenDialog(pub GoodsStolenResult);
@@ -973,5 +1108,10 @@ impl Command for GoodsStolenDialog {
             ),
         }
         Ok(())
+    }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
     }
 }
