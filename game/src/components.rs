@@ -1,7 +1,8 @@
 use std::fmt::{self};
 
+use chrono::Month;
 use crossterm::{
-    cursor::{Hide, MoveDown, MoveRight, MoveTo, MoveToNextLine, Show},
+    cursor::{Hide, MoveDown, MoveRight, MoveTo, Show},
     style::{style, Attribute, Print, Stylize},
     terminal::Clear,
     Command,
@@ -14,22 +15,38 @@ use crate::{
 
 pub struct SplashScreen();
 
+const LOGO: &str = r#"
+ __  __               _                 _   
+|  \/  |             | |               | |  
+| \  / | ___ _ __ ___| |__   __ _ _ __ | |_ 
+| |\/| |/ _ \ '__/ __| '_ \ / _` | '_ \| __|
+| |  | |  __/ | | (__| | | | (_| | | | | |_ 
+|_|  |_|\___|_|  \___|_| |_|\__,_|_| |_|\__|
+"#;
+
 impl Command for SplashScreen {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
         comp!(
             f,
             Clear(crossterm::terminal::ClearType::All),
-            MoveTo(0, 0),
-            Print("Merchant".attribute(Attribute::Bold)),
-            MoveTo(0, 2),
-            Print("Navigate shifting markets and unreliable sources.".attribute(Attribute::Bold)),
-            MoveTo(0, 4),
-            Print("By samgqroberts".attribute(Attribute::Bold)),
-            // prompt user
-            MoveToNextLine(2),
+            Frame(true),
+            MoveTo(29, 12),
+            Print("A tribute to Drug Wars by samgqroberts"),
+            MoveTo(38, 14),
+            Print("www.samgqroberts.com"),
+            MoveTo(37, 25),
             Print(style("Press any key to begin").attribute(Attribute::Bold),),
             Hide
         );
+        const OFFSET_X: u16 = 27;
+        const OFFSET_Y: u16 = 4;
+        for (i, line) in LOGO.trim_matches('\n').lines().into_iter().enumerate() {
+            comp!(
+                f,
+                MoveTo(OFFSET_X, OFFSET_Y + (i as u16)),
+                Print(format!("{}", line)),
+            );
+        }
         Ok(())
     }
 
@@ -38,6 +55,15 @@ impl Command for SplashScreen {
         todo!()
     }
 }
+
+const GAME_OVER: &str = r"
+  _____                         ____                 
+ / ____|                       / __ \                
+| |  __  __ _ _ __ ___   ___  | |  | |_   _____ _ __ 
+| | |_ |/ _` | '_ ` _ \ / _ \ | |  | \ \ / / _ \ '__|
+| |__| | (_| | | | | | |  __/ | |__| |\ V /  __/ |   
+ \_____|\__,_|_| |_| |_|\___|  \____/  \_/ \___|_|   
+";
 
 pub struct GameEndScreen<'a>(pub &'a GameState);
 
@@ -49,30 +75,58 @@ impl<'a> Command for GameEndScreen<'a> {
             f,
             Clear(crossterm::terminal::ClearType::All),
             Hide,
-            MoveTo(0, 0),
-            Print("Congratulations!!".attribute(Attribute::Bold)),
-            MoveTo(0, 2),
-            Print("After three years, you went from being"),
-            MoveTo(0, 3),
-            Print(format!("1400 gold in debt").attribute(Attribute::Bold)),
-            MoveTo(0, 4),
-            Print(format!(
-                "to {}",
-                if final_gold >= 0 { "having" } else { "being" }
-            )),
-            MoveTo(0, 5),
+            Frame(true),
+            MoveTo(1, 14),
             Print(
-                format!(
-                    "{}",
-                    if final_gold >= 0 {
-                        format!("{} gold", final_gold)
-                    } else {
-                        format!("{} gold in debt", final_gold.abs())
-                    }
+                CenteredText("Congratulations!".to_string(), (FRAME_WIDTH - 2).into())
+                    .to_string()
+                    .attribute(Attribute::Bold)
+            ),
+            MoveTo(1, 20),
+            Print(CenteredText(
+                "After three years, you went from being".to_string(),
+                (FRAME_WIDTH - 2).into()
+            )),
+            MoveTo(1, 22),
+            Print(
+                CenteredText(format!("1400 gold in debt"), (FRAME_WIDTH - 2).into())
+                    .to_string()
+                    .attribute(Attribute::Bold)
+            ),
+            MoveTo(1, 24),
+            Print(
+                CenteredText(
+                    format!("to {}", if final_gold >= 0 { "having" } else { "being" }),
+                    (FRAME_WIDTH - 2).into()
                 )
+                .to_string()
+            ),
+            MoveTo(1, 26),
+            Print(
+                CenteredText(
+                    format!(
+                        "{}",
+                        if final_gold >= 0 {
+                            format!("{} gold", final_gold)
+                        } else {
+                            format!("{} gold in debt", final_gold.abs())
+                        }
+                    ),
+                    (FRAME_WIDTH - 2).into()
+                )
+                .to_string()
                 .attribute(Attribute::Bold)
             ),
         );
+        const OFFSET_X: u16 = 23;
+        const OFFSET_Y: u16 = 4;
+        for (i, line) in GAME_OVER.trim_matches('\n').lines().into_iter().enumerate() {
+            comp!(
+                f,
+                MoveTo(OFFSET_X, OFFSET_Y + (i as u16)),
+                Print(format!("{}", line)),
+            );
+        }
         Ok(())
     }
 
@@ -272,7 +326,7 @@ impl<'a> Command for BankDepositInput<'a> {
 const FRAME_WIDTH: u16 = 99;
 const FRAME_HEIGHT: u16 = 32;
 
-pub struct Frame;
+pub struct Frame(bool);
 
 impl Command for Frame {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
@@ -283,13 +337,15 @@ impl Command for Frame {
         for i in 0..(FRAME_WIDTH) {
             comp!(f, MoveTo(i, FRAME_HEIGHT), Print("-"), MoveRight(1));
         }
-        // additional horizontal line under date
-        for i in 0..(FRAME_WIDTH) {
-            comp!(f, MoveTo(i, 2), Print("-"), MoveRight(1));
-        }
-        // additional thick horizontal line near location
-        for i in 0..(FRAME_WIDTH) {
-            comp!(f, MoveTo(i, 19), Print("="), MoveRight(1));
+        if !self.0 {
+            // additional horizontal line under date
+            for i in 0..(FRAME_WIDTH) {
+                comp!(f, MoveTo(i, 2), Print("-"), MoveRight(1));
+            }
+            // additional thick horizontal line near location
+            for i in 0..(FRAME_WIDTH) {
+                comp!(f, MoveTo(i, 19), Print("="), MoveRight(1));
+            }
         }
         // 2 vertical lines at left and right ends
         for i in 0..(FRAME_HEIGHT - 1) {
@@ -307,16 +363,16 @@ impl Command for Frame {
     }
 }
 
-pub struct Date;
+pub struct TopCenterFramed(String);
 
-impl Command for Date {
+impl Command for TopCenterFramed {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
         comp!(
             f,
             MoveTo(40, 0),
             Print("|=================|"),
             MoveTo(40, 1),
-            Print("| March      1782 |"),
+            Print(format!("|{}|", self.0)),
             MoveTo(40, 2),
             Print("|=================|"),
         );
@@ -326,6 +382,33 @@ impl Command for Date {
     #[cfg(windows)]
     fn execute_winapi(&self) -> std::io::Result<()> {
         todo!()
+    }
+}
+
+pub struct Date<'a>(&'a (u16, Month));
+
+impl<'a> Command for Date<'a> {
+    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+        let month_name = self.0 .1.name();
+        let mut year = self.0 .0.to_string();
+        const TOTAL_NUM_CHARS: u8 = 15;
+        while year.len() + month_name.len() < TOTAL_NUM_CHARS.into() {
+            year.insert(0, ' ');
+        }
+        let text = format!(" {}{} ", month_name, year);
+        comp!(f, TopCenterFramed(text),);
+        Ok(())
+    }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
+    }
+}
+
+impl<'a> From<&'a GameState> for Date<'a> {
+    fn from(value: &'a GameState) -> Self {
+        Self(&value.date)
     }
 }
 
@@ -467,8 +550,8 @@ impl<'a> Command for ViewingInventoryBase<'a> {
             f,
             Clear(crossterm::terminal::ClearType::All), // clear the terminal
             Hide,                                       // hide the cursor
-            Frame,
-            Date,
+            Frame(false),
+            Date::from(state),
             HomeBase::from(state),
             Ship::from(state),
             CurrentLocation::from(state),
