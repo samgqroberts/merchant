@@ -12,22 +12,22 @@ jobs:
             os: ubuntu-20.04
             target: x86_64-unknown-linux-gnu
             bin: merchant
-            name: merchant-Ubuntu-x86_64.tar.gz
+            name: merchant-x86_64-unknown-linux-gnu
           - release_for: Windows-x86_64
             os: windows-latest
             target: x86_64-pc-windows-msvc
             bin: merchant.exe
-            name: merchant-Windows-x86_64.zip
+            name: merchant-x86_64-pc-windows-msvc
           - release_for: macOS-x86_64
             os: macOS-latest
             target: x86_64-apple-darwin
             bin: merchant
-            name: merchant-Darwin-x86_64.tar.gz
+            name: merchant-x86_64-apple-darwin
           - release_for: macOS-aarch64
             os: macOS-latest
             target: aarch64-apple-darwin
             bin: merchant
-            name: merchant-Darwin-aarch64.tar.gz
+            name: merchant-aarch64-apple-darwin
     runs-on: ${{ matrix.platform.os }}
     steps:
       - name: Checkout
@@ -40,3 +40,8 @@ jobs:
           override: true
       - name: Build binary
         run: cargo build --release
+      - uses: actions/upload-artifact@v4
+        with:
+            name: ${{ matrix.platform.name }}
+            path: target/release/merchant*
+            if-no-files-found: warn
