@@ -1,6 +1,6 @@
 use super::Good;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Inventory {
     pub tea: u32,
     pub coffee: u32,
@@ -11,17 +11,6 @@ pub struct Inventory {
 }
 
 impl Inventory {
-    pub fn new() -> Inventory {
-        Inventory {
-            tea: 0,
-            coffee: 0,
-            sugar: 0,
-            tobacco: 0,
-            rum: 0,
-            cotton: 0,
-        }
-    }
-
     pub fn get_good(&self, good_type: &Good) -> &u32 {
         match good_type {
             Good::Tea => &self.tea,
@@ -54,13 +43,13 @@ impl Inventory {
 
     pub fn add_good(&mut self, good: &Good, amount: u32) -> &u32 {
         let good = self.get_good_mut(good);
-        *good = *good + amount;
+        *good += amount;
         good
     }
 
     pub fn remove_good(&mut self, good: &Good, amount: u32) -> &u32 {
         let good = self.get_good_mut(good);
-        *good = *good - amount;
+        *good -= amount;
         good
     }
 

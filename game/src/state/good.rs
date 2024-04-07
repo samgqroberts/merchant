@@ -39,7 +39,7 @@ impl Good {
     }
 
     pub fn variants() -> impl Iterator<Item = &'static Good> {
-        static VARIANTS: &'static [Good] = &[
+        static VARIANTS: &[Good] = &[
             Good::Tea,
             Good::Coffee,
             Good::Sugar,

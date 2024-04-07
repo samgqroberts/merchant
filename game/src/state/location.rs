@@ -26,7 +26,7 @@ impl Display for Location {
 
 impl Location {
     pub fn variants() -> impl Iterator<Item = &'static Location> {
-        static VARIANTS: &'static [Location] = &[
+        static VARIANTS: &[Location] = &[
             Location::London,
             Location::Savannah,
             Location::Lisbon,

@@ -127,10 +127,10 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
         if !state.initialized {
             // initial splash screen
             queue!(writer, SplashScreen())?;
-            return Ok(Box::new(|_: KeyEvent, state: &mut GameState| {
+            Ok(Box::new(|_: KeyEvent, state: &mut GameState| {
                 state.initialize();
                 Ok(())
-            }));
+            }))
         } else if state.game_end {
             queue!(writer, GameEndScreen(state))?;
             return Ok(Box::new(|_: KeyEvent, _: &mut GameState| Ok(())));
@@ -154,7 +154,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                             } else if ch == '3' {
                                 state.begin_sailing()?;
                             };
-                            if &state.location == &Location::London {
+                            if state.location == Location::London {
                                 if ch == '4' {
                                     state.begin_stash_deposit()?;
                                 } else if ch == '5' {
@@ -164,10 +164,8 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                                 } else if ch == '7' {
                                     state.begin_bank_withdraw()?;
                                 }
-                                if &state.debt > &0 {
-                                    if ch == '8' {
-                                        state.begin_pay_debt()?;
-                                    }
+                                if state.debt > 0 && ch == '8' {
+                                    state.begin_pay_debt()?;
                                 }
                             }
                         }
@@ -192,7 +190,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                                     x => Err(x.into()),
                                 });
                             }
-                            return Ok(());
+                            Ok(())
                         }));
                     } else {
                         queue!(writer, BuyPrompt)?;
@@ -409,8 +407,8 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                     }
                     LocationEvent::FindGoods(good, amount) => {
                         queue!(writer, FindGoodsDialog(good, amount, state))?;
-                        let good = good.clone();
-                        let amount = amount.clone();
+                        let good = *good;
+                        let amount = *amount;
                         return Ok(Box::new(move |_: KeyEvent, state: &mut GameState| {
                             {
                                 let remaining_hold = state.remaining_hold();
@@ -423,7 +421,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                     }
                     LocationEvent::GoodsStolen(info) => {
                         let info = info.unwrap_or_else(|| state.compute_goods_stolen());
-                        queue!(writer, GoodsStolenDialog(info.clone()))?;
+                        queue!(writer, GoodsStolenDialog(info))?;
                         return Ok(Box::new(move |_: KeyEvent, state: &mut GameState| {
                             state.remove_stolen_goods(info);
                             state.acknowledge_event()?;

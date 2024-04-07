@@ -73,8 +73,8 @@ impl GameState {
             gold: starting_gold,
             bank: 0,
             location: Location::London, // home base
-            stash: Inventory::new(),
-            inventory: Inventory::new(),
+            stash: Inventory::default(),
+            inventory: Inventory::default(),
             locations,
             debt,
             mode: Mode::ViewingInventory,
@@ -82,12 +82,12 @@ impl GameState {
         }
     }
 
-    pub fn initialize(&mut self) -> () {
+    pub fn initialize(&mut self) {
         self.initialized = true;
     }
 
     fn require_viewing_inventory(&self) -> Result<(), StateError> {
-        if &self.mode != &Mode::ViewingInventory {
+        if self.mode != Mode::ViewingInventory {
             Err(StateError::InvalidMode(self.mode.clone()))
         } else {
             Ok(())
@@ -95,7 +95,7 @@ impl GameState {
     }
 
     fn require_location_home_base(&self) -> Result<(), StateError> {
-        if &self.location != &Location::London {
+        if self.location != Location::London {
             Err(StateError::LocationNotHomeBase(self.location.clone()))
         } else {
             Ok(())
@@ -105,54 +105,54 @@ impl GameState {
     pub fn begin_buying(&mut self) -> Result<&mut GameState, StateError> {
         self.require_viewing_inventory()?;
         self.mode = Mode::Buying(None);
-        return Ok(self);
+        Ok(self)
     }
 
     pub fn begin_selling(&mut self) -> Result<&mut GameState, StateError> {
         self.require_viewing_inventory()?;
         self.mode = Mode::Selling(None);
-        return Ok(self);
+        Ok(self)
     }
 
     pub fn begin_sailing(&mut self) -> Result<&mut GameState, StateError> {
         self.require_viewing_inventory()?;
         self.mode = Mode::Sailing;
-        return Ok(self);
+        Ok(self)
     }
 
     pub fn begin_stash_deposit(&mut self) -> Result<&mut GameState, StateError> {
         self.require_viewing_inventory()?;
         self.require_location_home_base()?;
         self.mode = Mode::StashDeposit(None);
-        return Ok(self);
+        Ok(self)
     }
 
     pub fn begin_stash_withdraw(&mut self) -> Result<&mut GameState, StateError> {
         self.require_viewing_inventory()?;
         self.require_location_home_base()?;
         self.mode = Mode::StashWithdraw(None);
-        return Ok(self);
+        Ok(self)
     }
 
     pub fn begin_pay_debt(&mut self) -> Result<&mut GameState, StateError> {
         self.require_viewing_inventory()?;
         self.require_location_home_base()?;
         self.mode = Mode::PayDebt(None);
-        return Ok(self);
+        Ok(self)
     }
 
     pub fn begin_bank_deposit(&mut self) -> Result<&mut GameState, StateError> {
         self.require_viewing_inventory()?;
         self.require_location_home_base()?;
         self.mode = Mode::BankDeposit(None);
-        return Ok(self);
+        Ok(self)
     }
 
     pub fn begin_bank_withdraw(&mut self) -> Result<&mut GameState, StateError> {
         self.require_viewing_inventory()?;
         self.require_location_home_base()?;
         self.mode = Mode::BankWithdraw(None);
-        return Ok(self);
+        Ok(self)
     }
 
     pub fn choose_buy_good(&mut self, good: Good) -> Result<&mut GameState, StateError> {
@@ -282,28 +282,25 @@ impl GameState {
 
     pub fn commit_buy(&mut self) -> Result<&mut GameState, StateError> {
         if let Mode::Buying(Some(info)) = &self.mode {
-            match info.amount.unwrap_or(0) {
-                amount => {
-                    let good_price = self
-                        .locations
-                        .location_info(&self.location)
-                        .prices
-                        .get_good(&info.good);
-                    let can_afford = self.gold / good_price;
-                    if amount > can_afford {
-                        return Err(StateError::CannotAfford);
-                    } else {
-                        let hold_size = self.hold_size;
-                        let current_hold = self.inventory.total_amount();
-                        if current_hold + amount > hold_size {
-                            return Err(StateError::InsufficientHold);
-                        } else {
-                            self.inventory.add_good(&info.good, amount);
-                            self.gold -= good_price * amount;
-                            self.mode = Mode::ViewingInventory;
-                            return Ok(self);
-                        }
-                    }
+            let amount = info.amount.unwrap_or(0);
+            let good_price = self
+                .locations
+                .location_info(&self.location)
+                .prices
+                .get_good(&info.good);
+            let can_afford = self.gold / good_price;
+            if amount > can_afford {
+                return Err(StateError::CannotAfford);
+            } else {
+                let hold_size = self.hold_size;
+                let current_hold = self.inventory.total_amount();
+                if current_hold + amount > hold_size {
+                    return Err(StateError::InsufficientHold);
+                } else {
+                    self.inventory.add_good(&info.good, amount);
+                    self.gold -= good_price * amount;
+                    self.mode = Mode::ViewingInventory;
+                    return Ok(self);
                 }
             }
         }
@@ -312,23 +309,20 @@ impl GameState {
 
     pub fn commit_sell(&mut self) -> Result<&mut GameState, StateError> {
         if let Mode::Selling(Some(info)) = &self.mode {
-            match info.amount.unwrap_or(0) {
-                amount => {
-                    let good_price = self
-                        .locations
-                        .location_info(&self.location)
-                        .prices
-                        .get_good(&info.good);
-                    let user_amount = self.inventory.get_good(&info.good);
-                    if &amount > user_amount {
-                        return Err(StateError::InsufficientInventory);
-                    } else {
-                        self.inventory.remove_good(&info.good, amount);
-                        self.gold += good_price * amount;
-                        self.mode = Mode::ViewingInventory;
-                        return Ok(self);
-                    }
-                }
+            let amount = info.amount.unwrap_or(0);
+            let good_price = self
+                .locations
+                .location_info(&self.location)
+                .prices
+                .get_good(&info.good);
+            let user_amount = self.inventory.get_good(&info.good);
+            if &amount > user_amount {
+                return Err(StateError::InsufficientInventory);
+            } else {
+                self.inventory.remove_good(&info.good, amount);
+                self.gold += good_price * amount;
+                self.mode = Mode::ViewingInventory;
+                return Ok(self);
             }
         }
         Err(StateError::InvalidMode(self.mode.clone()))
@@ -336,18 +330,15 @@ impl GameState {
 
     pub fn commit_stash_deposit(&mut self) -> Result<&mut GameState, StateError> {
         if let Mode::StashDeposit(Some(info)) = &self.mode {
-            match info.amount.unwrap_or(0) {
-                amount => {
-                    let user_amount = self.inventory.get_good(&info.good);
-                    if &amount > user_amount {
-                        return Err(StateError::InsufficientInventory);
-                    } else {
-                        self.inventory.remove_good(&info.good, amount);
-                        self.stash.add_good(&info.good, amount);
-                        self.mode = Mode::ViewingInventory;
-                        return Ok(self);
-                    }
-                }
+            let amount = info.amount.unwrap_or(0);
+            let user_amount = self.inventory.get_good(&info.good);
+            if &amount > user_amount {
+                return Err(StateError::InsufficientInventory);
+            } else {
+                self.inventory.remove_good(&info.good, amount);
+                self.stash.add_good(&info.good, amount);
+                self.mode = Mode::ViewingInventory;
+                return Ok(self);
             }
         }
         Err(StateError::InvalidMode(self.mode.clone()))
@@ -355,18 +346,15 @@ impl GameState {
 
     pub fn commit_stash_withdraw(&mut self) -> Result<&mut GameState, StateError> {
         if let Mode::StashWithdraw(Some(info)) = &self.mode {
-            match info.amount.unwrap_or(0) {
-                amount => {
-                    let stash_amount = self.stash.get_good(&info.good);
-                    if &amount > stash_amount {
-                        return Err(StateError::InsufficientStash);
-                    } else {
-                        self.stash.remove_good(&info.good, amount);
-                        self.inventory.add_good(&info.good, amount);
-                        self.mode = Mode::ViewingInventory;
-                        return Ok(self);
-                    }
-                }
+            let amount = info.amount.unwrap_or(0);
+            let stash_amount = self.stash.get_good(&info.good);
+            if &amount > stash_amount {
+                return Err(StateError::InsufficientStash);
+            } else {
+                self.stash.remove_good(&info.good, amount);
+                self.inventory.add_good(&info.good, amount);
+                self.mode = Mode::ViewingInventory;
+                return Ok(self);
             }
         }
         Err(StateError::InvalidMode(self.mode.clone()))
@@ -436,7 +424,7 @@ impl GameState {
                 // update location info for location we just left
                 let new_location_info =
                     self.locations
-                        .generate_location(&mut self.rng, &destination, true);
+                        .generate_location(&mut self.rng, destination, true);
                 // set current location
                 self.location = destination.clone();
                 // increment debt, if any
@@ -472,16 +460,14 @@ impl GameState {
     }
 
     pub fn remaining_hold(&self) -> u32 {
-        self.hold_size
-            .checked_sub(self.inventory.total_amount())
-            .unwrap_or(0)
+        self.hold_size.saturating_sub(self.inventory.total_amount())
     }
 
     pub(crate) fn compute_goods_stolen(&mut self) -> GoodsStolenResult {
         if let Mode::GameEvent(event) = &mut self.mode {
             if let LocationEvent::GoodsStolen(info) = event.borrow_mut() {
                 if let Some(info) = info {
-                    return info.clone();
+                    return *info;
                 } else {
                     // randomly select a good that we have inventory of
                     let goods_with_inventory = self
@@ -503,14 +489,14 @@ impl GameState {
                         }
                     };
                     *info = Some(computed_info);
-                    return computed_info.clone();
+                    return computed_info;
                 }
             }
         }
         GoodsStolenResult::NothingStolen
     }
 
-    pub(crate) fn remove_stolen_goods(&mut self, goods_stolen_info: GoodsStolenResult) -> () {
+    pub(crate) fn remove_stolen_goods(&mut self, goods_stolen_info: GoodsStolenResult) {
         if let GoodsStolenResult::WasStolen { good, amount } = goods_stolen_info {
             self.inventory.remove_good(&good, amount);
         }
@@ -536,7 +522,7 @@ pub enum StateError {
     InsufficientBank,
 }
 
-impl<'a> Display for StateError {
+impl Display for StateError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:#?}", self)
     }

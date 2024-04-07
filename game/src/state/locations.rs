@@ -22,7 +22,7 @@ pub struct LocationInfo {
 impl LocationInfo {
     pub fn empty() -> Self {
         Self {
-            prices: Inventory::new(),
+            prices: Inventory::default(),
             event: None,
         }
     }
@@ -101,7 +101,7 @@ impl Locations {
                         // cheap good
                         let good = Good::random(rng);
                         // update location prices
-                        let good_price = (&mut new_location_info).prices.get_good_mut(&good);
+                        let good_price = new_location_info.prices.get_good_mut(&good);
                         *good_price = ((*good_price as f64) * 0.5).floor() as u32;
                         LocationEvent::CheapGood(good)
                     }
@@ -109,7 +109,7 @@ impl Locations {
                         // more expensive good
                         let good = Good::random(rng);
                         // update location prices
-                        let good_price = (&mut new_location_info).prices.get_good_mut(&good);
+                        let good_price = new_location_info.prices.get_good_mut(&good);
                         *good_price = ((*good_price as f64) * 2.0).floor() as u32;
                         LocationEvent::ExpensiveGood(good)
                     }

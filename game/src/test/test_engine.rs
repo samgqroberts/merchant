@@ -35,8 +35,7 @@ impl TestEngine {
 
     pub fn get_current_formatted(&self) -> String {
         let buffer = self.writer_ref.borrow().buffer.clone();
-        let formatted = raw_format_ansi(&buffer);
-        formatted
+        raw_format_ansi(&buffer)
     }
 
     pub fn expect(&self, expectation: &str) -> bool {
@@ -62,7 +61,7 @@ impl TestEngine {
     pub fn expect_full(&self, expectation: &str) -> String {
         let expectation = expectation.trim_matches('\n');
         let formatted = self.get_current_formatted();
-        let result = formatted == expectation.to_owned();
+        let result = formatted == *expectation;
         if !result {
             println!("----------------\n{}\n----------------", formatted);
         }

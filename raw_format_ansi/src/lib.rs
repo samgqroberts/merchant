@@ -23,26 +23,26 @@ use std::str;
 /// This function wraps that work in order to fix a bug where certain escape sequences
 /// are mistakenly passed through as text blocks.
 /// See: <https://gitlab.com/davidbittner/ansi-parser/-/issues/9>
-fn tokenize_ansi<'a>(s: &'a str) -> Vec<Output<'a>> {
+fn tokenize_ansi(s: &str) -> Vec<Output<'_>> {
     let move_cursor_down_regex = Regex::new(r"\u{1b}\[\d+E").unwrap();
     let parsed = s.ansi_parse().flat_map(|token| {
         let mut broken_out: Vec<Output> = Vec::new();
         if let Output::TextBlock(mut text) = token {
-            while let Some(match_) = move_cursor_down_regex.find(&text) {
+            while let Some(match_) = move_cursor_down_regex.find(text) {
                 let num_to_move = text
-                    .split("[")
+                    .split('[')
                     .skip(1)
                     .collect::<String>()
-                    .split("E")
+                    .split('E')
                     .take(1)
                     .collect::<String>();
-                let num_to_move = u32::from_str_radix(&num_to_move, 10).unwrap();
+                let num_to_move = num_to_move.parse().unwrap();
                 broken_out.push(Output::Escape(AnsiSequence::CursorDown(num_to_move)));
                 broken_out.push(Output::Escape(AnsiSequence::CursorBackward(999999999)));
                 text = &text[match_.end()..];
             }
-            if text.len() > 0 {
-                broken_out.push(TextBlock(&text));
+            if !text.is_empty() {
+                broken_out.push(TextBlock(text));
             }
         } else {
             broken_out.push(token);
@@ -95,33 +95,33 @@ pub fn raw_format_ansi(s: &str) -> String {
     for token in tokens {
         if let Escape(sequence) = token {
             if let CursorPos(row, col) = sequence {
-                let row: usize = row.clone().try_into().unwrap();
-                let col: usize = col.clone().try_into().unwrap();
+                let row: usize = row.try_into().unwrap();
+                let col: usize = col.try_into().unwrap();
                 cursor_pos = (
                     if row > 0 { row - 1 } else { 0 },
                     if col > 0 { col - 1 } else { 0 },
                 ) // ANSI escapes use 1-indexing
             } else if let CursorUp(num_lines) = sequence {
-                let num_lines: usize = num_lines.clone().try_into().unwrap();
-                cursor_pos.0 = cursor_pos.0.checked_sub(num_lines).unwrap_or(0);
+                let num_lines: usize = num_lines.try_into().unwrap();
+                cursor_pos.0 = cursor_pos.0.saturating_sub(num_lines);
             } else if let CursorDown(num_lines) = sequence {
-                let num_lines: usize = num_lines.clone().try_into().unwrap();
-                cursor_pos.0 = cursor_pos.0 + num_lines;
+                let num_lines: usize = num_lines.try_into().unwrap();
+                cursor_pos.0 += num_lines;
             } else if let CursorBackward(num_cols) = sequence {
-                let num_cols: usize = num_cols.clone().try_into().unwrap();
-                cursor_pos.1 = cursor_pos.1.checked_sub(num_cols).unwrap_or(0)
+                let num_cols: usize = num_cols.try_into().unwrap();
+                cursor_pos.1 = cursor_pos.1.saturating_sub(num_cols)
             } else if let CursorForward(num_cols) = sequence {
-                let num_cols: usize = num_cols.clone().try_into().unwrap();
+                let num_cols: usize = num_cols.try_into().unwrap();
                 cursor_pos.1 = cursor_pos.1.checked_add(num_cols).unwrap_or(0)
             }
         } else if let TextBlock(text) = token {
             // incorporate text at position
-            if text.len() == 0 {
+            if text.is_empty() {
                 continue;
             }
             let (row, col) = &cursor_pos;
-            let row = row.clone();
-            let col = col.clone();
+            let row = *row;
+            let col = *col;
             while lines.len() < row + 1 {
                 // pad with empty lines
                 lines.push("".to_owned());
@@ -132,9 +132,9 @@ pub fn raw_format_ansi(s: &str) -> String {
                 line.push(' ');
             }
             // append actual text
-            let mut remaining = text.chars();
-            let mut index = col.clone();
-            while let Some(char) = remaining.next() {
+            let remaining = text.chars();
+            let mut index = col;
+            for char in remaining {
                 if line.len() > index {
                     line.replace_range(index..(index + 1), &char.to_string());
                 } else {

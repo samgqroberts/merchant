@@ -40,11 +40,11 @@ impl Command for SplashScreen {
         );
         const OFFSET_X: u16 = 27;
         const OFFSET_Y: u16 = 4;
-        for (i, line) in LOGO.trim_matches('\n').lines().into_iter().enumerate() {
+        for (i, line) in LOGO.trim_matches('\n').lines().enumerate() {
             comp!(
                 f,
                 MoveTo(OFFSET_X, OFFSET_Y + (i as u16)),
-                Print(format!("{}", line)),
+                Print(line.to_string()),
             );
         }
         Ok(())
@@ -89,7 +89,7 @@ impl<'a> Command for GameEndScreen<'a> {
             )),
             MoveTo(1, 22),
             Print(
-                CenteredText(format!("1400 gold in debt"), (FRAME_WIDTH - 2).into())
+                CenteredText("1400 gold in debt".to_string(), (FRAME_WIDTH - 2).into())
                     .to_string()
                     .attribute(Attribute::Bold)
             ),
@@ -104,14 +104,11 @@ impl<'a> Command for GameEndScreen<'a> {
             MoveTo(1, 26),
             Print(
                 CenteredText(
-                    format!(
-                        "{}",
-                        if final_gold >= 0 {
+                    (if final_gold >= 0 {
                             format!("{} gold", final_gold)
                         } else {
                             format!("{} gold in debt", final_gold.abs())
-                        }
-                    ),
+                        }).to_string(),
                     (FRAME_WIDTH - 2).into()
                 )
                 .to_string()
@@ -120,11 +117,11 @@ impl<'a> Command for GameEndScreen<'a> {
         );
         const OFFSET_X: u16 = 23;
         const OFFSET_Y: u16 = 4;
-        for (i, line) in GAME_OVER.trim_matches('\n').lines().into_iter().enumerate() {
+        for (i, line) in GAME_OVER.trim_matches('\n').lines().enumerate() {
             comp!(
                 f,
                 MoveTo(OFFSET_X, OFFSET_Y + (i as u16)),
-                Print(format!("{}", line)),
+                Print(line.to_string()),
             );
         }
         Ok(())
@@ -452,11 +449,11 @@ impl<'a> Command for HomeBase<'a> {
 "###;
         const OFFSET_X: u16 = 4;
         const OFFSET_Y: u16 = 3;
-        for (i, line) in HOME.trim_matches('\n').lines().into_iter().enumerate() {
+        for (i, line) in HOME.trim_matches('\n').lines().enumerate() {
             comp!(
                 f,
                 MoveTo(OFFSET_X, OFFSET_Y + (i as u16)),
-                Print(format!("{}", line)),
+                Print(line.to_string()),
             );
         }
         comp!(
@@ -475,13 +472,12 @@ impl<'a> Command for HomeBase<'a> {
             for (i, line) in PATH_CONTINUATION
                 .trim_matches('\n')
                 .lines()
-                .into_iter()
                 .enumerate()
             {
                 comp!(
                     f,
                     MoveTo(OFFSET_X + 3, OFFSET_Y + 16 + (i as u16)),
-                    Print(format!("{}", line)),
+                    Print(line.to_string()),
                 );
             }
         }
@@ -604,11 +600,11 @@ impl<'a> Command for Ship<'a> {
 "###;
         const OFFSET_X: u16 = 39;
         const OFFSET_Y: u16 = 3;
-        for (i, line) in SHIP.trim_matches('\n').lines().into_iter().enumerate() {
+        for (i, line) in SHIP.trim_matches('\n').lines().enumerate() {
             comp!(
                 f,
                 MoveTo(OFFSET_X, OFFSET_Y + (i as u16)),
-                Print(format!("{}", line)),
+                Print(line.to_string()),
             );
         }
         let inventory = self.inventory;
@@ -640,25 +636,23 @@ impl<'a> Command for Ship<'a> {
         for (i, line) in DOCK_CONTINUATION_1
             .trim_matches('\n')
             .lines()
-            .into_iter()
             .enumerate()
         {
             comp!(
                 f,
                 MoveTo(OFFSET_X + 40, OFFSET_Y + 16 + (i as u16)),
-                Print(format!("{}", line)),
+                Print(line.to_string()),
             );
         }
         for (i, line) in DOCK_CONTINUATION_2
             .trim_matches('\n')
             .lines()
-            .into_iter()
             .enumerate()
         {
             comp!(
                 f,
                 MoveTo(OFFSET_X + 38, OFFSET_Y + 17 + (i as u16)),
-                Print(format!("{}", line)),
+                Print(line.to_string()),
             );
         }
         Ok(())
@@ -688,7 +682,7 @@ impl<'a> Command for BuyInput<'a> {
             .locations
             .location_info(&state.location)
             .prices
-            .get_good(&good);
+            .get_good(good);
         let prompt = format!(
             "How much {} do you want? {}",
             good,
