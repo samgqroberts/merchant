@@ -1,4 +1,8 @@
-use rand::{rngs::StdRng, RngCore};
+use rand::{
+    distributions::{Distribution, WeightedIndex},
+    rngs::StdRng,
+    RngCore,
+};
 
 use super::{Good, Inventory, Location, LocationEvent};
 
@@ -93,40 +97,51 @@ impl Locations {
         let mut new_location_info = LocationInfo::empty();
         new_location_info.prices = self.randomized_inventory(rng);
         if allow_events {
-            // % 2 means 50% chance of hitting some event
-            new_location_info.event = if rng.next_u32() % 2 == 0 {
-                // we've hit an event
-                let event: LocationEvent = match rng.next_u32() % 4 {
-                    0 => {
-                        // cheap good
-                        let good = Good::random(rng);
-                        // update location prices
-                        let good_price = new_location_info.prices.get_good_mut(&good);
-                        *good_price = ((*good_price as f64) * 0.5).floor() as u32;
-                        LocationEvent::CheapGood(good)
-                    }
-                    1 => {
-                        // more expensive good
-                        let good = Good::random(rng);
-                        // update location prices
-                        let good_price = new_location_info.prices.get_good_mut(&good);
-                        *good_price = ((*good_price as f64) * 2.0).floor() as u32;
-                        LocationEvent::ExpensiveGood(good)
-                    }
-                    2 => {
-                        // find goods
-                        let good = Good::random(rng);
-                        let amount = (rng.next_u32() % 10) + 1;
-                        LocationEvent::FindGoods(good, amount)
-                    }
-                    _ => {
-                        // stolen goods
-                        LocationEvent::GoodsStolen(None)
-                    }
-                };
-                Some(event)
-            } else {
-                None
+            let event_possibilities: [u8; 7] = [
+                0, // no event
+                1, // cheap good
+                2, // expensive good
+                3, // find goods
+                4, // stolen goods
+                5, // can buy cannon
+                6, // pirate encounter
+            ];
+            let weights: [u8; 7] = [6, 1, 1, 1, 1, 1, 1];
+            let dist = WeightedIndex::new(&weights).unwrap();
+            new_location_info.event = match event_possibilities[dist.sample(rng)] {
+                // no event
+                0 => None,
+                // cheap good
+                1 => {
+                    let good = Good::random(rng);
+                    // update location prices
+                    let good_price = new_location_info.prices.get_good_mut(&good);
+                    *good_price = ((*good_price as f64) * 0.5).floor() as u32;
+                    Some(LocationEvent::CheapGood(good))
+                }
+                // expensive good
+                2 => {
+                    let good = Good::random(rng);
+                    // update location prices
+                    let good_price = new_location_info.prices.get_good_mut(&good);
+                    *good_price = ((*good_price as f64) * 2.0).floor() as u32;
+                    Some(LocationEvent::ExpensiveGood(good))
+                }
+                // find goods
+                3 => {
+                    let good = Good::random(rng);
+                    let amount = (rng.next_u32() % 10) + 1;
+                    Some(LocationEvent::FindGoods(good, amount))
+                }
+                // stolen goods
+                4 => Some(LocationEvent::GoodsStolen(None)),
+                // can buy cannon
+                5 => Some(LocationEvent::CanBuyCannon),
+                // pirate encounter
+                6 => Some(LocationEvent::PirateEncounter(
+                    super::PirateEncounterState::Initial,
+                )),
+                _ => unreachable!(),
             };
         };
         let location_info = self.location_info_mut(location);

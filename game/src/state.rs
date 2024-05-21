@@ -7,18 +7,90 @@ use std::borrow::BorrowMut;
 use std::fmt::{self, Display};
 
 use chrono::Month;
+use rand::distributions::{Distribution, WeightedIndex};
 use rand::rngs::StdRng;
 use rand::Rng;
 
 pub use self::good::Good;
 pub use self::inventory::Inventory;
 pub use self::location::Location;
-pub use self::locations::{LocationInfo, Locations, PriceConfig};
+pub use self::locations::Locations;
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Transaction {
     pub good: Good,
     pub amount: Option<u32>,
+}
+
+pub const CANNON_COST: u16 = 5000;
+pub const SHIP_HEALTH: u8 = 5;
+pub const GOLD_PER_PIRATE_VICTORY_MIN: u32 = 500;
+pub const GOLD_PER_PIRATE_VICTORY_MAX: u32 = 2000;
+
+#[derive(PartialEq, Clone, Debug, Copy)]
+pub struct PirateEncounterInfo {
+    pub health: u8,
+    pub total_pirates: u8,
+    pub cur_pirates: u8,
+}
+
+impl PirateEncounterInfo {
+    pub fn new(pirates: u8) -> PirateEncounterInfo {
+        PirateEncounterInfo {
+            health: SHIP_HEALTH,
+            total_pirates: pirates,
+            cur_pirates: pirates,
+        }
+    }
+}
+
+#[derive(PartialEq, Clone, Debug, Copy)]
+pub enum PirateEncounterState {
+    Initial,
+    Prompt {
+        info: PirateEncounterInfo,
+    },
+    AttackResult {
+        info: PirateEncounterInfo,
+        did_kill_a_pirate: bool,
+    },
+    RunSuccess,
+    RunFailure {
+        info: PirateEncounterInfo,
+    },
+    PiratesAttack {
+        info: PirateEncounterInfo,
+        damage_this_attack: u8,
+    },
+    Destroyed,
+    Victory {
+        gold_recovered: u32,
+    },
+}
+
+impl PirateEncounterState {
+    pub fn pirates_attack(
+        info: PirateEncounterInfo,
+        rng: &mut StdRng,
+    ) -> Result<PirateEncounterState, StateError> {
+        // make lower damages more likely.
+        // eg. the damage possibilities when there are 3 pirates will be [0, 1, 2, 3]
+        // and the weights corresponding to those damage possibilities are [4, 3, 2, 1]
+        let damage_possibilities: Vec<u8> = (0..=info.cur_pirates).collect();
+        let weights: Vec<usize> = damage_possibilities
+            .iter()
+            .enumerate()
+            .map(|(i, _)| i + 1)
+            .rev()
+            .collect();
+        let dist =
+            WeightedIndex::new(&weights).map_err(|e| StateError::UnknownError(e.to_string()))?;
+        let damage_this_attack = damage_possibilities[dist.sample(rng)];
+        Ok(PirateEncounterState::PiratesAttack {
+            info,
+            damage_this_attack,
+        })
+    }
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -27,6 +99,8 @@ pub enum LocationEvent {
     ExpensiveGood(Good),
     FindGoods(Good, u32),
     GoodsStolen(Option<GoodsStolenResult>),
+    CanBuyCannon,
+    PirateEncounter(PirateEncounterState),
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -49,6 +123,7 @@ pub struct GameState {
     pub initialized: bool,
     pub date: (u16, Month),
     pub hold_size: u32,
+    pub cannons: u8,
     pub gold: u32,
     pub bank: u32,
     pub location: Location,
@@ -70,6 +145,7 @@ impl GameState {
             initialized: false,
             date: (1782, Month::March),
             hold_size: 100,
+            cannons: 1,
             gold: starting_gold,
             bank: 0,
             location: Location::London, // home base
@@ -501,6 +577,210 @@ impl GameState {
             self.inventory.remove_good(&good, amount);
         }
     }
+
+    pub(crate) fn confirm_buy_cannon(&mut self) -> Result<(), StateError> {
+        if self.gold >= CANNON_COST.into() {
+            self.gold = self.gold - (CANNON_COST as u32);
+            self.cannons = self.cannons + 1;
+            self.acknowledge_event()?;
+        }
+        Ok(())
+    }
+
+    pub(crate) fn proceed_pirate_encounter(&mut self) -> Result<(), StateError> {
+        if let Mode::GameEvent(LocationEvent::PirateEncounter(PirateEncounterState::Initial)) =
+            self.mode
+        {
+            let pirates = self.rng.gen_range(2..=4);
+            self.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
+                PirateEncounterState::Prompt {
+                    info: PirateEncounterInfo::new(pirates),
+                },
+            ));
+            Ok(())
+        } else {
+            Err(StateError::InvalidMode(self.mode.clone()))
+        }
+    }
+
+    pub(crate) fn pirate_run(&mut self) -> Result<(), StateError> {
+        if let Mode::GameEvent(LocationEvent::PirateEncounter(PirateEncounterState::Prompt {
+            info,
+        })) = self.mode
+        {
+            let run_success_chance = logarithmic_decay(info.cur_pirates as u32, 0.5);
+            let random_value: f64 = self.rng.gen();
+            if random_value < run_success_chance {
+                // success
+                self.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
+                    PirateEncounterState::RunSuccess,
+                ));
+            } else {
+                // failure
+                self.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
+                    PirateEncounterState::RunFailure { info },
+                ));
+            }
+            Ok(())
+        } else {
+            Err(StateError::InvalidMode(self.mode.clone()))
+        }
+    }
+
+    pub(crate) fn pirate_fight(&mut self) -> Result<(), StateError> {
+        if let Mode::GameEvent(LocationEvent::PirateEncounter(PirateEncounterState::Prompt {
+            info,
+        })) = self.mode
+        {
+            let kill_a_pirate_possibilities = [false, true];
+            let weights = [1, self.cannons];
+            let dist = WeightedIndex::new(&weights)
+                .map_err(|e| StateError::UnknownError(e.to_string()))?;
+            let did_kill_a_pirate = kill_a_pirate_possibilities[dist.sample(&mut self.rng)];
+            self.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
+                PirateEncounterState::AttackResult {
+                    info,
+                    did_kill_a_pirate,
+                },
+            ));
+            Ok(())
+        } else {
+            Err(StateError::InvalidMode(self.mode.clone()))
+        }
+    }
+
+    pub(crate) fn proceed_pirate_run_failure(&mut self) -> Result<(), StateError> {
+        if let Mode::GameEvent(LocationEvent::PirateEncounter(PirateEncounterState::RunFailure {
+            info,
+        })) = self.mode
+        {
+            self.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
+                PirateEncounterState::pirates_attack(info, &mut self.rng)?,
+            ));
+            Ok(())
+        } else {
+            Err(StateError::InvalidMode(self.mode.clone()))
+        }
+    }
+
+    pub(crate) fn proceed_pirates_attack(&mut self) -> Result<(), StateError> {
+        if let Mode::GameEvent(LocationEvent::PirateEncounter(
+            PirateEncounterState::PiratesAttack {
+                info:
+                    PirateEncounterInfo {
+                        health,
+                        cur_pirates,
+                        total_pirates,
+                    },
+                damage_this_attack,
+            },
+        )) = self.mode
+        {
+            let health = health.checked_sub(damage_this_attack).unwrap_or(0);
+            if health == 0 {
+                self.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
+                    PirateEncounterState::Destroyed,
+                ));
+            } else {
+                self.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
+                    PirateEncounterState::Prompt {
+                        info: PirateEncounterInfo {
+                            health,
+                            cur_pirates,
+                            total_pirates,
+                        },
+                    },
+                ));
+            }
+            Ok(())
+        } else {
+            Err(StateError::InvalidMode(self.mode.clone()))
+        }
+    }
+
+    pub(crate) fn proceed_destroyed(&mut self) -> Result<(), StateError> {
+        if let Mode::GameEvent(LocationEvent::PirateEncounter(PirateEncounterState::Destroyed)) =
+            self.mode
+        {
+            // player loses their inventory and half of their gold to the pirates
+            self.inventory = Inventory::default();
+            self.gold = self.gold.div_ceil(2);
+            self.mode = Mode::ViewingInventory;
+            Ok(())
+        } else {
+            Err(StateError::InvalidMode(self.mode.clone()))
+        }
+    }
+
+    pub(crate) fn proceed_pirate_run_success(&mut self) -> Result<(), StateError> {
+        if let Mode::GameEvent(LocationEvent::PirateEncounter(PirateEncounterState::RunSuccess)) =
+            self.mode
+        {
+            self.mode = Mode::ViewingInventory;
+            Ok(())
+        } else {
+            Err(StateError::InvalidMode(self.mode.clone()))
+        }
+    }
+
+    pub(crate) fn proceed_attack_result(&mut self) -> Result<(), StateError> {
+        if let Mode::GameEvent(LocationEvent::PirateEncounter(
+            PirateEncounterState::AttackResult {
+                info,
+                did_kill_a_pirate,
+            },
+        )) = self.mode
+        {
+            let cur_pirates = info
+                .cur_pirates
+                .checked_sub(if did_kill_a_pirate { 1 } else { 0 })
+                .unwrap_or(0);
+            if cur_pirates == 0 {
+                // player recovers some gold from wreckage
+                let gold_recovered: u32 = self.rng.gen_range(
+                    (GOLD_PER_PIRATE_VICTORY_MIN * (info.total_pirates as u32))
+                        ..(GOLD_PER_PIRATE_VICTORY_MAX * (info.total_pirates as u32)),
+                );
+                self.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
+                    PirateEncounterState::Victory { gold_recovered },
+                ));
+            } else {
+                self.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
+                    PirateEncounterState::pirates_attack(
+                        PirateEncounterInfo {
+                            health: info.health,
+                            cur_pirates,
+                            total_pirates: info.cur_pirates,
+                        },
+                        &mut self.rng,
+                    )?,
+                ))
+            }
+            Ok(())
+        } else {
+            Err(StateError::InvalidMode(self.mode.clone()))
+        }
+    }
+
+    pub(crate) fn proceed_pirate_encounter_victory(&mut self) -> Result<(), StateError> {
+        if let Mode::GameEvent(LocationEvent::PirateEncounter(PirateEncounterState::Victory {
+            gold_recovered,
+        })) = self.mode
+        {
+            self.gold += gold_recovered;
+            self.mode = Mode::ViewingInventory;
+            Ok(())
+        } else {
+            Err(StateError::InvalidMode(self.mode.clone()))
+        }
+    }
+}
+
+fn logarithmic_decay(count: u32, decay_factor: f64) -> f64 {
+    let initial_probability: f64 = 1.0; // 100%
+    let decayed = initial_probability - decay_factor * (count as f64 + 1.0).ln();
+    let smoothed = decayed + (initial_probability - decayed) / 2f64;
+    smoothed
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -520,6 +800,7 @@ pub enum StateError {
     LocationNotHomeBase(Location),
     PayDownAmountHigherThanDebt,
     InsufficientBank,
+    UnknownError(String),
 }
 
 impl Display for StateError {

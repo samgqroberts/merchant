@@ -3,7 +3,7 @@ use rand::{rngs::StdRng, SeedableRng};
 
 use crate::{
     engine::UpdateResult,
-    state::{GameState, Good, LocationEvent, Mode},
+    state::{GameState, Good, LocationEvent, Mode, PirateEncounterInfo},
     test::test_engine::TestEngine,
 };
 
@@ -69,7 +69,7 @@ fn splash_screen_into_inventory() -> UpdateResult<()> {
 |     )========     Rum:    0 =(              \      Tea:    0 Coffee:    0  Sugar:    0  /       |
 |     |I .--. I  Cotton:    0 I|               \ Tobacco:    0    Rum:    0 Cotton:    0 /        |
 |     |I |<>| I               I|                \                                       /____     |
-|     |I |~ | I Bank:       0 I|       --------- \  Gold:     500 Hold:  100           //.../---  |
+|     |I |~ | I Bank:       0 I|       --------- \ Gold:     500 Hold:  100 Cannons: 1 //.../---  |
 |     |I |  | I Debt:    1500 I|          ^^^^^ ^^^^^^^^^^^^^^^^^^^^^   ^^^^^^^^^^  ^^^/.../      |
 |     |I_|__|_I_______________I|                ^^^^      ^^^    ^^^^^^^^^    ^^^^^  /..../       |
 |   ###(______)##################                        ^^^      ^^^^             /...../        |
@@ -493,10 +493,10 @@ fn arrive_at_stolen_goods_event_some_stolen() -> UpdateResult<()> {
         state
     })?;
     assert!(e.expect("Prowling harbor thieves stole"));
-    assert!(e.expect("1 Coffee from you!"));
+    assert!(e.expect("4 Coffee from you!"));
     assert!(e.expect("Coffee:   10"));
     e.charpress('a')?;
-    assert!(e.expect("Coffee:    9"));
+    assert!(e.expect("Coffee:    6"));
     Ok(())
 }
 
@@ -513,5 +513,905 @@ fn arrive_at_stolen_goods_event_nothing_stolen() -> UpdateResult<()> {
     assert!(e.expect("couldn't find anything to steal"));
     e.charpress('a')?;
     assert!(e.expect("(1) Buy"));
+    Ok(())
+}
+
+#[test]
+fn arrive_at_can_buy_cannon_accept() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(42));
+        state.initialize();
+        state.gold = 5100;
+        state.cannons = 3;
+        state.mode = Mode::GameEvent(LocationEvent::CanBuyCannon);
+        state
+    })?;
+    assert!(e.expect("Gold:    5100"));
+    assert!(e.expect("Cannons: 3"));
+    assert!(e.expect("An enterprising gentleman on the docks"));
+    assert!(e.expect("offers to outfit your ship with an"));
+    assert!(e.expect("additional cannon for 5000 gold."));
+    assert!(e.expect("Accept? y/n"));
+    e.charpress('e')?; // no effect
+    assert!(e.expect("Accept? y/n"));
+    e.charpress('y')?;
+    assert!(e.expect("(1) Buy"));
+    assert!(e.expect("Gold:     100"));
+    assert!(e.expect("Cannons: 4"));
+    Ok(())
+}
+
+#[test]
+fn arrive_at_can_buy_cannon_not_enough_gold() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(42));
+        state.initialize();
+        state.gold = 4999;
+        state.cannons = 3;
+        state.mode = Mode::GameEvent(LocationEvent::CanBuyCannon);
+        state
+    })?;
+    assert!(e.expect("Gold:    4999"));
+    assert!(e.expect("Cannons: 3"));
+    assert!(e.expect("Accept? y/n"));
+    e.charpress('y')?; // no effect
+    assert!(e.expect("Accept? y/n"));
+    Ok(())
+}
+
+#[test]
+fn arrive_at_can_buy_cannon_refuse() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(42));
+        state.initialize();
+        state.gold = 5100;
+        state.cannons = 3;
+        state.mode = Mode::GameEvent(LocationEvent::CanBuyCannon);
+        state
+    })?;
+    assert!(e.expect("Gold:    5100"));
+    assert!(e.expect("Cannons: 3"));
+    assert!(e.expect("Accept? y/n"));
+    e.charpress('n')?;
+    assert!(e.expect("(1) Buy"));
+    Ok(())
+}
+
+#[test]
+fn pirate_encounter_initial() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(42));
+        state.initialize();
+        state.cannons = 2;
+        state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
+            crate::state::PirateEncounterState::Initial,
+        ));
+        state
+    })?;
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r###"
+----------------------------------------|=================|----------------------------------------
+|                                       | March      1782 |                                       |
+|---------------------------------------|=================|---------------------------------------|
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                            Pirates have found you on the open seas!                             |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                         (press any key)                                         |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+---------------------------------------------------------------------------------------------------
+"###,
+        )
+    );
+    e.charpress('x')?;
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r###"
+----------------------------------------|=================|----------------------------------------
+|                                       | March      1782 |                                       |
+|---------------------------------------|=================|---------------------------------------|
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                 Health 5, Pirates 4, Cannons 2.                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                   Will you (r)un or (f)ight ?                                   |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+---------------------------------------------------------------------------------------------------
+"###,
+        )
+    );
+    Ok(())
+}
+
+#[test]
+fn pirate_encounter_run_success() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(42));
+        state.initialize();
+        state.cannons = 2;
+        state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
+            crate::state::PirateEncounterState::Prompt {
+                info: PirateEncounterInfo::new(2),
+            },
+        ));
+        state
+    })?;
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r###"
+----------------------------------------|=================|----------------------------------------
+|                                       | March      1782 |                                       |
+|---------------------------------------|=================|---------------------------------------|
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                 Health 5, Pirates 2, Cannons 2.                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                   Will you (r)un or (f)ight ?                                   |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+---------------------------------------------------------------------------------------------------
+"###,
+        )
+    );
+    e.charpress('r')?;
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r###"
+----------------------------------------|=================|----------------------------------------
+|                                       | March      1782 |                                       |
+|---------------------------------------|=================|---------------------------------------|
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                             You've successfully evaded the pirates!                             |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                   (press any key to continue)                                   |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+---------------------------------------------------------------------------------------------------
+"###,
+        )
+    );
+    e.charpress('x')?;
+    assert!(e.expect("Captain, the prices of goods here are:"));
+    Ok(())
+}
+
+#[test]
+fn pirate_encounter_run_failure() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(43));
+        state.initialize();
+        state.cannons = 2;
+        state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
+            crate::state::PirateEncounterState::Prompt {
+                info: PirateEncounterInfo::new(2),
+            },
+        ));
+        state
+    })?;
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r###"
+----------------------------------------|=================|----------------------------------------
+|                                       | March      1782 |                                       |
+|---------------------------------------|=================|---------------------------------------|
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                 Health 5, Pirates 2, Cannons 2.                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                   Will you (r)un or (f)ight ?                                   |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+---------------------------------------------------------------------------------------------------
+"###,
+        )
+    );
+    e.charpress('r')?;
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r###"
+----------------------------------------|=================|----------------------------------------
+|                                       | March      1782 |                                       |
+|---------------------------------------|=================|---------------------------------------|
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                 Health 5, Pirates 2, Cannons 2.                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                          The pirates manouver to cut off your escape!                           |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                   (press any key to continue)                                   |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+---------------------------------------------------------------------------------------------------
+"###,
+        )
+    );
+    e.charpress('x')?;
+    assert!(e.expect("The pirates fire their cannons at you"));
+    Ok(())
+}
+
+#[test]
+fn pirate_encounter_pirates_attack_not_destroyed() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(63));
+        state.initialize();
+        state.cannons = 2;
+        state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
+            crate::state::PirateEncounterState::PiratesAttack {
+                info: PirateEncounterInfo::new(2),
+                damage_this_attack: 2,
+            },
+        ));
+        state
+    })?;
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r###"
+----------------------------------------|=================|----------------------------------------
+|                                       | March      1782 |                                       |
+|---------------------------------------|=================|---------------------------------------|
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                 Health 5, Pirates 2, Cannons 2.                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                     The pirates fire their cannons at you, doing 2 damage!                      |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                   (press any key to continue)                                   |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+---------------------------------------------------------------------------------------------------
+"###,
+        )
+    );
+    e.charpress('x')?;
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r###"
+----------------------------------------|=================|----------------------------------------
+|                                       | March      1782 |                                       |
+|---------------------------------------|=================|---------------------------------------|
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                 Health 3, Pirates 2, Cannons 2.                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                   Will you (r)un or (f)ight ?                                   |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+---------------------------------------------------------------------------------------------------
+"###,
+        )
+    );
+    Ok(())
+}
+
+#[test]
+fn pirate_encounter_pirates_attack_is_destroyed() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(63));
+        state.initialize();
+        state.inventory.tea = 10;
+        state.gold = 500;
+        state.cannons = 2;
+        state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
+            crate::state::PirateEncounterState::PiratesAttack {
+                info: PirateEncounterInfo {
+                    health: 2,
+                    cur_pirates: 2,
+                    total_pirates: 2,
+                },
+                damage_this_attack: 3,
+            },
+        ));
+        state
+    })?;
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r###"
+----------------------------------------|=================|----------------------------------------
+|                                       | March      1782 |                                       |
+|---------------------------------------|=================|---------------------------------------|
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                 Health 2, Pirates 2, Cannons 2.                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                     The pirates fire their cannons at you, doing 3 damage!                      |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                   (press any key to continue)                                   |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+---------------------------------------------------------------------------------------------------
+"###,
+        )
+    );
+    e.charpress('x')?;
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r###"
+----------------------------------------|=================|----------------------------------------
+|                                       | March      1782 |                                       |
+|---------------------------------------|=================|---------------------------------------|
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                 The pirates have conquered you!                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                    They get away with half your gold and all of your goods!                     |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                   (press any key to continue)                                   |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+---------------------------------------------------------------------------------------------------
+"###,
+        )
+    );
+    e.charpress('x')?;
+    assert!(e.expect("Tea:    0"));
+    assert!(e.expect("Gold:     250"));
+    Ok(())
+}
+
+#[test]
+fn pirate_encounter_fight_did_sink_pirate_and_did_not_win() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(42));
+        state.initialize();
+        state.cannons = 2;
+        state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
+            crate::state::PirateEncounterState::Prompt {
+                info: PirateEncounterInfo::new(2),
+            },
+        ));
+        state
+    })?;
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r###"
+----------------------------------------|=================|----------------------------------------
+|                                       | March      1782 |                                       |
+|---------------------------------------|=================|---------------------------------------|
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                 Health 5, Pirates 2, Cannons 2.                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                   Will you (r)un or (f)ight ?                                   |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+---------------------------------------------------------------------------------------------------
+"###,
+        )
+    );
+    e.charpress('f')?;
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r###"
+----------------------------------------|=================|----------------------------------------
+|                                       | March      1782 |                                       |
+|---------------------------------------|=================|---------------------------------------|
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                 Health 5, Pirates 2, Cannons 2.                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                 You fire your cannons at the pirates, and you sink one of them!                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                   (press any key to continue)                                   |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+---------------------------------------------------------------------------------------------------
+"###,
+        )
+    );
+    e.charpress('x')?;
+    assert!(e.expect("The pirates fire their cannons at you"));
+    Ok(())
+}
+
+#[test]
+fn pirate_encounter_fight_did_sink_pirate_and_did_win() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(42));
+        state.initialize();
+        state.gold = 500;
+        state.cannons = 2;
+        state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
+            crate::state::PirateEncounterState::Prompt {
+                info: PirateEncounterInfo::new(1),
+            },
+        ));
+        state
+    })?;
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r###"
+----------------------------------------|=================|----------------------------------------
+|                                       | March      1782 |                                       |
+|---------------------------------------|=================|---------------------------------------|
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                 Health 5, Pirates 1, Cannons 2.                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                   Will you (r)un or (f)ight ?                                   |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+---------------------------------------------------------------------------------------------------
+"###,
+        )
+    );
+    e.charpress('f')?;
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r###"
+----------------------------------------|=================|----------------------------------------
+|                                       | March      1782 |                                       |
+|---------------------------------------|=================|---------------------------------------|
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                 Health 5, Pirates 1, Cannons 2.                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                 You fire your cannons at the pirates, and you sink one of them!                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                   (press any key to continue)                                   |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+---------------------------------------------------------------------------------------------------
+"###,
+        )
+    );
+    e.charpress('x')?;
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r###"
+----------------------------------------|=================|----------------------------------------
+|                                       | March      1782 |                                       |
+|---------------------------------------|=================|---------------------------------------|
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                You have sank all of the pirates!                                |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                            You recover 1121 gold from the wreckage!                             |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                   (press any key to continue)                                   |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+---------------------------------------------------------------------------------------------------
+"###,
+        )
+    );
+    e.charpress('x')?;
+    assert!(e.expect("Captain, the prices of goods here are:"));
+    assert!(e.expect("Gold:    1621"));
+    Ok(())
+}
+
+#[test]
+fn pirate_encounter_fight_did_not_sink_pirate() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(StdRng::seed_from_u64(47));
+        state.initialize();
+        state.gold = 500;
+        state.cannons = 2;
+        state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
+            crate::state::PirateEncounterState::Prompt {
+                info: PirateEncounterInfo::new(1),
+            },
+        ));
+        state
+    })?;
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r###"
+----------------------------------------|=================|----------------------------------------
+|                                       | March      1782 |                                       |
+|---------------------------------------|=================|---------------------------------------|
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                 Health 5, Pirates 1, Cannons 2.                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                   Will you (r)un or (f)ight ?                                   |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+---------------------------------------------------------------------------------------------------
+"###,
+        )
+    );
+    e.charpress('f')?;
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r###"
+----------------------------------------|=================|----------------------------------------
+|                                       | March      1782 |                                       |
+|---------------------------------------|=================|---------------------------------------|
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                 Health 5, Pirates 1, Cannons 2.                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                  You fire your cannons at the pirates, but you only hit water!                  |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                   (press any key to continue)                                   |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+---------------------------------------------------------------------------------------------------
+"###,
+        )
+    );
+    e.charpress('x')?;
+    assert!(e.expect("The pirates fire their cannons at you"));
     Ok(())
 }

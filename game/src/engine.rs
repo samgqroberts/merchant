@@ -13,15 +13,17 @@ use std::{
 
 use crate::{
     components::{
-        BankDepositInput, BankWithdrawInput, BuyInput, BuyPrompt, CheapGoodDialog,
+        BankDepositInput, BankWithdrawInput, BuyInput, BuyPrompt, CanBuyCannon, CheapGoodDialog,
         ExpensiveGoodDialog, FindGoodsDialog, GameEndScreen, GoodsStolenDialog, PayDebtInput,
-        SailPrompt, SellInput, SellPrompt, SplashScreen, StashDepositInput, StashDepositPrompt,
-        StashWithdrawInput, StashWithdrawPrompt, ViewingInventoryActions, ViewingInventoryBase,
+        PirateEncounter, SailPrompt, SellInput, SellPrompt, SplashScreen, StashDepositInput,
+        StashDepositPrompt, StashWithdrawInput, StashWithdrawPrompt, ViewingInventoryActions,
+        ViewingInventoryBase,
     },
-    state::{GameState, Good, Location, LocationEvent, Mode, StateError},
+    state::{GameState, Good, Location, LocationEvent, Mode, PirateEncounterState, StateError},
 };
 
 #[derive(Debug)]
+#[allow(unused)]
 pub struct UpdateError(String);
 
 impl From<io::Error> for UpdateError {
@@ -134,6 +136,53 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
         } else if state.game_end {
             queue!(writer, GameEndScreen(state))?;
             return Ok(Box::new(|_: KeyEvent, _: &mut GameState| Ok(())));
+        } else if let Mode::GameEvent(LocationEvent::PirateEncounter(pirate_encounter_state)) =
+            &state.mode
+        {
+            let pirate_encounter_state = pirate_encounter_state.clone();
+            queue!(
+                writer,
+                PirateEncounter::from((pirate_encounter_state.clone(), &state.clone()))
+            )?;
+            return Ok(Box::new(move |event: KeyEvent, state: &mut GameState| {
+                match &pirate_encounter_state {
+                    PirateEncounterState::Initial => {
+                        state.proceed_pirate_encounter()?;
+                    }
+                    PirateEncounterState::Prompt { info: _ } => {
+                        if let KeyCode::Char('r') = event.code {
+                            state.pirate_run()?;
+                        } else if let KeyCode::Char('f') = event.code {
+                            state.pirate_fight()?;
+                        }
+                    }
+                    PirateEncounterState::RunSuccess => {
+                        state.proceed_pirate_run_success()?;
+                    }
+                    PirateEncounterState::RunFailure { info: _ } => {
+                        state.proceed_pirate_run_failure()?;
+                    }
+                    PirateEncounterState::PiratesAttack {
+                        info: _,
+                        damage_this_attack: _,
+                    } => {
+                        state.proceed_pirates_attack()?;
+                    }
+                    PirateEncounterState::Destroyed => {
+                        state.proceed_destroyed()?;
+                    }
+                    PirateEncounterState::AttackResult {
+                        info: _,
+                        did_kill_a_pirate: _,
+                    } => {
+                        state.proceed_attack_result()?;
+                    }
+                    PirateEncounterState::Victory { gold_recovered: _ } => {
+                        state.proceed_pirate_encounter_victory()?;
+                    }
+                }
+                Ok(())
+            }));
         } else {
             queue!(writer, ViewingInventoryBase(state))?;
             match &state.mode {
@@ -427,6 +476,23 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                             state.acknowledge_event()?;
                             Ok(())
                         }));
+                    }
+                    LocationEvent::CanBuyCannon => {
+                        queue!(writer, CanBuyCannon)?;
+                        return Ok(Box::new(move |event: KeyEvent, state: &mut GameState| {
+                            if let KeyCode::Char(c) = event.code {
+                                if c == 'y' {
+                                    state.confirm_buy_cannon()?;
+                                } else if c == 'n' {
+                                    state.acknowledge_event()?;
+                                }
+                            }
+                            Ok(())
+                        }));
+                    }
+                    _ => {
+                        // TODO<samgqroberts> 2024-04-10 return Error type.
+                        panic!("Unknown location event.");
                     }
                 },
             }

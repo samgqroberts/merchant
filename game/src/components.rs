@@ -10,7 +10,10 @@ use crossterm::{
 
 use crate::{
     comp,
-    state::{GameState, Good, GoodsStolenResult, Inventory, Location, Transaction},
+    state::{
+        GameState, Good, GoodsStolenResult, Inventory, Location, PirateEncounterState, Transaction,
+        CANNON_COST,
+    },
 };
 
 pub struct SplashScreen();
@@ -105,10 +108,11 @@ impl<'a> Command for GameEndScreen<'a> {
             Print(
                 CenteredText(
                     (if final_gold >= 0 {
-                            format!("{} gold", final_gold)
-                        } else {
-                            format!("{} gold in debt", final_gold.abs())
-                        }).to_string(),
+                        format!("{} gold", final_gold)
+                    } else {
+                        format!("{} gold in debt", final_gold.abs())
+                    })
+                    .to_string(),
                     (FRAME_WIDTH - 2).into()
                 )
                 .to_string()
@@ -323,22 +327,35 @@ impl<'a> Command for BankDepositInput<'a> {
 const FRAME_WIDTH: u16 = 99;
 const FRAME_HEIGHT: u16 = 32;
 
+pub struct HorizontalLine(pub u16 /* y-index */, pub bool /* full-width */);
+
+impl Command for HorizontalLine {
+    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+        comp!(
+            f,
+            MoveTo(if self.1 { 0 } else { 1 }, self.0),
+            Print("-".repeat(if self.1 { FRAME_WIDTH } else { FRAME_WIDTH - 2 }.into()))
+        );
+        Ok(())
+    }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
+    }
+}
+
 pub struct Frame(bool);
 
 impl Command for Frame {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
         // 2 horizontal lines at top and bottom ends
-        for i in 0..(FRAME_WIDTH) {
-            comp!(f, MoveTo(i, 0), Print("-"));
-        }
-        for i in 0..(FRAME_WIDTH) {
-            comp!(f, MoveTo(i, FRAME_HEIGHT), Print("-"), MoveRight(1));
-        }
+        comp!(
+            f,
+            HorizontalLine(0, true),
+            HorizontalLine(FRAME_HEIGHT, true)
+        );
         if !self.0 {
-            // additional horizontal line under date
-            for i in 0..(FRAME_WIDTH) {
-                comp!(f, MoveTo(i, 2), Print("-"), MoveRight(1));
-            }
             // additional thick horizontal line near location
             for i in 0..(FRAME_WIDTH) {
                 comp!(f, MoveTo(i, 19), Print("="), MoveRight(1));
@@ -366,6 +383,7 @@ impl Command for TopCenterFramed {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
         comp!(
             f,
+            HorizontalLine(2, false),
             MoveTo(40, 0),
             Print("|=================|"),
             MoveTo(40, 1),
@@ -393,7 +411,7 @@ impl<'a> Command for Date<'a> {
             year.insert(0, ' ');
         }
         let text = format!(" {}{} ", month_name, year);
-        comp!(f, TopCenterFramed(text),);
+        comp!(f, TopCenterFramed(text));
         Ok(())
     }
 
@@ -469,11 +487,7 @@ impl<'a> Command for HomeBase<'a> {
 (__________)
 "###;
         if self.location == &Location::London {
-            for (i, line) in PATH_CONTINUATION
-                .trim_matches('\n')
-                .lines()
-                .enumerate()
-            {
+            for (i, line) in PATH_CONTINUATION.trim_matches('\n').lines().enumerate() {
                 comp!(
                     f,
                     MoveTo(OFFSET_X + 3, OFFSET_Y + 16 + (i as u16)),
@@ -566,6 +580,7 @@ pub struct Ship<'a> {
     inventory: &'a Inventory,
     gold: u32,
     hold_size: u32,
+    cannons: u8,
 }
 
 impl<'a> From<&'a GameState> for Ship<'a> {
@@ -574,6 +589,7 @@ impl<'a> From<&'a GameState> for Ship<'a> {
             inventory: &value.inventory,
             gold: value.gold,
             hold_size: value.hold_size,
+            cannons: value.cannons,
         }
     }
 }
@@ -622,10 +638,12 @@ impl<'a> Command for Ship<'a> {
             Print(format!("Rum: {}", Numeric4Digits(inventory.rum))),
             MoveTo(OFFSET_X + 37, OFFSET_Y + 9),
             Print(format!("Cotton: {}", Numeric4Digits(inventory.cotton))),
-            MoveTo(OFFSET_X + 13, OFFSET_Y + 11),
+            MoveTo(OFFSET_X + 12, OFFSET_Y + 11),
             Print(format!("Gold: {}", Numeric7Digits(self.gold))),
-            MoveTo(OFFSET_X + 27, OFFSET_Y + 11),
+            MoveTo(OFFSET_X + 26, OFFSET_Y + 11),
             Print(format!("Hold: {}", Numeric4Digits(self.hold_size))),
+            MoveTo(OFFSET_X + 37, OFFSET_Y + 11),
+            Print(format!("Cannons: {}", self.cannons)),
         );
         const DOCK_CONTINUATION_1: &str = r###"
 /......../
@@ -633,22 +651,14 @@ impl<'a> Command for Ship<'a> {
         const DOCK_CONTINUATION_2: &str = r###"
 /........./
 "###;
-        for (i, line) in DOCK_CONTINUATION_1
-            .trim_matches('\n')
-            .lines()
-            .enumerate()
-        {
+        for (i, line) in DOCK_CONTINUATION_1.trim_matches('\n').lines().enumerate() {
             comp!(
                 f,
                 MoveTo(OFFSET_X + 40, OFFSET_Y + 16 + (i as u16)),
                 Print(line.to_string()),
             );
         }
-        for (i, line) in DOCK_CONTINUATION_2
-            .trim_matches('\n')
-            .lines()
-            .enumerate()
-        {
+        for (i, line) in DOCK_CONTINUATION_2.trim_matches('\n').lines().enumerate() {
             comp!(
                 f,
                 MoveTo(OFFSET_X + 38, OFFSET_Y + 17 + (i as u16)),
@@ -1075,7 +1085,6 @@ impl<'a> Command for FindGoodsDialog<'a> {
         todo!()
     }
 }
-
 pub struct GoodsStolenDialog(pub GoodsStolenResult);
 
 impl Command for GoodsStolenDialog {
@@ -1096,6 +1105,235 @@ impl Command for GoodsStolenDialog {
                 Print(format!("{} {} from you!", amount, good)),
             ),
         }
+        Ok(())
+    }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
+    }
+}
+
+pub struct CanBuyCannon;
+
+impl Command for CanBuyCannon {
+    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+        comp!(
+            f,
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y),
+            Print("An enterprising gentleman on the docks"),
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 1),
+            Print("offers to outfit your ship with an"),
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 2),
+            Print(format!("additional cannon for {CANNON_COST} gold.")),
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 4),
+            Print("Accept? y/n"),
+        );
+        Ok(())
+    }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
+    }
+}
+
+pub struct PirateEncounter {
+    pub pirate_encounter_state: PirateEncounterState,
+    pub cannons: u8,
+    pub date: (u16, Month),
+}
+
+impl From<(PirateEncounterState, &GameState)> for PirateEncounter {
+    fn from(value: (PirateEncounterState, &GameState)) -> Self {
+        PirateEncounter {
+            pirate_encounter_state: value.0,
+            cannons: value.1.cannons,
+            date: value.1.date,
+        }
+    }
+}
+
+impl Command for PirateEncounter {
+    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+        comp!(
+            f,
+            Clear(crossterm::terminal::ClearType::All), // clear the terminal
+            Frame(true),
+            Date(&self.date),
+        );
+        match self.pirate_encounter_state {
+            PirateEncounterState::Initial => {
+                comp!(
+                    f,
+                    MoveTo(1, 8),
+                    Print(CenteredText(
+                        "Pirates have found you on the open seas!".to_string(),
+                        (FRAME_WIDTH - 2).into()
+                    )),
+                    MoveTo(1, 15),
+                    Print(CenteredText(
+                        "(press any key)".to_string(),
+                        (FRAME_WIDTH - 2).into()
+                    )),
+                );
+            }
+            PirateEncounterState::Prompt { info } => {
+                comp!(
+                    f,
+                    MoveTo(1, 8),
+                    Print(CenteredText(
+                        format!(
+                            "Health {}, Pirates {}, Cannons {}.",
+                            info.health, info.cur_pirates, self.cannons
+                        ),
+                        (FRAME_WIDTH - 2).into()
+                    )),
+                    MoveTo(1, 15),
+                    Print(CenteredText(
+                        "Will you (r)un or (f)ight ?".to_owned(),
+                        (FRAME_WIDTH - 2).into()
+                    )),
+                );
+            }
+            PirateEncounterState::RunSuccess => {
+                comp!(
+                    f,
+                    MoveTo(1, 8),
+                    Print(CenteredText(
+                        format!("You've successfully evaded the pirates!"),
+                        (FRAME_WIDTH - 2).into()
+                    )),
+                    MoveTo(1, 16),
+                    Print(CenteredText(
+                        format!("(press any key to continue)"),
+                        (FRAME_WIDTH - 2).into()
+                    )),
+                );
+            }
+            PirateEncounterState::RunFailure { info } => {
+                comp!(
+                    f,
+                    MoveTo(1, 8),
+                    Print(CenteredText(
+                        format!(
+                            "Health {}, Pirates {}, Cannons {}.",
+                            info.health, info.cur_pirates, self.cannons
+                        ),
+                        (FRAME_WIDTH - 2).into()
+                    )),
+                    MoveTo(1, 12),
+                    Print(CenteredText(
+                        format!("The pirates manouver to cut off your escape!"),
+                        (FRAME_WIDTH - 2).into()
+                    )),
+                    MoveTo(1, 16),
+                    Print(CenteredText(
+                        format!("(press any key to continue)"),
+                        (FRAME_WIDTH - 2).into()
+                    )),
+                )
+            }
+            PirateEncounterState::PiratesAttack {
+                info,
+                damage_this_attack,
+            } => {
+                comp!(
+                    f,
+                    MoveTo(1, 8),
+                    Print(CenteredText(
+                        format!(
+                            "Health {}, Pirates {}, Cannons {}.",
+                            info.health, info.cur_pirates, self.cannons
+                        ),
+                        (FRAME_WIDTH - 2).into()
+                    )),
+                    MoveTo(1, 12),
+                    Print(CenteredText(
+                        format!("The pirates fire their cannons at you, doing {damage_this_attack} damage!"),
+                        (FRAME_WIDTH - 2).into()
+                    )),
+                    MoveTo(1, 16),
+                    Print(CenteredText(
+                        format!("(press any key to continue)"),
+                        (FRAME_WIDTH - 2).into()
+                    )),
+                )
+            }
+            PirateEncounterState::Destroyed => {
+                comp!(
+                    f,
+                    MoveTo(1, 8),
+                    Print(CenteredText(
+                        "The pirates have conquered you!".to_owned(),
+                        (FRAME_WIDTH - 2).into()
+                    )),
+                    MoveTo(1, 12),
+                    Print(CenteredText(
+                        format!("They get away with half your gold and all of your goods!"),
+                        (FRAME_WIDTH - 2).into()
+                    )),
+                    MoveTo(1, 16),
+                    Print(CenteredText(
+                        format!("(press any key to continue)"),
+                        (FRAME_WIDTH - 2).into()
+                    )),
+                )
+            }
+            PirateEncounterState::AttackResult {
+                info,
+                did_kill_a_pirate,
+            } => {
+                comp!(
+                    f,
+                    MoveTo(1, 8),
+                    Print(CenteredText(
+                        format!(
+                            "Health {}, Pirates {}, Cannons {}.",
+                            info.health, info.cur_pirates, self.cannons
+                        ),
+                        (FRAME_WIDTH - 2).into()
+                    )),
+                    MoveTo(1, 12),
+                    Print(CenteredText(
+                        format!(
+                            "You fire your cannons at the pirates, {}",
+                            if did_kill_a_pirate {
+                                "and you sink one of them!"
+                            } else {
+                                "but you only hit water!"
+                            }
+                        ),
+                        (FRAME_WIDTH - 2).into()
+                    )),
+                    MoveTo(1, 16),
+                    Print(CenteredText(
+                        format!("(press any key to continue)"),
+                        (FRAME_WIDTH - 2).into()
+                    )),
+                )
+            }
+            PirateEncounterState::Victory { gold_recovered } => {
+                comp!(
+                    f,
+                    MoveTo(1, 8),
+                    Print(CenteredText(
+                        format!("You have sank all of the pirates!",),
+                        (FRAME_WIDTH - 2).into()
+                    )),
+                    MoveTo(1, 12),
+                    Print(CenteredText(
+                        format!("You recover {} gold from the wreckage!", gold_recovered),
+                        (FRAME_WIDTH - 2).into()
+                    )),
+                    MoveTo(1, 16),
+                    Print(CenteredText(
+                        format!("(press any key to continue)"),
+                        (FRAME_WIDTH - 2).into()
+                    )),
+                )
+            }
+        };
         Ok(())
     }
 
