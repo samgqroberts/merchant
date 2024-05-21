@@ -1,20 +1,21 @@
+pub mod constants;
 pub mod good;
 pub mod inventory;
 pub mod location;
 pub mod locations;
+pub mod rng;
 
 use std::borrow::BorrowMut;
 use std::fmt::{self, Display};
 
 use chrono::Month;
-use rand::distributions::{Distribution, WeightedIndex};
 use rand::rngs::StdRng;
-use rand::Rng;
 
 pub use self::good::Good;
 pub use self::inventory::Inventory;
 pub use self::location::Location;
 pub use self::locations::Locations;
+use self::rng::MerchantRng;
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Transaction {
@@ -24,8 +25,6 @@ pub struct Transaction {
 
 pub const CANNON_COST: u16 = 5000;
 pub const SHIP_HEALTH: u8 = 5;
-pub const GOLD_PER_PIRATE_VICTORY_MIN: u32 = 500;
-pub const GOLD_PER_PIRATE_VICTORY_MAX: u32 = 2000;
 
 #[derive(PartialEq, Clone, Debug, Copy)]
 pub struct PirateEncounterInfo {
@@ -71,21 +70,9 @@ pub enum PirateEncounterState {
 impl PirateEncounterState {
     pub fn pirates_attack(
         info: PirateEncounterInfo,
-        rng: &mut StdRng,
+        rng: &mut Box<dyn MerchantRng>,
     ) -> Result<PirateEncounterState, StateError> {
-        // make lower damages more likely.
-        // eg. the damage possibilities when there are 3 pirates will be [0, 1, 2, 3]
-        // and the weights corresponding to those damage possibilities are [4, 3, 2, 1]
-        let damage_possibilities: Vec<u8> = (0..=info.cur_pirates).collect();
-        let weights: Vec<usize> = damage_possibilities
-            .iter()
-            .enumerate()
-            .map(|(i, _)| i + 1)
-            .rev()
-            .collect();
-        let dist =
-            WeightedIndex::new(&weights).map_err(|e| StateError::UnknownError(e.to_string()))?;
-        let damage_this_attack = damage_possibilities[dist.sample(rng)];
+        let damage_this_attack = rng.gen_damage_from_pirates(info.cur_pirates);
         Ok(PirateEncounterState::PiratesAttack {
             info,
             damage_this_attack,
@@ -117,9 +104,8 @@ pub enum Mode {
     GameEvent(LocationEvent),
 }
 
-#[derive(Clone, Debug)]
 pub struct GameState {
-    pub rng: StdRng,
+    pub rng: Box<dyn MerchantRng>,
     pub initialized: bool,
     pub date: (u16, Month),
     pub hold_size: u32,
@@ -136,7 +122,7 @@ pub struct GameState {
 }
 
 impl GameState {
-    pub fn new(mut rng: StdRng) -> GameState {
+    pub fn new(mut rng: Box<dyn MerchantRng>) -> GameState {
         let starting_gold = 500;
         let debt = starting_gold * 3;
         let locations = Locations::new(&mut rng, starting_gold);
@@ -156,6 +142,10 @@ impl GameState {
             mode: Mode::ViewingInventory,
             game_end: false,
         }
+    }
+
+    pub fn new_std_rng(rng: StdRng) -> GameState {
+        GameState::new(Box::new(rng))
     }
 
     pub fn initialize(&mut self) {
@@ -554,14 +544,11 @@ impl GameState {
                     let computed_info = if goods_with_inventory.is_empty() {
                         GoodsStolenResult::NothingStolen
                     } else {
-                        let index = self.rng.gen_range(0..goods_with_inventory.len());
-                        // safe unwrap, we generated the index to be in range
-                        let good_to_steal = goods_with_inventory.get(index).unwrap();
-                        // choose some amount of good to steal
-                        let amount = self.rng.gen_range(1..good_to_steal.1);
+                        let (good_stolen, amount_stolen) =
+                            self.rng.gen_good_stolen(&goods_with_inventory);
                         GoodsStolenResult::WasStolen {
-                            good: good_to_steal.0,
-                            amount,
+                            good: good_stolen,
+                            amount: amount_stolen,
                         }
                     };
                     *info = Some(computed_info);
@@ -591,7 +578,7 @@ impl GameState {
         if let Mode::GameEvent(LocationEvent::PirateEncounter(PirateEncounterState::Initial)) =
             self.mode
         {
-            let pirates = self.rng.gen_range(2..=4);
+            let pirates = self.rng.gen_num_pirates_encountered();
             self.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
                 PirateEncounterState::Prompt {
                     info: PirateEncounterInfo::new(pirates),
@@ -608,9 +595,7 @@ impl GameState {
             info,
         })) = self.mode
         {
-            let run_success_chance = logarithmic_decay(info.cur_pirates as u32, 0.5);
-            let random_value: f64 = self.rng.gen();
-            if random_value < run_success_chance {
+            if self.rng.gen_run_success(info.cur_pirates) {
                 // success
                 self.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
                     PirateEncounterState::RunSuccess,
@@ -632,11 +617,7 @@ impl GameState {
             info,
         })) = self.mode
         {
-            let kill_a_pirate_possibilities = [false, true];
-            let weights = [1, self.cannons];
-            let dist = WeightedIndex::new(&weights)
-                .map_err(|e| StateError::UnknownError(e.to_string()))?;
-            let did_kill_a_pirate = kill_a_pirate_possibilities[dist.sample(&mut self.rng)];
+            let did_kill_a_pirate = self.rng.gen_did_kill_a_pirate(self.cannons);
             self.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
                 PirateEncounterState::AttackResult {
                     info,
@@ -737,10 +718,9 @@ impl GameState {
                 .unwrap_or(0);
             if cur_pirates == 0 {
                 // player recovers some gold from wreckage
-                let gold_recovered: u32 = self.rng.gen_range(
-                    (GOLD_PER_PIRATE_VICTORY_MIN * (info.total_pirates as u32))
-                        ..(GOLD_PER_PIRATE_VICTORY_MAX * (info.total_pirates as u32)),
-                );
+                let gold_recovered = self
+                    .rng
+                    .gen_gold_recovered_from_pirate_encounter(info.total_pirates);
                 self.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
                     PirateEncounterState::Victory { gold_recovered },
                 ));
@@ -776,13 +756,6 @@ impl GameState {
     }
 }
 
-fn logarithmic_decay(count: u32, decay_factor: f64) -> f64 {
-    let initial_probability: f64 = 1.0; // 100%
-    let decayed = initial_probability - decay_factor * (count as f64 + 1.0).ln();
-    let smoothed = decayed + (initial_probability - decayed) / 2f64;
-    smoothed
-}
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum GoodsStolenResult {
     NothingStolen,
@@ -800,7 +773,6 @@ pub enum StateError {
     LocationNotHomeBase(Location),
     PayDownAmountHigherThanDebt,
     InsufficientBank,
-    UnknownError(String),
 }
 
 impl Display for StateError {

@@ -142,7 +142,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
             let pirate_encounter_state = pirate_encounter_state.clone();
             queue!(
                 writer,
-                PirateEncounter::from((pirate_encounter_state.clone(), &state.clone()))
+                PirateEncounter::from((pirate_encounter_state.clone(), state))
             )?;
             return Ok(Box::new(move |event: KeyEvent, state: &mut GameState| {
                 match &pirate_encounter_state {

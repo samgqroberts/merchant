@@ -1,6 +1,6 @@
 use super::Good;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Inventory {
     pub tea: u32,
     pub coffee: u32,

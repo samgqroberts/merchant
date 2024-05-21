@@ -1144,8 +1144,8 @@ pub struct PirateEncounter {
     pub date: (u16, Month),
 }
 
-impl From<(PirateEncounterState, &GameState)> for PirateEncounter {
-    fn from(value: (PirateEncounterState, &GameState)) -> Self {
+impl From<(PirateEncounterState, &mut GameState)> for PirateEncounter {
+    fn from(value: (PirateEncounterState, &mut GameState)) -> Self {
         PirateEncounter {
             pirate_encounter_state: value.0,
             cannons: value.1.cannons,

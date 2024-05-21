@@ -1,10 +1,4 @@
-use rand::{
-    distributions::{Distribution, WeightedIndex},
-    rngs::StdRng,
-    RngCore,
-};
-
-use super::{Good, Inventory, Location, LocationEvent};
+use super::{rng::MerchantRng, Inventory, Location, LocationEvent};
 
 #[derive(Clone, Debug)]
 pub struct PriceConfig {
@@ -17,7 +11,7 @@ pub struct PriceConfig {
     pub cotton: (f32, f32),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct LocationInfo {
     pub prices: Inventory,
     pub event: Option<LocationEvent>,
@@ -44,7 +38,7 @@ pub struct Locations {
 }
 
 impl Locations {
-    pub fn new(rng: &mut StdRng, starting_gold: u32) -> Locations {
+    pub fn new(rng: &mut Box<dyn MerchantRng>, starting_gold: u32) -> Locations {
         let config = PriceConfig {
             starting_gold,
             tea: (10.0, 14.0),
@@ -70,80 +64,13 @@ impl Locations {
         res
     }
 
-    pub fn randomized_inventory(&self, rng: &mut StdRng) -> Inventory {
-        let config = &self.config;
-        let starting_gold = config.starting_gold;
-        let mut gen = |low_multiple: f32, high_multiple: f32| -> u32 {
-            let low = (starting_gold as f32 * low_multiple).floor() as u32;
-            let high = (starting_gold as f32 * high_multiple).floor() as u32;
-            rng.next_u32() % (high - low) + low
-        };
-        Inventory {
-            tea: gen(config.tea.0, config.tea.1),
-            coffee: gen(config.coffee.0, config.coffee.1),
-            sugar: gen(config.sugar.0, config.sugar.1),
-            tobacco: gen(config.tobacco.0, config.tobacco.1),
-            rum: gen(config.rum.0, config.rum.1),
-            cotton: gen(config.cotton.0, config.cotton.1),
-        }
-    }
-
     pub fn generate_location(
         &mut self,
-        rng: &mut StdRng,
+        rng: &mut Box<dyn MerchantRng>,
         location: &Location,
         allow_events: bool,
     ) -> &LocationInfo {
-        let mut new_location_info = LocationInfo::empty();
-        new_location_info.prices = self.randomized_inventory(rng);
-        if allow_events {
-            let event_possibilities: [u8; 7] = [
-                0, // no event
-                1, // cheap good
-                2, // expensive good
-                3, // find goods
-                4, // stolen goods
-                5, // can buy cannon
-                6, // pirate encounter
-            ];
-            let weights: [u8; 7] = [6, 1, 1, 1, 1, 1, 1];
-            let dist = WeightedIndex::new(&weights).unwrap();
-            new_location_info.event = match event_possibilities[dist.sample(rng)] {
-                // no event
-                0 => None,
-                // cheap good
-                1 => {
-                    let good = Good::random(rng);
-                    // update location prices
-                    let good_price = new_location_info.prices.get_good_mut(&good);
-                    *good_price = ((*good_price as f64) * 0.5).floor() as u32;
-                    Some(LocationEvent::CheapGood(good))
-                }
-                // expensive good
-                2 => {
-                    let good = Good::random(rng);
-                    // update location prices
-                    let good_price = new_location_info.prices.get_good_mut(&good);
-                    *good_price = ((*good_price as f64) * 2.0).floor() as u32;
-                    Some(LocationEvent::ExpensiveGood(good))
-                }
-                // find goods
-                3 => {
-                    let good = Good::random(rng);
-                    let amount = (rng.next_u32() % 10) + 1;
-                    Some(LocationEvent::FindGoods(good, amount))
-                }
-                // stolen goods
-                4 => Some(LocationEvent::GoodsStolen(None)),
-                // can buy cannon
-                5 => Some(LocationEvent::CanBuyCannon),
-                // pirate encounter
-                6 => Some(LocationEvent::PirateEncounter(
-                    super::PirateEncounterState::Initial,
-                )),
-                _ => unreachable!(),
-            };
-        };
+        let new_location_info = rng.gen_location_info(allow_events, &self.config);
         let location_info = self.location_info_mut(location);
         *location_info = new_location_info;
         location_info

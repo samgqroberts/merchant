@@ -1,6 +1,5 @@
 use captured_write::CapturedWrite;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use rand::{rngs::StdRng, SeedableRng};
 use std::{cell::RefCell, str};
 
 use crate::{
@@ -15,12 +14,6 @@ pub struct TestEngine {
 }
 
 impl TestEngine {
-    pub fn new() -> UpdateResult<Self> {
-        let rng = StdRng::seed_from_u64(42);
-        let game_state = GameState::new(rng);
-        Self::from_game_state(game_state)
-    }
-
     #[allow(unused_must_use)]
     pub fn from_game_state(mut game_state: GameState) -> UpdateResult<Self> {
         let writer = CapturedWrite::new();

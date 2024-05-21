@@ -22,7 +22,7 @@ fn main() -> io::Result<()> {
     enable_raw_mode()?;
     // initialize game state with RNG
     let rng = StdRng::from_entropy();
-    let mut game_state = GameState::new(rng);
+    let mut game_state = GameState::new_std_rng(rng);
     // initialize game engine, pointing it to write to stdout
     let writer: RefCell<Stdout> = RefCell::from(stdout);
     let mut engine = Engine::new(&writer);
