@@ -17,7 +17,7 @@ impl CapturedWrite {
     }
 
     pub fn reset(&mut self) {
-        self.buffer = "".to_owned();
+        "".clone_into(&mut self.buffer);
         self.flushed = false;
     }
 }

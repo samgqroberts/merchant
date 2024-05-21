@@ -1201,12 +1201,12 @@ impl Command for PirateEncounter {
                     f,
                     MoveTo(1, 8),
                     Print(CenteredText(
-                        format!("You've successfully evaded the pirates!"),
+                        "You've successfully evaded the pirates!".to_string(),
                         (FRAME_WIDTH - 2).into()
                     )),
                     MoveTo(1, 16),
                     Print(CenteredText(
-                        format!("(press any key to continue)"),
+                        "(press any key to continue)".to_string(),
                         (FRAME_WIDTH - 2).into()
                     )),
                 );
@@ -1224,12 +1224,12 @@ impl Command for PirateEncounter {
                     )),
                     MoveTo(1, 12),
                     Print(CenteredText(
-                        format!("The pirates manouver to cut off your escape!"),
+                        "The pirates manouver to cut off your escape!".to_string(),
                         (FRAME_WIDTH - 2).into()
                     )),
                     MoveTo(1, 16),
                     Print(CenteredText(
-                        format!("(press any key to continue)"),
+                        "(press any key to continue)".to_string(),
                         (FRAME_WIDTH - 2).into()
                     )),
                 )
@@ -1255,7 +1255,7 @@ impl Command for PirateEncounter {
                     )),
                     MoveTo(1, 16),
                     Print(CenteredText(
-                        format!("(press any key to continue)"),
+                        "(press any key to continue)".to_string(),
                         (FRAME_WIDTH - 2).into()
                     )),
                 )
@@ -1270,12 +1270,12 @@ impl Command for PirateEncounter {
                     )),
                     MoveTo(1, 12),
                     Print(CenteredText(
-                        format!("They get away with half your gold and all of your goods!"),
+                        "They get away with half your gold and all of your goods!".to_string(),
                         (FRAME_WIDTH - 2).into()
                     )),
                     MoveTo(1, 16),
                     Print(CenteredText(
-                        format!("(press any key to continue)"),
+                        "(press any key to continue)".to_string(),
                         (FRAME_WIDTH - 2).into()
                     )),
                 )
@@ -1308,7 +1308,7 @@ impl Command for PirateEncounter {
                     )),
                     MoveTo(1, 16),
                     Print(CenteredText(
-                        format!("(press any key to continue)"),
+                        "(press any key to continue)".to_string(),
                         (FRAME_WIDTH - 2).into()
                     )),
                 )
@@ -1318,7 +1318,7 @@ impl Command for PirateEncounter {
                     f,
                     MoveTo(1, 8),
                     Print(CenteredText(
-                        format!("You have sank all of the pirates!",),
+                        "You have sank all of the pirates!".to_string(),
                         (FRAME_WIDTH - 2).into()
                     )),
                     MoveTo(1, 12),
@@ -1328,7 +1328,7 @@ impl Command for PirateEncounter {
                     )),
                     MoveTo(1, 16),
                     Print(CenteredText(
-                        format!("(press any key to continue)"),
+                        "(press any key to continue)".to_string(),
                         (FRAME_WIDTH - 2).into()
                     )),
                 )

@@ -42,14 +42,14 @@ impl MerchantRng for StdRng {
             .map(|(i, _)| i + 1)
             .rev()
             .collect();
-        let dist = WeightedIndex::new(&weights).unwrap();
+        let dist = WeightedIndex::new(weights).unwrap();
         damage_possibilities[dist.sample(self)]
     }
 
     fn gen_did_kill_a_pirate(&mut self, cannons: u8) -> bool {
         let kill_a_pirate_possibilities = [false, true];
         let weights = [1, cannons];
-        let dist = WeightedIndex::new(&weights).unwrap();
+        let dist = WeightedIndex::new(weights).unwrap();
         kill_a_pirate_possibilities[dist.sample(self)]
     }
 
@@ -90,7 +90,7 @@ impl MerchantRng for StdRng {
                 6, // pirate encounter
             ];
             let weights: [u8; 7] = [6, 1, 1, 1, 1, 1, 1];
-            let dist = WeightedIndex::new(&weights).unwrap();
+            let dist = WeightedIndex::new(weights).unwrap();
             location_info.event = match event_possibilities[dist.sample(self)] {
                 // no event
                 0 => None,
@@ -151,14 +151,14 @@ pub fn randomized_inventory(rng: &mut StdRng, config: &PriceConfig) -> Inventory
 fn logarithmic_decay(count: u32, decay_factor: f64) -> f64 {
     let initial_probability: f64 = 1.0; // 100%
     let decayed = initial_probability - decay_factor * (count as f64 + 1.0).ln();
-    let smoothed = decayed + (initial_probability - decayed) / 2f64;
-    smoothed
+    decayed + (initial_probability - decayed) / 2f64
 }
 
+#[cfg(test)]
 mod tests {
     use rand::SeedableRng;
 
-    use crate::{components::PirateEncounter, state::PirateEncounterState};
+    use crate::state::PirateEncounterState;
 
     use super::*;
 
@@ -177,12 +177,12 @@ mod tests {
 
     #[test]
     fn gen_did_kill_a_pirate() {
-        assert_eq!(StdRng::seed_from_u64(42).gen_did_kill_a_pirate(3), false);
+        assert!(!StdRng::seed_from_u64(42).gen_did_kill_a_pirate(3));
     }
 
     #[test]
     fn gen_run_success() {
-        assert_eq!(StdRng::seed_from_u64(42).gen_run_success(3), true);
+        assert!(StdRng::seed_from_u64(42).gen_run_success(3));
     }
 
     #[test]

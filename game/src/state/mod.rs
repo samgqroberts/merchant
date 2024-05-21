@@ -567,8 +567,8 @@ impl GameState {
 
     pub(crate) fn confirm_buy_cannon(&mut self) -> Result<(), StateError> {
         if self.gold >= CANNON_COST.into() {
-            self.gold = self.gold - (CANNON_COST as u32);
-            self.cannons = self.cannons + 1;
+            self.gold -= CANNON_COST as u32;
+            self.cannons += 1;
             self.acknowledge_event()?;
         }
         Ok(())
@@ -657,7 +657,7 @@ impl GameState {
             },
         )) = self.mode
         {
-            let health = health.checked_sub(damage_this_attack).unwrap_or(0);
+            let health = health.saturating_sub(damage_this_attack);
             if health == 0 {
                 self.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
                     PirateEncounterState::Destroyed,
@@ -713,9 +713,7 @@ impl GameState {
         )) = self.mode
         {
             let cur_pirates = info
-                .cur_pirates
-                .checked_sub(if did_kill_a_pirate { 1 } else { 0 })
-                .unwrap_or(0);
+                .cur_pirates.saturating_sub(if did_kill_a_pirate { 1 } else { 0 });
             if cur_pirates == 0 {
                 // player recovers some gold from wreckage
                 let gold_recovered = self

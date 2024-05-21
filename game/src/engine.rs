@@ -139,10 +139,10 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
         } else if let Mode::GameEvent(LocationEvent::PirateEncounter(pirate_encounter_state)) =
             &state.mode
         {
-            let pirate_encounter_state = pirate_encounter_state.clone();
+            let pirate_encounter_state = *pirate_encounter_state;
             queue!(
                 writer,
-                PirateEncounter::from((pirate_encounter_state.clone(), state))
+                PirateEncounter::from((pirate_encounter_state, state))
             )?;
             return Ok(Box::new(move |event: KeyEvent, state: &mut GameState| {
                 match &pirate_encounter_state {

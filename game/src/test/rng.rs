@@ -60,6 +60,12 @@ impl MerchantRng for MockRng {
     }
 }
 
+impl Default for MockRng {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MockRng {
     pub fn new() -> Self {
         MockRng {
