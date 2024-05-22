@@ -712,8 +712,9 @@ impl GameState {
             },
         )) = self.mode
         {
-            let cur_pirates = info
-                .cur_pirates.saturating_sub(if did_kill_a_pirate { 1 } else { 0 });
+            let cur_pirates =
+                info.cur_pirates
+                    .saturating_sub(if did_kill_a_pirate { 1 } else { 0 });
             if cur_pirates == 0 {
                 // player recovers some gold from wreckage
                 let gold_recovered = self
@@ -746,6 +747,48 @@ impl GameState {
         })) = self.mode
         {
             self.gold += gold_recovered;
+            self.mode = Mode::ViewingInventory;
+            Ok(())
+        } else {
+            Err(StateError::InvalidMode(self.mode.clone()))
+        }
+    }
+
+    pub(crate) fn back(&mut self) -> Result<(), StateError> {
+        if let Mode::Buying(Some(_)) = &self.mode {
+            self.mode = Mode::Buying(None);
+            Ok(())
+        } else if let Mode::Buying(None) = &self.mode {
+            self.mode = Mode::ViewingInventory;
+            Ok(())
+        } else if let Mode::Selling(Some(_)) = &self.mode {
+            self.mode = Mode::Selling(None);
+            Ok(())
+        } else if let Mode::Selling(None) = &self.mode {
+            self.mode = Mode::ViewingInventory;
+            Ok(())
+        } else if let Mode::Sailing = &self.mode {
+            self.mode = Mode::ViewingInventory;
+            Ok(())
+        } else if let Mode::StashDeposit(Some(_)) = &self.mode {
+            self.mode = Mode::StashDeposit(None);
+            Ok(())
+        } else if let Mode::StashDeposit(None) = &self.mode {
+            self.mode = Mode::ViewingInventory;
+            Ok(())
+        } else if let Mode::StashWithdraw(Some(_)) = &self.mode {
+            self.mode = Mode::StashWithdraw(None);
+            Ok(())
+        } else if let Mode::StashWithdraw(None) = &self.mode {
+            self.mode = Mode::ViewingInventory;
+            Ok(())
+        } else if let Mode::PayDebt(None) = &self.mode {
+            self.mode = Mode::ViewingInventory;
+            Ok(())
+        } else if let Mode::BankDeposit(None) = &self.mode {
+            self.mode = Mode::ViewingInventory;
+            Ok(())
+        } else if let Mode::BankWithdraw(None) = &self.mode {
             self.mode = Mode::ViewingInventory;
             Ok(())
         } else {

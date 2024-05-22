@@ -2,7 +2,7 @@ use pretty_assertions::assert_eq;
 
 use crate::{
     engine::UpdateResult,
-    state::{GameState, Good, LocationEvent, Mode, PirateEncounterInfo},
+    state::{GameState, Good, LocationEvent, Mode, PirateEncounterInfo, Transaction},
     test::{
         rng::{default_location_info, MockRng},
         test_engine::TestEngine,
@@ -205,6 +205,59 @@ fn end_game_negative() -> UpdateResult<()> {
 }
 
 #[test]
+fn buy_good() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(MockRng::new_with_default_locations().into());
+        state.initialize();
+        state.gold = 1400;
+        state.inventory.cotton = 15;
+        state.locations.london.prices.cotton = 30;
+        state
+    })?;
+    assert!(e.expect("Gold:    1400"));
+    assert!(e.expect("Cotton:   15"));
+    assert!(e.expect("Cotton:   30"));
+    assert!(e.expect("(1) Buy"));
+    e.charpress('1')?;
+    assert!(e.expect("Which do you want to buy?"));
+    assert!(e.expect("(6) Cotton"));
+    e.charpress('6')?;
+    assert!(e.expect("How much Cotton do you want?"));
+    assert!(e.expect("You can afford (46)"));
+    e.charpress('1')?;
+    assert!(e.expect("How much Cotton do you want? 1"));
+    assert!(e.expect("You can afford (46)"));
+    e.charpress('0')?;
+    assert!(e.expect("How much Cotton do you want? 10"));
+    assert!(e.expect("You can afford (46)"));
+    e.enterpress()?;
+    assert!(e.expect("Cotton:   25"));
+    assert!(e.expect("Gold:    1100"));
+    Ok(())
+}
+
+#[test]
+fn buy_good_back() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(MockRng::new_with_default_locations().into());
+        state.initialize();
+        state.mode = Mode::Buying(Some(Transaction {
+            good: Good::Cotton,
+            amount: None,
+        }));
+        state
+    })?;
+    assert!(e.expect("How much Cotton do you want?"));
+    assert!(e.expect("(b) <- back"));
+    e.charpress('b')?;
+    assert!(e.expect("Which do you want to buy?"));
+    assert!(e.expect("(b) <- back"));
+    e.charpress('b')?;
+    assert!(e.expect("(1) Buy"));
+    Ok(())
+}
+
+#[test]
 fn sell_good() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
@@ -238,6 +291,27 @@ fn sell_good() -> UpdateResult<()> {
 }
 
 #[test]
+fn sell_good_back() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(MockRng::new_with_default_locations().into());
+        state.initialize();
+        state.mode = Mode::Selling(Some(Transaction {
+            good: Good::Cotton,
+            amount: None,
+        }));
+        state
+    })?;
+    assert!(e.expect("How much Cotton do you"));
+    assert!(e.expect("(b) <- back"));
+    e.charpress('b')?;
+    assert!(e.expect("Which do you want to sell?"));
+    assert!(e.expect("(b) <- back"));
+    e.charpress('b')?;
+    assert!(e.expect("(1) Buy"));
+    Ok(())
+}
+
+#[test]
 fn sail() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(
@@ -258,6 +332,21 @@ fn sail() -> UpdateResult<()> {
     e.charpress('6')?;
     assert!(e.expect("|   Venice    |"));
     assert!(e.expect("Debt:    1650"));
+    Ok(())
+}
+
+#[test]
+fn sail_back() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(MockRng::new_with_default_locations().into());
+        state.initialize();
+        state.mode = Mode::Sailing;
+        state
+    })?;
+    assert!(e.expect("Where do you want to sail?"));
+    assert!(e.expect("(b) <- back"));
+    e.charpress('b')?;
+    assert!(e.expect("(1) Buy"));
     Ok(())
 }
 
@@ -293,6 +382,27 @@ fn stash_deposit() -> UpdateResult<()> {
 }
 
 #[test]
+fn stash_deposit_back() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(MockRng::new_with_default_locations().into());
+        state.initialize();
+        state.mode = Mode::StashDeposit(Some(Transaction {
+            good: Good::Coffee,
+            amount: None,
+        }));
+        state
+    })?;
+    assert!(e.expect("How much Coffee do you"));
+    assert!(e.expect("(b) <- back"));
+    e.charpress('b')?;
+    assert!(e.expect("Which do you want to stash?"));
+    assert!(e.expect("(b) <- back"));
+    e.charpress('b')?;
+    assert!(e.expect("(1) Buy"));
+    Ok(())
+}
+
+#[test]
 fn stash_withdraw() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
@@ -324,6 +434,27 @@ fn stash_withdraw() -> UpdateResult<()> {
 }
 
 #[test]
+fn stash_withdraw_back() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(MockRng::new_with_default_locations().into());
+        state.initialize();
+        state.mode = Mode::StashWithdraw(Some(Transaction {
+            good: Good::Rum,
+            amount: None,
+        }));
+        state
+    })?;
+    assert!(e.expect("How much Rum do you"));
+    assert!(e.expect("(b) <- back"));
+    e.charpress('b')?;
+    assert!(e.expect("Which do you want to withdraw?"));
+    assert!(e.expect("(b) <- back"));
+    e.charpress('b')?;
+    assert!(e.expect("(1) Buy"));
+    Ok(())
+}
+
+#[test]
 fn pay_debt() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
@@ -351,6 +482,22 @@ fn pay_debt() -> UpdateResult<()> {
     assert!(e.expect("Gold:     700"));
     assert!(e.expect("Debt:     200"));
     assert!(e.expect("(8) Pay down debt"));
+    Ok(())
+}
+
+#[test]
+fn pay_debt_back() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(MockRng::new_with_default_locations().into());
+        state.initialize();
+        state.debt = 500;
+        state.mode = Mode::PayDebt(None);
+        state
+    })?;
+    assert!(e.expect("How much debt do you"));
+    assert!(e.expect("(b) <- back"));
+    e.charpress('b')?;
+    assert!(e.expect("(1) Buy"));
     Ok(())
 }
 
@@ -403,6 +550,22 @@ fn bank_deposit() -> UpdateResult<()> {
 }
 
 #[test]
+fn bank_deposit_back() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(MockRng::new_with_default_locations().into());
+        state.initialize();
+        state.mode = Mode::BankDeposit(None);
+        state
+    })?;
+    assert!(e.expect("How much gold do you want"));
+    assert!(e.expect("to deposit in the bank?"));
+    assert!(e.expect("(b) <- back"));
+    e.charpress('b')?;
+    assert!(e.expect("(1) Buy"));
+    Ok(())
+}
+
+#[test]
 fn bank_withdraw() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
@@ -429,6 +592,22 @@ fn bank_withdraw() -> UpdateResult<()> {
     e.enterpress()?;
     assert!(e.expect("Gold:    1300"));
     assert!(e.expect("Bank:     200"));
+    Ok(())
+}
+
+#[test]
+fn bank_withdraw_back() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(MockRng::new_with_default_locations().into());
+        state.initialize();
+        state.mode = Mode::BankWithdraw(None);
+        state
+    })?;
+    assert!(e.expect("How much gold do you"));
+    assert!(e.expect("want to withdraw?"));
+    assert!(e.expect("(b) <- back"));
+    e.charpress('b')?;
+    assert!(e.expect("(1) Buy"));
     Ok(())
 }
 

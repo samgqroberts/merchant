@@ -226,7 +226,9 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         queue!(writer, BuyInput { info, state })?;
                         return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                             if let KeyCode::Char(c) = event.code {
-                                if let Some(digit) = c.to_digit(10) {
+                                if c == 'b' {
+                                    state.back()?;
+                                } else if let Some(digit) = c.to_digit(10) {
                                     state.user_typed_digit(digit)?;
                                 }
                             } else if event.code == KeyCode::Backspace {
@@ -244,7 +246,9 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                     } else {
                         queue!(writer, BuyPrompt)?;
                         return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
-                            if let Some(good) = Good::from_key_code(&event.code) {
+                            if let KeyCode::Char('b') = event.code {
+                                state.back()?;
+                            } else if let Some(good) = Good::from_key_code(&event.code) {
                                 state.choose_buy_good(good)?;
                             } else if event.code == KeyCode::Backspace {
                                 state.cancel_buy()?;
@@ -260,7 +264,9 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         queue!(writer, SellInput(info, current_amount))?;
                         return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                             if let KeyCode::Char(c) = event.code {
-                                if let Some(digit) = c.to_digit(10) {
+                                if c == 'b' {
+                                    state.back()?;
+                                } else if let Some(digit) = c.to_digit(10) {
                                     state.user_typed_digit(digit)?;
                                 }
                             } else if event.code == KeyCode::Backspace {
@@ -277,7 +283,9 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         // user is choosing which good to sell
                         queue!(writer, SellPrompt)?;
                         return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
-                            if let Some(good) = Good::from_key_code(&event.code) {
+                            if let KeyCode::Char('b') = event.code {
+                                state.back()?;
+                            } else if let Some(good) = Good::from_key_code(&event.code) {
                                 state.choose_sell_good(good)?;
                             } else if event.code == KeyCode::Backspace {
                                 state.cancel_sell()?;
@@ -290,7 +298,9 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                     // user is choosing where to sail
                     queue!(writer, SailPrompt)?;
                     return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
-                        if let Some(destination) = Location::from_key_code(&event.code) {
+                        if let KeyCode::Char('b') = event.code {
+                            state.back()?;
+                        } else if let Some(destination) = Location::from_key_code(&event.code) {
                             return state
                                 .sail_to(&destination)
                                 .map(|_| ())
@@ -312,7 +322,9 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         queue!(writer, StashDepositInput(info, current_amount))?;
                         return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                             if let KeyCode::Char(c) = event.code {
-                                if let Some(digit) = c.to_digit(10) {
+                                if c == 'b' {
+                                    state.back()?;
+                                } else if let Some(digit) = c.to_digit(10) {
                                     state.user_typed_digit(digit)?;
                                 }
                             }
@@ -333,7 +345,9 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         // user is choosing which good to stash
                         queue!(writer, StashDepositPrompt)?;
                         return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
-                            if let Some(good) = Good::from_key_code(&event.code) {
+                            if let KeyCode::Char('b') = event.code {
+                                state.back()?;
+                            } else if let Some(good) = Good::from_key_code(&event.code) {
                                 state.choose_stash_deposit_good(good)?;
                             } else if event.code == KeyCode::Backspace {
                                 state.cancel_stash_deposit()?;
@@ -350,7 +364,9 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         queue!(writer, StashWithdrawInput(info, current_amount))?;
                         return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                             if let KeyCode::Char(c) = event.code {
-                                if let Some(digit) = c.to_digit(10) {
+                                if c == 'b' {
+                                    state.back()?;
+                                } else if let Some(digit) = c.to_digit(10) {
                                     state.user_typed_digit(digit)?;
                                 }
                             } else if event.code == KeyCode::Backspace {
@@ -369,7 +385,9 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         // user is choosing which good to withdraw from stash
                         queue!(writer, StashWithdrawPrompt)?;
                         return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
-                            if let Some(good) = Good::from_key_code(&event.code) {
+                            if let KeyCode::Char('b') = event.code {
+                                state.back()?;
+                            } else if let Some(good) = Good::from_key_code(&event.code) {
                                 state.choose_stash_withdraw_good(good)?;
                             } else if event.code == KeyCode::Backspace {
                                 state.cancel_stash_withdraw()?;
@@ -382,7 +400,9 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                     queue!(writer, PayDebtInput(amount))?;
                     return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char(c) = event.code {
-                            if let Some(digit) = c.to_digit(10) {
+                            if c == 'b' {
+                                state.back()?;
+                            } else if let Some(digit) = c.to_digit(10) {
                                 state.user_typed_digit(digit)?;
                             }
                         } else if event.code == KeyCode::Backspace {
@@ -401,7 +421,9 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                     queue!(writer, BankDepositInput(amount))?;
                     return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char(c) = event.code {
-                            if let Some(digit) = c.to_digit(10) {
+                            if c == 'b' {
+                                state.back()?;
+                            } else if let Some(digit) = c.to_digit(10) {
                                 state.user_typed_digit(digit)?;
                             }
                         } else if event.code == KeyCode::Backspace {
@@ -422,7 +444,9 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                     queue!(writer, BankWithdrawInput(amount))?;
                     return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char(c) = event.code {
-                            if let Some(digit) = c.to_digit(10) {
+                            if c == 'b' {
+                                state.back()?;
+                            } else if let Some(digit) = c.to_digit(10) {
                                 state.user_typed_digit(digit)?;
                             }
                         } else if event.code == KeyCode::Backspace {

@@ -155,6 +155,8 @@ impl<'a> Command for BankWithdrawInput<'a> {
             Print("How much gold do you"),
             MoveTo(OFFSET_X, OFFSET_Y + 1),
             Print(prompt),
+            MoveTo(OFFSET_X, OFFSET_Y + 5),
+            Print(format!("(b) <- back")),
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
         );
@@ -312,6 +314,8 @@ impl<'a> Command for BankDepositInput<'a> {
             Print("How much gold do you want"),
             MoveTo(OFFSET_X, OFFSET_Y + 1),
             Print(prompt),
+            MoveTo(OFFSET_X, OFFSET_Y + 5),
+            Print(format!("(b) <- back")),
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
         );
@@ -708,6 +712,8 @@ impl<'a> Command for BuyInput<'a> {
             Print(prompt),
             MoveTo(OFFSET_X, OFFSET_Y + 1),
             Print(format!("You can afford ({})", can_afford)),
+            MoveTo(OFFSET_X, OFFSET_Y + 5),
+            Print(format!("(b) <- back")),
         );
         let remaining_hold = state.remaining_hold();
         if remaining_hold < can_afford {
@@ -771,6 +777,8 @@ impl Command for GoodOptions {
             Print("(5) Rum"),
             MoveTo(offset_x, offset_y + 5),
             Print("(6) Cotton"),
+            MoveTo(offset_x, offset_y + 6),
+            Print("(b) <- back"),
         );
         Ok(())
     }
@@ -804,6 +812,9 @@ impl<'a> Command for SellInput<'a> {
             Print(prompt),
             MoveTo(OFFSET_X, OFFSET_Y + 2),
             Print(format!("You have ({})", current_amount)),
+            MoveTo(OFFSET_X, OFFSET_Y + 5),
+            Print(format!("(b) <- back")),
+            // position cursor for input
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
         );
@@ -859,6 +870,8 @@ impl Command for SailPrompt {
             Print("(5) Cape Town"),
             MoveTo(OFFSET_X, OFFSET_Y + 6),
             Print("(6) Venice"),
+            MoveTo(OFFSET_X, OFFSET_Y + 7),
+            Print("(b) <- back"),
         );
         Ok(())
     }
@@ -893,6 +906,8 @@ impl<'a> Command for StashDepositInput<'a> {
             Print(prompt),
             MoveTo(OFFSET_X, OFFSET_Y + 2),
             Print(format!("You have ({})", current_amount)),
+            MoveTo(OFFSET_X, OFFSET_Y + 5),
+            Print(format!("(b) <- back")),
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
         );
@@ -950,6 +965,8 @@ impl<'a> Command for StashWithdrawInput<'a> {
             Print(prompt),
             MoveTo(OFFSET_X, OFFSET_Y + 2),
             Print(format!("There are ({})", current_amount)),
+            MoveTo(OFFSET_X, OFFSET_Y + 5),
+            Print(format!("(b) <- back")),
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
         );
@@ -1001,6 +1018,8 @@ impl<'a> Command for PayDebtInput<'a> {
             Print("How much debt do you"),
             MoveTo(OFFSET_X, OFFSET_Y + 1),
             Print(prompt),
+            MoveTo(OFFSET_X, OFFSET_Y + 5),
+            Print(format!("(b) <- back")),
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
         );
