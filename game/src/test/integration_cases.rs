@@ -621,9 +621,11 @@ fn arrive_at_cheap_good_event() -> UpdateResult<()> {
         state.mode = Mode::GameEvent(LocationEvent::CheapGood(Good::Coffee));
         state
     })?;
-    assert!(e.expect("Cheap Coffee here!"));
+    assert!(e.expect("The market is bursting with"));
+    assert!(e.expect("a surplus of Coffee, lowering"));
+    assert!(e.expect("the price significantly!"));
     e.charpress('a')?;
-    assert!(e.expect("Captain, the prices of goods here are:"));
+    assert!(e.expect("(1) Buy"));
     Ok(())
 }
 
@@ -635,9 +637,12 @@ fn arrive_at_expensive_good_event() -> UpdateResult<()> {
         state.mode = Mode::GameEvent(LocationEvent::ExpensiveGood(Good::Coffee));
         state
     })?;
-    assert!(e.expect("Expensive Coffee here!"));
+    assert!(e.expect("A trade ship that was delivering"));
+    assert!(e.expect("a large shipment of Coffee has"));
+    assert!(e.expect("wrecked at sea, increasing the local"));
+    assert!(e.expect("price significantly!"));
     e.charpress('a')?;
-    assert!(e.expect("Captain, the prices of goods here are:"));
+    assert!(e.expect("(1) Buy"));
     Ok(())
 }
 
@@ -650,7 +655,11 @@ fn arrive_at_find_goods_event() -> UpdateResult<()> {
         state.mode = Mode::GameEvent(LocationEvent::FindGoods(Good::Coffee, 10));
         state
     })?;
-    assert!(e.expect("You randomly find 10 Coffee!"));
+    assert!(e.expect("You notice a crate on the docks"));
+    assert!(e.expect("that seems to be abandoned."));
+    assert!(e.expect("After eyeing it for a while, you decide"));
+    assert!(e.expect("to claim it. Inside you find 10 Coffee!"));
+    assert!(e.expect("Coffee:    4"));
     e.charpress('a')?;
     assert!(e.expect("Coffee:   14"));
     Ok(())
@@ -666,7 +675,10 @@ fn arrive_at_find_goods_event_not_enough_hold() -> UpdateResult<()> {
         state.mode = Mode::GameEvent(LocationEvent::FindGoods(Good::Coffee, 10));
         state
     })?;
-    assert!(e.expect("You randomly find 10 Coffee!"));
+    assert!(e.expect("You notice a crate on the docks"));
+    assert!(e.expect("that seems to be abandoned."));
+    assert!(e.expect("After eyeing it for a while, you decide"));
+    assert!(e.expect("to claim it. Inside you find 10 Coffee!"));
     assert!(e.expect("You have space for (7)"));
     e.charpress('a')?;
     assert!(e.expect("Coffee:   11"));

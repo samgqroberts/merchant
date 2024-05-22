@@ -1037,12 +1037,16 @@ pub struct CheapGoodDialog<'a>(pub &'a Good);
 impl<'a> Command for CheapGoodDialog<'a> {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
         let good = self.0;
-        const OFFSET_X: u16 = PROMPT_OFFSET_X;
-        const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         comp!(
             f,
-            MoveTo(OFFSET_X, OFFSET_Y),
-            Print(format!("Cheap {} here!", good)),
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y),
+            Print("The market is bursting with".to_owned()),
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 1),
+            Print(format!("a surplus of {}, lowering", good)),
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 2),
+            Print("the price significantly!".to_owned()),
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 5),
+            Print("(press any key to continue)".to_string())
         );
         Ok(())
     }
@@ -1058,12 +1062,18 @@ pub struct ExpensiveGoodDialog<'a>(pub &'a Good);
 impl<'a> Command for ExpensiveGoodDialog<'a> {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
         let good = self.0;
-        const OFFSET_X: u16 = PROMPT_OFFSET_X;
-        const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         comp!(
             f,
-            MoveTo(OFFSET_X, OFFSET_Y),
-            Print(format!("Expensive {} here!", good)),
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y),
+            Print("A trade ship that was delivering".to_owned()),
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 1),
+            Print(format!("a large shipment of {} has", good)),
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 2),
+            Print("wrecked at sea, increasing the local".to_owned()),
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 3),
+            Print("price significantly!".to_owned()),
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 5),
+            Print("(press any key to continue)".to_string())
         );
         Ok(())
     }
@@ -1081,18 +1091,24 @@ impl<'a> Command for FindGoodsDialog<'a> {
         let good = self.0;
         let amount = self.1;
         let state = self.2;
-        const OFFSET_X: u16 = PROMPT_OFFSET_X;
-        const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         comp!(
             f,
-            MoveTo(OFFSET_X, OFFSET_Y),
-            Print(format!("You randomly find {} {}!", amount, good)),
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y),
+            Print(format!("You notice a crate on the docks")),
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 1),
+            Print(format!("that seems to be abandoned.")),
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 2),
+            Print(format!("After eyeing it for a while, you decide")),
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 3),
+            Print(format!("to claim it. Inside you find {} {}!", amount, good)),
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 6),
+            Print("(press any key to continue)".to_string())
         );
         let remaining_hold = state.remaining_hold();
         if &remaining_hold < amount {
             comp!(
                 f,
-                MoveTo(OFFSET_X, OFFSET_Y + 1),
+                MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 4),
                 Print(format!("You have space for ({})", remaining_hold)),
             )
         }
