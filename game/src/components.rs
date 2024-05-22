@@ -11,8 +11,8 @@ use crossterm::{
 use crate::{
     comp,
     state::{
-        GameState, Good, GoodsStolenResult, Inventory, Location, PirateEncounterState, Transaction,
-        CANNON_COST,
+        GameState, Good, GoodsStolenResult, Inventory, Location, NoEffectEvent,
+        PirateEncounterState, Transaction, CANNON_COST,
     },
 };
 
@@ -1385,6 +1385,51 @@ impl Command for PirateEncounter {
                 )
             }
         };
+        Ok(())
+    }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
+    }
+}
+
+pub struct NoEffect {
+    pub variant: NoEffectEvent,
+}
+
+impl Command for NoEffect {
+    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+        match self.variant {
+            NoEffectEvent::SunnyDay => {
+                comp!(
+                    f,
+                    MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y),
+                    Print("As your ship glides into the harbor"),
+                    MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 1),
+                    Print("you take a moment and feel the"),
+                    MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 2),
+                    Print("comforting warmth of the sun"),
+                    MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 3),
+                    Print("on your face."),
+                    MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 5),
+                    Print("(press any key to continue)".to_string())
+                );
+            }
+            NoEffectEvent::StormOnHorizon => {
+                comp!(
+                    f,
+                    MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y),
+                    Print("You stand on the docks and look"),
+                    MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 1),
+                    Print("off to the horizon."),
+                    MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 2),
+                    Print("You see an ominous storm forming."),
+                    MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 5),
+                    Print("(press any key to continue)".to_string())
+                );
+            }
+        }
         Ok(())
     }
 

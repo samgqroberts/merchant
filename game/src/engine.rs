@@ -15,7 +15,7 @@ use crate::{
     components::{
         BankDepositInput, BankWithdrawInput, BuyInput, BuyPrompt, CanBuyCannon, CanBuyHoldSpace,
         CheapGoodDialog, ExpensiveGoodDialog, FindGoodsDialog, GameEndScreen, GoodsStolenDialog,
-        PayDebtInput, PirateEncounter, SailPrompt, SellInput, SellPrompt, SplashScreen,
+        NoEffect, PayDebtInput, PirateEncounter, SailPrompt, SellInput, SellPrompt, SplashScreen,
         StashDepositInput, StashDepositPrompt, StashWithdrawInput, StashWithdrawPrompt,
         ViewingInventoryActions, ViewingInventoryBase,
     },
@@ -528,6 +528,13 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                                     state.acknowledge_event()?;
                                 }
                             }
+                            Ok(())
+                        }));
+                    }
+                    LocationEvent::NoEffect(variant) => {
+                        queue!(writer, NoEffect { variant: *variant })?;
+                        return Ok(Box::new(move |_: KeyEvent, state: &mut GameState| {
+                            state.acknowledge_event()?;
                             Ok(())
                         }));
                     }

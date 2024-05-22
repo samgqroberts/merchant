@@ -80,6 +80,12 @@ impl PirateEncounterState {
     }
 }
 
+#[derive(PartialEq, Clone, Copy, Debug)]
+pub enum NoEffectEvent {
+    SunnyDay,
+    StormOnHorizon,
+}
+
 #[derive(PartialEq, Clone, Debug)]
 pub enum LocationEvent {
     CheapGood(Good),
@@ -89,6 +95,7 @@ pub enum LocationEvent {
     CanBuyCannon,
     PirateEncounter(PirateEncounterState),
     CanBuyHoldSpace { price: u32, more_hold: u32 },
+    NoEffect(NoEffectEvent),
 }
 
 #[derive(PartialEq, Clone, Debug)]

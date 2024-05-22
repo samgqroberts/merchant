@@ -2,7 +2,9 @@ use pretty_assertions::assert_eq;
 
 use crate::{
     engine::UpdateResult,
-    state::{GameState, Good, LocationEvent, Mode, PirateEncounterInfo, Transaction},
+    state::{
+        GameState, Good, LocationEvent, Mode, NoEffectEvent, PirateEncounterInfo, Transaction,
+    },
     test::{
         rng::{default_location_info, MockRng},
         test_engine::TestEngine,
@@ -1705,5 +1707,111 @@ fn can_buy_hold_space_not_enough_gold() -> UpdateResult<()> {
     assert!(e.expect("(y/n)"));
     e.charpress('y')?; // no effect
     assert!(e.expect("An earnest youth on the docks"));
+    Ok(())
+}
+
+#[test]
+fn no_effect_sunny_day() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(MockRng::new_with_default_locations().into());
+        state.initialize();
+        state.mode = Mode::GameEvent(LocationEvent::NoEffect(NoEffectEvent::SunnyDay));
+        state
+    })?;
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r###"
+----------------------------------------|=================|----------------------------------------
+|                                       | March      1782 |                                       |
+|---------------------------------------|=================|---------------------------------------|
+|     _____[LLL]______[LLL]____                                     |                             |
+|    /     [LLL]      [LLL]    \                        |          )_)                            |
+|   /___________________________\                      )_)        )___)         |                 |
+|    )=========================(                      )___)       )____)       )_)\               |
+|    '|I .--. I     Tea:    0 I|                      )____)     /)_____)      )__)\              |
+|     |I | +| I  Coffee:    0 I|                     )_____)    /)______)\    )___) \             |
+|     |I_|_+|_I   Sugar:    0 I|                    )______)  //)_______) \\ )_____) \\           |
+|    /_I______I Tobacco:    0 I_\             _____//___|___///_____|______\\\__|_____\\\__=====  |
+|     )========     Rum:    0 =(              \      Tea:    0 Coffee:    0  Sugar:    0  /       |
+|     |I .--. I  Cotton:    0 I|               \ Tobacco:    0    Rum:    0 Cotton:    0 /        |
+|     |I |<>| I               I|                \                                       /____     |
+|     |I |~ | I Bank:       0 I|       --------- \ Gold:     500 Hold:  100 Cannons: 1 //.../---  |
+|     |I |  | I Debt:    1500 I|          ^^^^^ ^^^^^^^^^^^^^^^^^^^^^   ^^^^^^^^^^  ^^^/.../      |
+|     |I_|__|_I_______________I|                ^^^^      ^^^    ^^^^^^^^^    ^^^^^  /..../       |
+|   ###(______)##################                        ^^^      ^^^^             /...../        |
+|    ##(________)   ~"^"^~   ##                                                  /....../         |
+|======(_________)========================<------------->======================/......../=========|
+|      (__________)                       |   London    |                    /........./          |
+|                                         <------------->                                         |
+|                                                                                                 |
+|         As your ship glides into the harbor        Captain, the prices of goods here are:       |
+|         you take a moment and feel the                            Tea:    6                     |
+|         comforting warmth of the sun                           Coffee:    5                     |
+|         on your face.                                           Sugar:    4                     |
+|                                                               Tobacco:    3                     |
+|         (press any key to continue)                               Rum:    2                     |
+|                                                                Cotton:    1                     |
+|                                                                                                 |
+|                                                                                                 |
+---------------------------------------------------------------------------------------------------
+"###,
+        )
+    );
+    e.charpress('x')?;
+    assert!(e.expect("(1) Buy"));
+    Ok(())
+}
+
+#[test]
+fn no_effect_storm() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(MockRng::new_with_default_locations().into());
+        state.initialize();
+        state.mode = Mode::GameEvent(LocationEvent::NoEffect(NoEffectEvent::StormOnHorizon));
+        state
+    })?;
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r###"
+----------------------------------------|=================|----------------------------------------
+|                                       | March      1782 |                                       |
+|---------------------------------------|=================|---------------------------------------|
+|     _____[LLL]______[LLL]____                                     |                             |
+|    /     [LLL]      [LLL]    \                        |          )_)                            |
+|   /___________________________\                      )_)        )___)         |                 |
+|    )=========================(                      )___)       )____)       )_)\               |
+|    '|I .--. I     Tea:    0 I|                      )____)     /)_____)      )__)\              |
+|     |I | +| I  Coffee:    0 I|                     )_____)    /)______)\    )___) \             |
+|     |I_|_+|_I   Sugar:    0 I|                    )______)  //)_______) \\ )_____) \\           |
+|    /_I______I Tobacco:    0 I_\             _____//___|___///_____|______\\\__|_____\\\__=====  |
+|     )========     Rum:    0 =(              \      Tea:    0 Coffee:    0  Sugar:    0  /       |
+|     |I .--. I  Cotton:    0 I|               \ Tobacco:    0    Rum:    0 Cotton:    0 /        |
+|     |I |<>| I               I|                \                                       /____     |
+|     |I |~ | I Bank:       0 I|       --------- \ Gold:     500 Hold:  100 Cannons: 1 //.../---  |
+|     |I |  | I Debt:    1500 I|          ^^^^^ ^^^^^^^^^^^^^^^^^^^^^   ^^^^^^^^^^  ^^^/.../      |
+|     |I_|__|_I_______________I|                ^^^^      ^^^    ^^^^^^^^^    ^^^^^  /..../       |
+|   ###(______)##################                        ^^^      ^^^^             /...../        |
+|    ##(________)   ~"^"^~   ##                                                  /....../         |
+|======(_________)========================<------------->======================/......../=========|
+|      (__________)                       |   London    |                    /........./          |
+|                                         <------------->                                         |
+|                                                                                                 |
+|         You stand on the docks and look            Captain, the prices of goods here are:       |
+|         off to the horizon.                                       Tea:    6                     |
+|         You see an ominous storm forming.                      Coffee:    5                     |
+|                                                                 Sugar:    4                     |
+|                                                               Tobacco:    3                     |
+|         (press any key to continue)                               Rum:    2                     |
+|                                                                Cotton:    1                     |
+|                                                                                                 |
+|                                                                                                 |
+---------------------------------------------------------------------------------------------------
+"###,
+        )
+    );
+    e.charpress('x')?;
+    assert!(e.expect("(1) Buy"));
     Ok(())
 }

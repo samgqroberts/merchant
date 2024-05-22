@@ -7,7 +7,7 @@ use rand::{
 use super::{
     constants::{GOLD_PER_PIRATE_VICTORY_MAX, GOLD_PER_PIRATE_VICTORY_MIN},
     locations::{LocationInfo, PriceConfig},
-    Good, Inventory, LocationEvent,
+    Good, Inventory, LocationEvent, NoEffectEvent,
 };
 
 /// A trait that abstracts the pieces of logic that need to use some kind of random number generation.
@@ -131,6 +131,15 @@ impl MerchantRng for StdRng {
                     let more_hold: u32 = self.gen_range(65..130);
                     Some(LocationEvent::CanBuyHoldSpace { price, more_hold })
                 }
+                // no effect
+                8 => {
+                    let no_effect_event_possibilities: [NoEffectEvent; 2] =
+                        [NoEffectEvent::SunnyDay, NoEffectEvent::StormOnHorizon];
+                    let weights: [u8; 2] = [1, 1];
+                    let dist = WeightedIndex::new(weights).unwrap();
+                    let no_effect_event = no_effect_event_possibilities[dist.sample(self)];
+                    Some(LocationEvent::NoEffect(no_effect_event))
+                }
                 _ => unreachable!(),
             };
         };
@@ -164,8 +173,6 @@ fn logarithmic_decay(count: u32, decay_factor: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use rand::SeedableRng;
-
-    use crate::state::PirateEncounterState;
 
     use super::*;
 
@@ -221,9 +228,10 @@ mod tests {
                     rum: 59,
                     cotton: 7
                 },
-                event: Some(LocationEvent::PirateEncounter(
-                    PirateEncounterState::Initial
-                ))
+                event: Some(LocationEvent::CanBuyHoldSpace {
+                    price: 905,
+                    more_hold: 67
+                })
             }
         );
     }
