@@ -1635,3 +1635,75 @@ fn pirate_encounter_fight_did_not_sink_pirate() -> UpdateResult<()> {
     assert!(e.expect("The pirates fire their cannons at you"));
     Ok(())
 }
+
+#[test]
+fn can_buy_hold_space_accept() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(MockRng::new_with_default_locations().into());
+        state.initialize();
+        state.gold = 500;
+        state.hold_size = 200;
+        state.mode = Mode::GameEvent(LocationEvent::CanBuyHoldSpace {
+            price: 410,
+            more_hold: 95,
+        });
+        state
+    })?;
+    assert!(e.expect("An earnest youth on the docks"));
+    assert!(e.expect("offers to clear out the unusable"));
+    assert!(e.expect("space in your hold."));
+    assert!(e.expect("Pay him 410 gold for 95 more hold space?"));
+    assert!(e.expect("(y/n)"));
+    e.charpress('y')?;
+    assert!(e.expect("Hold:  295"));
+    assert!(e.expect("Gold:      90"));
+    Ok(())
+}
+
+#[test]
+fn can_buy_hold_space_refuse() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(MockRng::new_with_default_locations().into());
+        state.initialize();
+        state.gold = 500;
+        state.hold_size = 200;
+        state.mode = Mode::GameEvent(LocationEvent::CanBuyHoldSpace {
+            price: 410,
+            more_hold: 95,
+        });
+        state
+    })?;
+    assert!(e.expect("An earnest youth on the docks"));
+    assert!(e.expect("offers to clear out the unusable"));
+    assert!(e.expect("space in your hold."));
+    assert!(e.expect("Pay him 410 gold for 95 more hold space?"));
+    assert!(e.expect("(y/n)"));
+    e.charpress('n')?; // no effect
+    assert!(e.expect("(1) Buy"));
+    assert!(e.expect("Hold:  200"));
+    assert!(e.expect("Gold:     500"));
+    Ok(())
+}
+
+#[test]
+fn can_buy_hold_space_not_enough_gold() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(MockRng::new_with_default_locations().into());
+        state.initialize();
+        state.gold = 300;
+        state.hold_size = 200;
+        state.mode = Mode::GameEvent(LocationEvent::CanBuyHoldSpace {
+            price: 410,
+            more_hold: 95,
+        });
+        state
+    })?;
+    assert!(e.expect("An earnest youth on the docks"));
+    assert!(e.expect("offers to clear out the unusable"));
+    assert!(e.expect("space in your hold."));
+    assert!(e.expect("Pay him 410 gold for 95 more hold space?"));
+    assert!(e.expect("(y/n)"));
+    e.charpress('y')?; // no effect
+    assert!(e.expect("An earnest youth on the docks"));
+    Ok(())
+}

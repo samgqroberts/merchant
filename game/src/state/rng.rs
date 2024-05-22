@@ -80,7 +80,7 @@ impl MerchantRng for StdRng {
         let mut location_info = LocationInfo::empty();
         location_info.prices = randomized_inventory(self, price_config);
         if allow_events {
-            let event_possibilities: [u8; 7] = [
+            let event_possibilities: [u8; 8] = [
                 0, // no event
                 1, // cheap good
                 2, // expensive good
@@ -88,8 +88,9 @@ impl MerchantRng for StdRng {
                 4, // stolen goods
                 5, // can buy cannon
                 6, // pirate encounter
+                7, // can buy more hold space
             ];
-            let weights: [u8; 7] = [6, 1, 1, 1, 1, 1, 1];
+            let weights: [u8; 8] = [6, 1, 1, 1, 1, 1, 1, 1];
             let dist = WeightedIndex::new(weights).unwrap();
             location_info.event = match event_possibilities[dist.sample(self)] {
                 // no event
@@ -124,6 +125,12 @@ impl MerchantRng for StdRng {
                 6 => Some(LocationEvent::PirateEncounter(
                     super::PirateEncounterState::Initial,
                 )),
+                // can buy more hold space
+                7 => {
+                    let price: u32 = self.gen_range(500..1500);
+                    let more_hold: u32 = self.gen_range(65..130);
+                    Some(LocationEvent::CanBuyHoldSpace { price, more_hold })
+                }
                 _ => unreachable!(),
             };
         };

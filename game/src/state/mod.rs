@@ -88,6 +88,7 @@ pub enum LocationEvent {
     GoodsStolen(Option<GoodsStolenResult>),
     CanBuyCannon,
     PirateEncounter(PirateEncounterState),
+    CanBuyHoldSpace { price: u32, more_hold: u32 },
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -794,6 +795,19 @@ impl GameState {
         } else {
             Err(StateError::InvalidMode(self.mode.clone()))
         }
+    }
+
+    pub(crate) fn confirm_buy_hold_space(
+        &mut self,
+        price: u32,
+        more_hold: u32,
+    ) -> Result<(), StateError> {
+        if self.gold >= price {
+            self.gold -= price;
+            self.hold_size += more_hold;
+            self.acknowledge_event()?;
+        }
+        Ok(())
     }
 }
 

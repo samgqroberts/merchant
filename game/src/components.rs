@@ -1157,6 +1157,38 @@ impl Command for CanBuyCannon {
     }
 }
 
+pub struct CanBuyHoldSpace {
+    pub price: u32,
+    pub more_hold: u32,
+}
+
+impl Command for CanBuyHoldSpace {
+    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+        comp!(
+            f,
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y),
+            Print("An earnest youth on the docks"),
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 1),
+            Print("offers to clear out the unusable"),
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 2),
+            Print("space in your hold."),
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 3),
+            Print(format!(
+                "Pay him {} gold for {} more hold space?",
+                self.price, self.more_hold
+            )),
+            MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 5),
+            Print("(y/n)"),
+        );
+        Ok(())
+    }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
+    }
+}
+
 pub struct PirateEncounter {
     pub pirate_encounter_state: PirateEncounterState,
     pub cannons: u8,

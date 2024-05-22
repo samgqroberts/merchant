@@ -13,11 +13,11 @@ use std::{
 
 use crate::{
     components::{
-        BankDepositInput, BankWithdrawInput, BuyInput, BuyPrompt, CanBuyCannon, CheapGoodDialog,
-        ExpensiveGoodDialog, FindGoodsDialog, GameEndScreen, GoodsStolenDialog, PayDebtInput,
-        PirateEncounter, SailPrompt, SellInput, SellPrompt, SplashScreen, StashDepositInput,
-        StashDepositPrompt, StashWithdrawInput, StashWithdrawPrompt, ViewingInventoryActions,
-        ViewingInventoryBase,
+        BankDepositInput, BankWithdrawInput, BuyInput, BuyPrompt, CanBuyCannon, CanBuyHoldSpace,
+        CheapGoodDialog, ExpensiveGoodDialog, FindGoodsDialog, GameEndScreen, GoodsStolenDialog,
+        PayDebtInput, PirateEncounter, SailPrompt, SellInput, SellPrompt, SplashScreen,
+        StashDepositInput, StashDepositPrompt, StashWithdrawInput, StashWithdrawPrompt,
+        ViewingInventoryActions, ViewingInventoryBase,
     },
     state::{GameState, Good, Location, LocationEvent, Mode, PirateEncounterState, StateError},
 };
@@ -514,9 +514,22 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                             Ok(())
                         }));
                     }
-                    _ => {
-                        // TODO<samgqroberts> 2024-04-10 return Error type.
-                        panic!("Unknown location event.");
+                    // TODO<samgqroberts> 2024-04-10 use actual error type
+                    LocationEvent::PirateEncounter(_) => panic!("Cannot encounter pirates here"),
+                    LocationEvent::CanBuyHoldSpace { price, more_hold } => {
+                        let price = *price;
+                        let more_hold = *more_hold;
+                        queue!(writer, CanBuyHoldSpace { price, more_hold })?;
+                        return Ok(Box::new(move |event: KeyEvent, state: &mut GameState| {
+                            if let KeyCode::Char(c) = event.code {
+                                if c == 'y' {
+                                    state.confirm_buy_hold_space(price, more_hold)?;
+                                } else if c == 'n' {
+                                    state.acknowledge_event()?;
+                                }
+                            }
+                            Ok(())
+                        }));
                     }
                 },
             }
