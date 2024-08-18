@@ -80,7 +80,7 @@ impl MerchantRng for StdRng {
         let mut location_info = LocationInfo::empty();
         location_info.prices = randomized_inventory(self, price_config);
         if allow_events {
-            let event_possibilities: [u8; 8] = [
+            let event_possibilities: [u8; 9] = [
                 0, // no event
                 1, // cheap good
                 2, // expensive good
@@ -89,8 +89,9 @@ impl MerchantRng for StdRng {
                 5, // can buy cannon
                 6, // pirate encounter
                 7, // can buy more hold space
+                8, // no effect
             ];
-            let weights: [u8; 8] = [6, 1, 1, 1, 1, 1, 1, 1];
+            let weights: [u8; 9] = [6, 1, 1, 1, 1, 1, 1, 1, 1];
             let dist = WeightedIndex::new(weights).unwrap();
             location_info.event = match event_possibilities[dist.sample(self)] {
                 // no event
@@ -228,10 +229,7 @@ mod tests {
                     rum: 59,
                     cotton: 7
                 },
-                event: Some(LocationEvent::CanBuyHoldSpace {
-                    price: 905,
-                    more_hold: 67
-                })
+                event: Some(LocationEvent::NoEffect(NoEffectEvent::SunnyDay))
             }
         );
     }
