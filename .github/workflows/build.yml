@@ -12,10 +12,6 @@ jobs:
             os: ubuntu-20.04
             target: x86_64-unknown-linux-gnu
             bin: merchant
-          - release_for: Windows-x86_64
-            os: windows-latest
-            target: x86_64-pc-windows-msvc
-            bin: merchant.exe
           - release_for: macOS-x86_64
             os: macOS-latest
             target: x86_64-apple-darwin
@@ -42,8 +38,17 @@ jobs:
           override: true
       - name: Build binary
         run: cargo build --release
+      - name: Create tarball
+        id: tarball
+        env:
+          TARBALLNAME: ${{ format('merchant-{0}-{1}.tar.gz', steps.gameversion.outputs.value, matrix.platform.target) }}
+        run: |
+          cd target/release
+          tar -czf $TARBALLNAME merchant
+          echo "tarballname=$TARBALLNAME" >> $GITHUB_OUTPUT
+          echo "shasum: $(shasum $TARBALLNAME | head -n1 | awk '{print $1;}')" >> $GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v4
         with:
-            name: ${{ format('merchant-{0}-{1}', steps.gameversion.outputs.value, matrix.platform.target) }}
-            path: target/release/merchant*
+            name: ${{ steps.tarball.outputs.tarballname }}
+            path: target/release/merchant-*.tar.gz
             if-no-files-found: warn
