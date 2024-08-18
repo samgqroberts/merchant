@@ -43,7 +43,7 @@ fn splash_screen_into_inventory() -> UpdateResult<()> {
 |                                                                                                 |
 |                                                                                                 |
 |                                                                                                 |
-|                                                                                                 |
+|                      You have three years to make as much gold as you can!                      |
 |                                                                                                 |
 |                                    Press any key to begin                                       |
 |                                                                                                 |

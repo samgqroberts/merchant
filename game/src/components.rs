@@ -37,6 +37,14 @@ impl Command for SplashScreen {
             Print("A tribute to Drug Wars by samgqroberts"),
             MoveTo(38, 14),
             Print("www.samgqroberts.com"),
+            MoveTo(1, 23),
+            Print(
+                CenteredText(
+                    "You have three years to make as much gold as you can!".to_string(),
+                    (FRAME_WIDTH - 2).into()
+                )
+                .to_string()
+            ),
             MoveTo(37, 25),
             Print(style("Press any key to begin").attribute(Attribute::Bold),),
             Hide
