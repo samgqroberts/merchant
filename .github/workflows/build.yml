@@ -12,26 +12,28 @@ jobs:
             os: ubuntu-20.04
             target: x86_64-unknown-linux-gnu
             bin: merchant
-            name: merchant-x86_64-unknown-linux-gnu
           - release_for: Windows-x86_64
             os: windows-latest
             target: x86_64-pc-windows-msvc
             bin: merchant.exe
-            name: merchant-x86_64-pc-windows-msvc
           - release_for: macOS-x86_64
             os: macOS-latest
             target: x86_64-apple-darwin
             bin: merchant
-            name: merchant-x86_64-apple-darwin
           - release_for: macOS-aarch64
             os: macOS-latest
             target: aarch64-apple-darwin
             bin: merchant
-            name: merchant-aarch64-apple-darwin
     runs-on: ${{ matrix.platform.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Get current rust app version from Cargo.toml.
+        id: gameversion
+        uses: SebRollen/toml-action@v1.2.0
+        with:
+          file: 'game/Cargo.toml'
+          field: 'package.version'
       - name: Toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -42,6 +44,6 @@ jobs:
         run: cargo build --release
       - uses: actions/upload-artifact@v4
         with:
-            name: ${{ matrix.platform.name }}
+            name: ${{ format('merchant-{0}-{1}', steps.gameversion.outputs.value, matrix.platform.target) }}
             path: target/release/merchant*
             if-no-files-found: warn
