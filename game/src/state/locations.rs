@@ -1,4 +1,4 @@
-use super::{rng::MerchantRng, Inventory, Location, LocationEvent};
+use super::{Inventory, Location, LocationEvent, MerchantRng};
 
 #[derive(Clone, Debug)]
 pub struct PriceConfig {
