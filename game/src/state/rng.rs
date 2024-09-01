@@ -63,6 +63,7 @@ impl MerchantRng for StdRng {
         self.gen_range(2..=4)
     }
 
+    // TODO gen_range panics if range is empty
     fn gen_good_stolen(&mut self, goods_with_inventory: &[(Good, u32)]) -> (Good, u32) {
         let index = self.gen_range(0..goods_with_inventory.len());
         // safe unwrap, we generated the index to be in range

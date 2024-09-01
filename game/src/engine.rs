@@ -53,12 +53,12 @@ impl FromKeyCode for Good {
     fn from_key_code(key_code: &KeyCode) -> Option<Self> {
         if let KeyCode::Char(c) = key_code {
             match c {
-                '1' => Some(Good::Tea),
-                '2' => Some(Good::Coffee),
-                '3' => Some(Good::Sugar),
-                '4' => Some(Good::Tobacco),
-                '5' => Some(Good::Rum),
-                '6' => Some(Good::Cotton),
+                '1' | 't' => Some(Good::Tea),
+                '2' | 'c' => Some(Good::Coffee),
+                '3' | 's' => Some(Good::Sugar),
+                '4' | 'a' => Some(Good::Tobacco),
+                '5' | 'r' => Some(Good::Rum),
+                '6' | 'o' => Some(Good::Cotton),
                 _ => None,
             }
         } else {
@@ -71,12 +71,12 @@ impl FromKeyCode for Location {
     fn from_key_code(key_code: &KeyCode) -> Option<Self> {
         if let KeyCode::Char(c) = key_code {
             match c {
-                '1' => Some(Location::London),
-                '2' => Some(Location::Savannah),
-                '3' => Some(Location::Lisbon),
-                '4' => Some(Location::Amsterdam),
-                '5' => Some(Location::CapeTown),
-                '6' => Some(Location::Venice),
+                '1' | 'l' => Some(Location::London),
+                '2' | 's' => Some(Location::Savannah),
+                '3' | 'i' => Some(Location::Lisbon),
+                '4' | 'a' => Some(Location::Amsterdam),
+                '5' | 'c' => Some(Location::CapeTown),
+                '6' | 'v' => Some(Location::Venice),
                 _ => None,
             }
         } else {
@@ -196,25 +196,27 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                     )?;
                     return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char(ch) = event.code {
-                            if ch == '1' {
+                            if ch == '1' || ch == 'b' {
                                 state.begin_buying()?;
-                            } else if ch == '2' {
+                            } else if ch == '2' || ch == 's' {
                                 state.begin_selling()?;
-                            } else if ch == '3' {
+                            } else if ch == '3' || ch == 'a' {
                                 state.begin_sailing()?;
                             };
                             if state.location == Location::London {
-                                if ch == '4' {
+                                if ch == '4' || ch == 'd' {
                                     state.begin_stash_deposit()?;
-                                } else if ch == '5' {
+                                } else if ch == '5' || ch == 'w' {
                                     state.begin_stash_withdraw()?;
-                                } else if ch == '6' {
+                                } else if ch == '6' || ch == 'e' {
                                     state.begin_bank_deposit()?;
-                                } else if ch == '7' {
+                                } else if ch == '7' || ch == 'i' {
                                     state.begin_bank_withdraw()?;
                                 }
-                                if state.debt > 0 && ch == '8' {
-                                    state.begin_pay_debt()?;
+                                if state.debt > 0 {
+                                    if ch == '8' || ch == 'p' {
+                                        state.begin_pay_debt()?;
+                                    }
                                 }
                             }
                         }

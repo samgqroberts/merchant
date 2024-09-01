@@ -254,6 +254,40 @@ impl<'a> Command for CurrentPrices<'a> {
     }
 }
 
+pub struct KeyInputAction {
+    num_key: u8,
+    char_key: char,
+    text: String,
+}
+
+impl Command for KeyInputAction {
+    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+        let char_index = self
+            .text
+            .to_ascii_lowercase()
+            .char_indices()
+            .find(|x| x.1 == self.char_key)
+            .expect("Char for KeyInputAction not found in text")
+            .0;
+        let segment_before = &self.text[..char_index];
+        let char_segment = &self.text[char_index..(char_index + 1)];
+        let segment_after = &self.text[(char_index + 1)..];
+        comp!(
+            f,
+            Print(format!("({}) ", self.num_key)),
+            Print(segment_before),
+            Print(style(char_segment).attribute(Attribute::Underlined)),
+            Print(segment_after),
+        );
+        Ok(())
+    }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        todo!()
+    }
+}
+
 pub struct ViewingInventoryActions<'a> {
     pub location: &'a Location,
     pub debt: u32,
@@ -269,29 +303,61 @@ impl<'a> Command for ViewingInventoryActions<'a> {
             f,
             // actions
             MoveTo(OFFSET_X, OFFSET_Y),
-            Print("(1) Buy"),
+            KeyInputAction {
+                num_key: 1,
+                char_key: 'b',
+                text: "Buy".to_owned()
+            },
             MoveTo(OFFSET_X, OFFSET_Y + 1),
-            Print("(2) Sell"),
+            KeyInputAction {
+                num_key: 2,
+                char_key: 's',
+                text: "Sell".to_owned()
+            },
             MoveTo(OFFSET_X, OFFSET_Y + 2),
-            Print("(3) Sail"),
+            KeyInputAction {
+                num_key: 3,
+                char_key: 'a',
+                text: "Sail".to_owned()
+            },
         );
         if location == &Location::London {
             comp!(
                 f,
                 MoveTo(OFFSET_X, OFFSET_Y + 3),
-                Print("(4) Stash deposit"),
+                KeyInputAction {
+                    num_key: 4,
+                    char_key: 'd',
+                    text: "Stash deposit".to_owned()
+                },
                 MoveTo(OFFSET_X, OFFSET_Y + 4),
-                Print("(5) Stash withdraw"),
+                KeyInputAction {
+                    num_key: 5,
+                    char_key: 'w',
+                    text: "Stash withdraw".to_owned()
+                },
                 MoveTo(OFFSET_X, OFFSET_Y + 5),
-                Print("(6) Bank deposit"),
+                KeyInputAction {
+                    num_key: 6,
+                    char_key: 'e',
+                    text: "Bank deposit".to_owned()
+                },
                 MoveTo(OFFSET_X, OFFSET_Y + 6),
-                Print("(7) Bank withdraw"),
+                KeyInputAction {
+                    num_key: 7,
+                    char_key: 'i',
+                    text: "Bank withdraw".to_owned()
+                },
             );
             if debt > 0 {
                 comp!(
                     f,
                     MoveTo(OFFSET_X, OFFSET_Y + 7),
-                    Print("(8) Pay down debt"),
+                    KeyInputAction {
+                        num_key: 8,
+                        char_key: 'p',
+                        text: "Pay down debt".to_owned()
+                    },
                 );
             }
         }
@@ -774,17 +840,41 @@ impl Command for GoodOptions {
         comp!(
             f,
             MoveTo(offset_x, offset_y),
-            Print("(1) Tea"),
+            KeyInputAction {
+                num_key: 1,
+                char_key: 't',
+                text: "Tea".to_owned()
+            },
             MoveTo(offset_x, offset_y + 1),
-            Print("(2) Coffee"),
+            KeyInputAction {
+                num_key: 2,
+                char_key: 'c',
+                text: "Coffee".to_owned()
+            },
             MoveTo(offset_x, offset_y + 2),
-            Print("(3) Sugar"),
+            KeyInputAction {
+                num_key: 3,
+                char_key: 's',
+                text: "Sugar".to_owned()
+            },
             MoveTo(offset_x, offset_y + 3),
-            Print("(4) Tobacco"),
+            KeyInputAction {
+                num_key: 4,
+                char_key: 'a',
+                text: "Tobacco".to_owned()
+            },
             MoveTo(offset_x, offset_y + 4),
-            Print("(5) Rum"),
+            KeyInputAction {
+                num_key: 5,
+                char_key: 'r',
+                text: "Rum".to_owned()
+            },
             MoveTo(offset_x, offset_y + 5),
-            Print("(6) Cotton"),
+            KeyInputAction {
+                num_key: 6,
+                char_key: 'o',
+                text: "Cotton".to_owned()
+            },
             MoveTo(offset_x, offset_y + 6),
             Print("(b) <- back"),
         );
@@ -867,17 +957,41 @@ impl Command for SailPrompt {
             MoveTo(OFFSET_X, OFFSET_Y),
             Print("Where do you want to sail?"),
             MoveTo(OFFSET_X, OFFSET_Y + 1),
-            Print("(1) London"),
+            KeyInputAction {
+                num_key: 1,
+                char_key: 'l',
+                text: "London".to_owned()
+            },
             MoveTo(OFFSET_X, OFFSET_Y + 2),
-            Print("(2) Savannah"),
+            KeyInputAction {
+                num_key: 2,
+                char_key: 's',
+                text: "Savannah".to_owned()
+            },
             MoveTo(OFFSET_X, OFFSET_Y + 3),
-            Print("(3) Lisbon"),
+            KeyInputAction {
+                num_key: 3,
+                char_key: 'i',
+                text: "Lisbon".to_owned()
+            },
             MoveTo(OFFSET_X, OFFSET_Y + 4),
-            Print("(4) Amsterdam"),
+            KeyInputAction {
+                num_key: 4,
+                char_key: 'a',
+                text: "Amsterdam".to_owned()
+            },
             MoveTo(OFFSET_X, OFFSET_Y + 5),
-            Print("(5) Cape Town"),
+            KeyInputAction {
+                num_key: 5,
+                char_key: 'c',
+                text: "Cape Town".to_owned()
+            },
             MoveTo(OFFSET_X, OFFSET_Y + 6),
-            Print("(6) Venice"),
+            KeyInputAction {
+                num_key: 6,
+                char_key: 'v',
+                text: "Venice".to_owned()
+            },
             MoveTo(OFFSET_X, OFFSET_Y + 7),
             Print("(b) <- back"),
         );
