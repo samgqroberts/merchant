@@ -24,6 +24,5 @@ pub use self::location::Location;
 #[cfg(test)]
 pub use self::locations::LocationInfo;
 pub use self::locations::Locations;
-#[cfg(test)]
 pub use self::locations::PriceConfig;
 pub use self::rng::MerchantRng;

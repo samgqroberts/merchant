@@ -23,8 +23,12 @@ pub trait MerchantRng {
     fn gen_run_success(&mut self, cur_pirates: u8) -> bool;
     fn gen_num_pirates_encountered(&mut self) -> u8;
     fn gen_good_stolen(&mut self, goods_with_inventory: &[(Good, u32)]) -> (Good, u32);
-    fn gen_location_info(&mut self, allow_events: bool, price_config: &PriceConfig)
-        -> LocationInfo;
+    fn gen_location_info(
+        &mut self,
+        allow_events: bool,
+        price_config: &PriceConfig,
+        player_net_worth: i32,
+    ) -> LocationInfo;
 }
 
 impl MerchantRng for StdRng {
@@ -81,9 +85,10 @@ impl MerchantRng for StdRng {
         &mut self,
         allow_events: bool,
         price_config: &PriceConfig,
+        player_net_worth: i32,
     ) -> LocationInfo {
         let mut location_info = LocationInfo::empty();
-        location_info.prices = randomized_inventory(self, price_config);
+        location_info.prices = price_config.randomized_inventory(self);
         if allow_events {
             let event_possibilities: [u8; 9] = [
                 0, // no event
@@ -119,7 +124,49 @@ impl MerchantRng for StdRng {
                 }
                 // find goods
                 3 => {
-                    let good = Good::random(self);
+                    // for all goods, get a "comparison price"
+                    // where the good whose comparison price that the player's net worth is closest to
+                    // represents the current phase of the player's progression.
+                    // eg. if the multiple is 30, and the player's net worth is closest to 30 * the avg price of rum,
+                    //     then the player is in the "rum" phase of the game.
+                    const COMPARISON_PRICE_MULTIPLE: u32 = 30;
+                    let comparison_prices = price_config
+                        .avg_prices()
+                        .map(|x| x * COMPARISON_PRICE_MULTIPLE);
+                    // compare how close the player's current net worth is to the "comparison price"
+                    // of each good to produce a probability weight for the user to find that good.
+                    // eg. it should be impossible to find tea if the player has a very low net worth.
+                    let net_worth: u32 = if player_net_worth < 0 {
+                        0
+                    } else {
+                        player_net_worth as u32
+                    };
+                    let comparison_distances = Inventory {
+                        tea: comparison_prices.tea.abs_diff(net_worth),
+                        coffee: comparison_prices.coffee.abs_diff(net_worth),
+                        sugar: comparison_prices.sugar.abs_diff(net_worth),
+                        tobacco: comparison_prices.tobacco.abs_diff(net_worth),
+                        rum: comparison_prices.rum.abs_diff(net_worth),
+                        cotton: comparison_prices.cotton.abs_diff(net_worth),
+                    };
+                    let weights: [u8; 6] = match comparison_distances.max_good() {
+                        Good::Tea => [2, 2, 1, 1, 1, 1],
+                        Good::Coffee => [1, 2, 2, 1, 1, 1],
+                        Good::Sugar => [1, 1, 2, 2, 1, 1],
+                        Good::Tobacco => [0, 1, 1, 2, 2, 1],
+                        Good::Rum => [0, 0, 1, 1, 2, 2],
+                        Good::Cotton => [0, 0, 0, 1, 1, 2],
+                    };
+                    let dist = WeightedIndex::new(weights).unwrap();
+                    const GOODS_SLICE: [Good; 6] = [
+                        Good::Tea,
+                        Good::Coffee,
+                        Good::Sugar,
+                        Good::Tobacco,
+                        Good::Rum,
+                        Good::Cotton,
+                    ];
+                    let good = GOODS_SLICE[dist.sample(self)];
                     let amount = (self.next_u32() % 10) + 1;
                     Some(LocationEvent::FindGoods(good, amount))
                 }
@@ -150,23 +197,6 @@ impl MerchantRng for StdRng {
             };
         };
         location_info
-    }
-}
-
-pub fn randomized_inventory(rng: &mut StdRng, config: &PriceConfig) -> Inventory {
-    let starting_gold = config.starting_gold;
-    let mut gen = |low_multiple: f32, high_multiple: f32| -> u32 {
-        let low = (starting_gold as f32 * low_multiple).floor() as u32;
-        let high = (starting_gold as f32 * high_multiple).floor() as u32;
-        rng.next_u32() % (high - low) + low
-    };
-    Inventory {
-        tea: gen(config.tea.0, config.tea.1),
-        coffee: gen(config.coffee.0, config.coffee.1),
-        sugar: gen(config.sugar.0, config.sugar.1),
-        tobacco: gen(config.tobacco.0, config.tobacco.1),
-        rum: gen(config.rum.0, config.rum.1),
-        cotton: gen(config.cotton.0, config.cotton.1),
     }
 }
 
@@ -223,7 +253,8 @@ mod tests {
                     tobacco: (0.15, 0.35),
                     rum: (0.04, 0.14),
                     cotton: (0.005, 0.025),
-                }
+                },
+                10000
             ),
             LocationInfo {
                 prices: Inventory {

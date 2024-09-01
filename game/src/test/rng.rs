@@ -49,7 +49,12 @@ impl MerchantRng for MockRng {
             .expect("MockRng not seeded with enough good_stolen")
     }
 
-    fn gen_location_info(&mut self, _: bool, _: &crate::state::PriceConfig) -> LocationInfo {
+    fn gen_location_info(
+        &mut self,
+        _: bool,
+        _: &crate::state::PriceConfig,
+        _: i32,
+    ) -> LocationInfo {
         self.location_info
             .pop_front()
             .expect("MockRng not seeded with enough location_info")

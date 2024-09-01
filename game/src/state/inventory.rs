@@ -1,4 +1,4 @@
-use super::Good;
+use super::{Good, PriceConfig};
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Inventory {
@@ -55,6 +55,38 @@ impl Inventory {
 
     pub(crate) fn iter(&self) -> std::vec::IntoIter<(Good, u32)> {
         self.into_iter()
+    }
+
+    pub fn map<F>(&self, f: F) -> Inventory
+    where
+        F: Fn(u32) -> u32,
+    {
+        Inventory {
+            tea: f(self.tea),
+            coffee: f(self.coffee),
+            sugar: f(self.sugar),
+            tobacco: f(self.tobacco),
+            rum: f(self.rum),
+            cotton: f(self.cotton),
+        }
+    }
+
+    /// computes the net worth of the amount of goods in this inventory according to the provided [PriceConfig].
+    pub(crate) fn net_worth(&self, price_config: &PriceConfig) -> i32 {
+        let avg_prices = price_config.avg_prices();
+        ((self.tea * avg_prices.tea)
+            + (self.coffee * avg_prices.coffee)
+            + (self.sugar * avg_prices.sugar)
+            + (self.tobacco * avg_prices.tobacco)
+            + (self.rum * avg_prices.rum)
+            + (self.cotton * avg_prices.cotton)) as i32
+    }
+
+    pub(crate) fn max_good(&self) -> Good {
+        self.iter()
+            .max_by_key(|x| x.1)
+            .expect("inventory iterators are always nonempty")
+            .0
     }
 }
 
