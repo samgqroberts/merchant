@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::state::{locations::LocationInfo, rng::MerchantRng, Good, Inventory};
+use crate::state::{Good, Inventory, LocationInfo, MerchantRng};
 
 pub struct MockRng {
     gold_recovered_from_pirate_encounter: VecDeque<u32>,
@@ -49,11 +49,7 @@ impl MerchantRng for MockRng {
             .expect("MockRng not seeded with enough good_stolen")
     }
 
-    fn gen_location_info(
-        &mut self,
-        _: bool,
-        _: &crate::state::locations::PriceConfig,
-    ) -> LocationInfo {
+    fn gen_location_info(&mut self, _: bool, _: &crate::state::PriceConfig) -> LocationInfo {
         self.location_info
             .pop_front()
             .expect("MockRng not seeded with enough location_info")

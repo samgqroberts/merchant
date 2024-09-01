@@ -4,10 +4,14 @@ use rand::{
     Rng, RngCore,
 };
 
+use super::Good;
+use super::Inventory;
 use super::{
     constants::{GOLD_PER_PIRATE_VICTORY_MAX, GOLD_PER_PIRATE_VICTORY_MIN},
+    game_state::LocationEvent,
+    game_state::NoEffectEvent,
+    game_state::PirateEncounterState,
     locations::{LocationInfo, PriceConfig},
-    Good, Inventory, LocationEvent, NoEffectEvent,
 };
 
 /// A trait that abstracts the pieces of logic that need to use some kind of random number generation.
@@ -125,7 +129,7 @@ impl MerchantRng for StdRng {
                 5 => Some(LocationEvent::CanBuyCannon),
                 // pirate encounter
                 6 => Some(LocationEvent::PirateEncounter(
-                    super::PirateEncounterState::Initial,
+                    PirateEncounterState::Initial,
                 )),
                 // can buy more hold space
                 7 => {
