@@ -27,26 +27,32 @@ fn tokenize_ansi(s: &str) -> Vec<Output<'_>> {
     let move_cursor_down_regex = Regex::new(r"\u{1b}\[\d+E").unwrap();
     let parsed = s.ansi_parse().flat_map(|token| {
         let mut broken_out: Vec<Output> = Vec::new();
-        if let Output::TextBlock(mut text) = token {
-            while let Some(match_) = move_cursor_down_regex.find(text) {
-                let num_to_move = text
-                    .split('[')
-                    .skip(1)
-                    .collect::<String>()
-                    .split('E')
-                    .take(1)
-                    .collect::<String>();
-                let num_to_move = num_to_move.parse().unwrap();
-                broken_out.push(Output::Escape(AnsiSequence::CursorDown(num_to_move)));
-                broken_out.push(Output::Escape(AnsiSequence::CursorBackward(999999999)));
-                text = &text[match_.end()..];
+        match token {
+            Output::TextBlock(mut text) => {
+                while let Some(match_) = move_cursor_down_regex.find(text) {
+                    let num_to_move = text
+                        .split('[')
+                        .skip(1)
+                        .collect::<String>()
+                        .split('E')
+                        .take(1)
+                        .collect::<String>();
+                    let num_to_move = num_to_move.parse().unwrap();
+                    broken_out.push(Output::Escape(AnsiSequence::CursorDown(num_to_move)));
+                    broken_out.push(Output::Escape(AnsiSequence::CursorBackward(999999999)));
+                    text = &text[match_.end()..];
+                }
+                if !text.is_empty() {
+                    broken_out.push(TextBlock(text));
+                }
             }
-            if !text.is_empty() {
-                broken_out.push(TextBlock(text));
+            Escape(AnsiSequence::SetGraphicsMode(_)) => {
+                dbg!("skipping");
             }
-        } else {
-            broken_out.push(token);
-        }
+            _ => {
+                broken_out.push(token);
+            }
+        };
         broken_out
     });
     parsed.collect()
@@ -93,6 +99,7 @@ pub fn raw_format_ansi(s: &str) -> String {
     let mut cursor_pos: (usize, usize) = (0, 0);
     let tokens = tokenize_ansi(s);
     for token in tokens {
+        dbg!(&token);
         if let Escape(sequence) = token {
             if let CursorPos(row, col) = sequence {
                 let row: usize = row.try_into().unwrap();
@@ -141,11 +148,13 @@ pub fn raw_format_ansi(s: &str) -> String {
                     line.push(char);
                 }
                 index += 1;
+                cursor_pos.1 += 1;
             }
         } else {
             continue;
         }
     }
+    dbg!(&lines);
     lines.join("\n")
 }
 
@@ -157,7 +166,7 @@ pub mod tests {
     use captured_write::CapturedWrite;
     use crossterm::cursor::{MoveDown, MoveLeft, MoveRight, MoveTo, MoveToNextLine, MoveUp};
     use crossterm::execute;
-    use crossterm::style::{Attribute, Color, Print, PrintStyledContent, Stylize};
+    use crossterm::style::{style, Attribute, Color, Print, PrintStyledContent, Stylize};
     use crossterm::terminal::Clear;
     use std::io;
 
@@ -249,7 +258,29 @@ pub mod tests {
             Print("6"),
         )?;
         let stripped = raw_format_ansi(&fake.buffer);
-        assert_eq!(stripped, "1\n 6\n\n   23\n\n 5  4");
+        assert_eq!(
+            stripped,
+            r#"1
+     6
+
+   2 3
+
+    5 4"#
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_text_with_underline() -> io::Result<()> {
+        let mut fake = CapturedWrite::new();
+        execute!(
+            fake,
+            Print("1"),
+            Print(style("2").attribute(Attribute::Underlined)),
+            Print("3"),
+        )?;
+        let stripped = raw_format_ansi(&fake.buffer);
+        assert_eq!(stripped, "123");
         Ok(())
     }
 }
