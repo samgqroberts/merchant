@@ -122,7 +122,7 @@ impl GameState {
     pub fn new(mut rng: Box<dyn MerchantRng>) -> GameState {
         let starting_gold = 500;
         let debt = starting_gold * 3;
-        let locations = Locations::new(&mut rng, starting_gold);
+        let locations = Locations::new(&mut rng, starting_gold, debt);
         GameState {
             rng,
             initialized: false,
@@ -147,6 +147,13 @@ impl GameState {
 
     pub fn initialize(&mut self) {
         self.initialized = true;
+    }
+
+    /// compute the net worth the player currently has
+    /// based on inventory, bank, stash, and debt
+    pub fn net_worth(&self) -> i32 {
+        (self.gold as i32) + (self.inventory.net_worth(&self.locations.config)) + (self.bank as i32)
+            - (self.debt as i32)
     }
 
     fn require_viewing_inventory(&self) -> Result<(), StateError> {
@@ -485,9 +492,13 @@ impl GameState {
                     self.game_end = true
                 }
                 // update location info for location we just left
-                let new_location_info =
-                    self.locations
-                        .generate_location(&mut self.rng, destination, true);
+                let player_net_worth = self.net_worth();
+                let new_location_info = self.locations.generate_location(
+                    &mut self.rng,
+                    destination,
+                    true,
+                    player_net_worth,
+                );
                 // set current location
                 self.location = destination.clone();
                 // increment debt, if any
