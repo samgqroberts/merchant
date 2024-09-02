@@ -1,4 +1,4 @@
-use super::{Good, PriceConfig};
+use super::{locations::PriceRanges, Good};
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Inventory {
@@ -81,8 +81,8 @@ impl Inventory {
         }
     }
 
-    /// computes the net worth of the amount of goods in this inventory according to the provided [PriceConfig].
-    pub(crate) fn net_worth(&self, price_config: &PriceConfig) -> i32 {
+    /// computes the net worth of the amount of goods in this inventory according to the provided [PriceRanges].
+    pub(crate) fn net_worth(&self, price_config: &PriceRanges) -> i32 {
         let avg_prices = price_config.avg_prices();
         ((self.tea * avg_prices.tea)
             + (self.coffee * avg_prices.coffee)
@@ -92,6 +92,7 @@ impl Inventory {
             + (self.cotton * avg_prices.cotton)) as i32
     }
 
+    #[allow(dead_code)]
     pub(crate) fn max_good(&self) -> Good {
         self.iter()
             .max_by_key(|x| x.1)
