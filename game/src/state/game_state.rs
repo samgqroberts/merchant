@@ -1,10 +1,11 @@
 use crate::state::{Inventory, Location, Locations};
-use std::borrow::BorrowMut;
+use std::{borrow::BorrowMut, rc::Rc};
 
 use chrono::Month;
 use rand::rngs::StdRng;
+use tracing::debug;
 
-use super::{rng::MerchantRng, Good, StateError};
+use super::{locations::PriceRanges, rng::MerchantRng, Good, StateError};
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Transaction {
@@ -112,6 +113,7 @@ pub struct GameState {
     pub location: Location,
     pub stash: Inventory,
     pub inventory: Inventory,
+    pub price_config: Rc<PriceRanges>,
     pub locations: Locations,
     pub debt: u32,
     pub mode: Mode,
@@ -122,7 +124,17 @@ impl GameState {
     pub fn new(mut rng: Box<dyn MerchantRng>) -> GameState {
         let starting_gold = 500;
         let debt = starting_gold * 3;
-        let locations = Locations::new(&mut rng, starting_gold, debt);
+        let price_config = Rc::new(PriceRanges::from_start_price_and_spreads(
+            starting_gold / 100, // the lowest price for cotton can be bought 100x at game start 
+            [5.0, 3.0, 2.0, 1.5, 1.0, 0.75],
+            [5.0, 4.2, 3.4, 2.6, 1.8],
+        ));
+        debug!("price_config: {}", price_config);
+        let locations = Locations::new(
+            &mut rng,
+            price_config.clone(),
+            starting_gold as i32 - debt as i32,
+        );
         GameState {
             rng,
             initialized: false,
@@ -134,6 +146,7 @@ impl GameState {
             location: Location::London, // home base
             stash: Inventory::default(),
             inventory: Inventory::default(),
+            price_config,
             locations,
             debt,
             mode: Mode::ViewingInventory,

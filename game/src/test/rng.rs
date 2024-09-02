@@ -52,7 +52,7 @@ impl MerchantRng for MockRng {
     fn gen_location_info(
         &mut self,
         _: bool,
-        _: &crate::state::PriceConfig,
+        _: &crate::state::PriceRanges,
         _: i32,
     ) -> LocationInfo {
         self.location_info

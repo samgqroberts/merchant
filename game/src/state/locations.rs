@@ -1,21 +1,10 @@
+use std::{collections::HashMap, rc::Rc};
+
 use rand::{rngs::StdRng, RngCore};
 
-use super::{Inventory, Location, LocationEvent, MerchantRng};
+use super::{Good, Inventory, Location, LocationEvent, MerchantRng};
 
-/// For each good type, contains a "low multiple" and "high multiple".
-/// These multiples are multiplied by the starting gold to produce the range of good prices at any
-/// location.
-#[derive(Clone, Debug)]
-pub struct PriceConfig {
-    pub starting_gold: u32,
-    pub tea: (f32, f32),
-    pub coffee: (f32, f32),
-    pub sugar: (f32, f32),
-    pub tobacco: (f32, f32),
-    pub rum: (f32, f32),
-    pub cotton: (f32, f32),
-}
-
+/// For each good type, define the lowest and highest value the price for that good can be.
 #[derive(Clone, Debug)]
 pub struct PriceRanges {
     pub tea: (u32, u32),
@@ -26,60 +15,135 @@ pub struct PriceRanges {
     pub cotton: (u32, u32),
 }
 
-impl PriceConfig {
-    pub fn price_ranges(&self) -> PriceRanges {
-        let starting_gold = self.starting_gold as f32;
+impl std::fmt::Display for PriceRanges {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut prev_avg: Option<f32> = None;
+        for (good, (low, high)) in self.into_iter().rev() {
+            let spread = (high as f32 - low as f32) / low as f32;
+            let spread = format!("{:.0}", 100.0 * spread);
+            let avg = (high as f32 + low as f32) / 2.0;
+            let over_last = if let Some(prev_avg) = prev_avg {
+                format!(", {:.0}% of prev avg", 100.0 * (avg / prev_avg))
+            } else {
+                "".to_owned()
+            };
+            prev_avg = Some(avg);
+            write!(
+                f,
+                "[{}: {}-{} ({}% spread{})]",
+                good, low, high, spread, over_last
+            )?;
+        }
+        Ok(())
+    }
+}
+
+impl<'a> IntoIterator for &'a PriceRanges {
+    type Item = (Good, (u32, u32));
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let v = vec![
+            (Good::Tea, self.tea),
+            (Good::Coffee, self.coffee),
+            (Good::Sugar, self.sugar),
+            (Good::Tobacco, self.tobacco),
+            (Good::Rum, self.rum),
+            (Good::Cotton, self.cotton),
+        ];
+        v.into_iter()
+    }
+}
+
+impl From<HashMap<Good, (u32, u32)>> for PriceRanges {
+    fn from(mut value: HashMap<Good, (u32, u32)>) -> Self {
         PriceRanges {
-            tea: (
-                (starting_gold as f32 * self.tea.0).floor() as u32,
-                (starting_gold as f32 * self.tea.1).floor() as u32,
-            ),
-            coffee: (
-                (starting_gold as f32 * self.coffee.0).floor() as u32,
-                (starting_gold as f32 * self.coffee.1).floor() as u32,
-            ),
-            sugar: (
-                (starting_gold as f32 * self.sugar.0).floor() as u32,
-                (starting_gold as f32 * self.sugar.1).floor() as u32,
-            ),
-            tobacco: (
-                (starting_gold as f32 * self.tobacco.0).floor() as u32,
-                (starting_gold as f32 * self.tobacco.1).floor() as u32,
-            ),
-            rum: (
-                (starting_gold as f32 * self.rum.0).floor() as u32,
-                (starting_gold as f32 * self.rum.1).floor() as u32,
-            ),
-            cotton: (
-                (starting_gold as f32 * self.cotton.0).floor() as u32,
-                (starting_gold as f32 * self.cotton.1).floor() as u32,
-            ),
+            tea: value
+                .remove(&Good::Tea)
+                .expect("expectation failed: tea present in hashmap"),
+            coffee: value
+                .remove(&Good::Coffee)
+                .expect("expectation failed: coffee present in hashmap"),
+            sugar: value
+                .remove(&Good::Sugar)
+                .expect("expectation failed: sugar present in hashmap"),
+            tobacco: value
+                .remove(&Good::Tobacco)
+                .expect("expectation failed: tobacco present in hashmap"),
+            rum: value
+                .remove(&Good::Rum)
+                .expect("expectation failed: rum present in hashmap"),
+            cotton: value
+                .remove(&Good::Cotton)
+                .expect("expectation failed: cotton present in hashmap"),
         }
     }
+}
 
+impl FromIterator<(Good, (u32, u32))> for PriceRanges {
+    fn from_iter<T: IntoIterator<Item = (Good, (u32, u32))>>(iter: T) -> Self {
+        iter.into_iter()
+            .collect::<HashMap<Good, (u32, u32)>>()
+            .into()
+    }
+}
+
+impl PriceRanges {
     pub fn randomized_inventory(&self, rng: &mut StdRng) -> Inventory {
-        let ranges = self.price_ranges();
         let mut gen = |(low, high): (u32, u32)| -> u32 { rng.next_u32() % (high - low) + low };
         Inventory {
-            tea: gen(ranges.tea),
-            coffee: gen(ranges.coffee),
-            sugar: gen(ranges.sugar),
-            tobacco: gen(ranges.tobacco),
-            rum: gen(ranges.rum),
-            cotton: gen(ranges.cotton),
+            tea: gen(self.tea),
+            coffee: gen(self.coffee),
+            sugar: gen(self.sugar),
+            tobacco: gen(self.tobacco),
+            rum: gen(self.rum),
+            cotton: gen(self.cotton),
         }
     }
 
     pub fn avg_prices(&self) -> Inventory {
-        let ranges = self.price_ranges();
         Inventory {
-            tea: (ranges.tea.0 + ranges.tea.1).div_ceil(2),
-            coffee: (ranges.coffee.0 + ranges.coffee.1).div_ceil(2),
-            sugar: (ranges.sugar.0 + ranges.sugar.1).div_ceil(2),
-            tobacco: (ranges.tobacco.0 + ranges.tobacco.1).div_ceil(2),
-            rum: (ranges.rum.0 + ranges.rum.1).div_ceil(2),
-            cotton: (ranges.cotton.0 + ranges.cotton.1).div_ceil(2),
+            tea: (self.tea.0 + self.tea.1).div_ceil(2),
+            coffee: (self.coffee.0 + self.coffee.1).div_ceil(2),
+            sugar: (self.sugar.0 + self.sugar.1).div_ceil(2),
+            tobacco: (self.tobacco.0 + self.tobacco.1).div_ceil(2),
+            rum: (self.rum.0 + self.rum.1).div_ceil(2),
+            cotton: (self.cotton.0 + self.cotton.1).div_ceil(2),
         }
+    }
+
+    pub(crate) fn from_start_price_and_spreads(
+        cotton_low: u32,
+        spreads: [f32; 6],
+        avg_proportions: [f32; 5],
+    ) -> Self {
+        let cotton_high = (cotton_low as f32 * (1.0 + spreads[0])).ceil() as u32;
+        let cotton_avg = (cotton_low + cotton_high) as f32 / 2.0;
+        let mut last = cotton_avg;
+        let mut averages = vec![cotton_avg];
+        for avg_proportion in avg_proportions {
+            let new_avg = last * (avg_proportion);
+            averages.push(new_avg);
+            last = new_avg;
+        }
+        const GOODS: [Good; 6] = [
+            Good::Cotton,
+            Good::Rum,
+            Good::Tobacco,
+            Good::Sugar,
+            Good::Coffee,
+            Good::Tea,
+        ];
+        averages
+            .into_iter()
+            .zip(spreads)
+            .zip(GOODS)
+            .map(|((avg, spread), good)| {
+                let high = (2.0 * avg * (spread + 1.0)) / (spread + 2.0);
+                let low = high / (spread + 1.0);
+                (good, (low.round() as u32, high.round() as u32))
+            })
+            .collect::<PriceRanges>()
     }
 }
 
@@ -100,7 +164,7 @@ impl LocationInfo {
 
 #[derive(Clone, Debug)]
 pub struct Locations {
-    pub config: PriceConfig,
+    pub config: Rc<PriceRanges>,
     pub london: LocationInfo,
     pub savannah: LocationInfo,
     pub lisbon: LocationInfo,
@@ -112,20 +176,11 @@ pub struct Locations {
 impl Locations {
     pub fn new(
         rng: &mut Box<dyn MerchantRng>,
-        starting_gold: u32,
-        starting_debt: u32,
+        price_config: Rc<PriceRanges>,
+        player_net_worth: i32,
     ) -> Locations {
-        let config = PriceConfig {
-            starting_gold,
-            tea: (10.0, 14.0),
-            coffee: (4.25, 6.0),
-            sugar: (1.0, 2.2),
-            tobacco: (0.15, 0.35),
-            rum: (0.04, 0.14),
-            cotton: (0.005, 0.025),
-        };
         let mut res = Locations {
-            config,
+            config: price_config,
             london: LocationInfo::empty(),
             savannah: LocationInfo::empty(),
             lisbon: LocationInfo::empty(),
@@ -139,7 +194,7 @@ impl Locations {
                 rng,
                 location,
                 location != &Location::London,
-                starting_gold as i32 - starting_debt as i32,
+                player_net_worth,
             );
         }
         res

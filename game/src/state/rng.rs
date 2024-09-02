@@ -5,15 +5,15 @@ use rand::{
 };
 use tracing::{debug, instrument};
 
-use super::Good;
 use super::Inventory;
 use super::{
     constants::{GOLD_PER_PIRATE_VICTORY_MAX, GOLD_PER_PIRATE_VICTORY_MIN},
     game_state::LocationEvent,
     game_state::NoEffectEvent,
     game_state::PirateEncounterState,
-    locations::{LocationInfo, PriceConfig},
+    locations::LocationInfo,
 };
+use super::{locations::PriceRanges, Good};
 
 /// A trait that abstracts the pieces of logic that need to use some kind of random number generation.
 /// Allows injecting a mocked (deterministic) implementation in testing.
@@ -27,7 +27,7 @@ pub trait MerchantRng {
     fn gen_location_info(
         &mut self,
         allow_events: bool,
-        price_config: &PriceConfig,
+        price_config: &PriceRanges,
         player_net_worth: i32,
     ) -> LocationInfo;
 }
@@ -85,7 +85,7 @@ impl MerchantRng for StdRng {
     fn gen_location_info(
         &mut self,
         allow_events: bool,
-        price_config: &PriceConfig,
+        price_config: &PriceRanges,
         player_net_worth: i32,
     ) -> LocationInfo {
         let mut location_info = LocationInfo::empty();
@@ -158,7 +158,7 @@ impl MerchantRng for StdRng {
 #[instrument(level = "debug", skip_all)]
 fn gen_find_goods(
     rng: &mut StdRng,
-    price_config: &PriceConfig,
+    price_config: &PriceRanges,
     player_net_worth: i32,
 ) -> LocationEvent {
     debug!("player_net_worth: {}", player_net_worth);
@@ -259,25 +259,24 @@ mod tests {
         assert_eq!(
             StdRng::seed_from_u64(42).gen_location_info(
                 true,
-                &PriceConfig {
-                    starting_gold: 500,
-                    tea: (10.0, 14.0),
-                    coffee: (4.25, 6.0),
-                    sugar: (1.0, 2.2),
-                    tobacco: (0.15, 0.35),
-                    rum: (0.04, 0.14),
-                    cotton: (0.005, 0.025),
+                &PriceRanges {
+                    tea: (4253, 7442),
+                    coffee: (2166, 4332),
+                    sugar: (714, 1785),
+                    tobacco: (184, 551),
+                    rum: (35, 140),
+                    cotton: (5, 30)
                 },
                 10000
             ),
             LocationInfo {
                 prices: Inventory {
-                    tea: 5626,
-                    coffee: 2976,
-                    sugar: 897,
-                    tobacco: 102,
+                    tea: 4926,
+                    coffee: 2425,
+                    sugar: 1411,
+                    tobacco: 290,
                     rum: 59,
-                    cotton: 7
+                    cotton: 15
                 },
                 event: Some(LocationEvent::NoEffect(NoEffectEvent::SunnyDay))
             }
