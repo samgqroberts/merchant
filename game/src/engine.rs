@@ -10,6 +10,7 @@ use std::{
     io::{self, Write},
     time::Duration,
 };
+use tracing::info;
 
 use crate::{
     components::{
@@ -106,6 +107,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                 match read()? {
                     Event::Key(event) => {
                         // detect exit request
+                        info!("User KeyEvent: {:?} {:?}", event.code, event.modifiers);
                         if event.modifiers == KeyModifiers::CONTROL
                             && event.code == KeyCode::Char('c')
                         {
@@ -546,6 +548,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
     }
 
     pub fn draw_scene(&mut self, state: &mut GameState) -> io::Result<Box<UpdateFn>> {
+        info!("Drawing scene: {:?}", state.mode);
         let writer = &mut *self.writer.borrow_mut();
         let update = Engine::queue_scene(writer, state)?;
         writer.flush()?;

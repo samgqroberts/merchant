@@ -2,20 +2,24 @@ mod engine;
 #[macro_use]
 mod macros;
 mod components;
+mod logging;
 mod state;
 #[cfg(test)]
 mod test;
 
 use engine::Engine;
+use logging::initialize_logging;
 use rand::{rngs::StdRng, SeedableRng};
 use std::cell::RefCell;
 use std::io::Stdout;
 use std::io::{self, stdout};
+use tracing::{error, info, span, Level};
 
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use state::GameState;
 
 fn main() -> io::Result<()> {
+    initialize_logging();
     let stdout = stdout();
     // set terminal into "non-canonical" mode so inputs are captured raw with no interpretation
     // https://docs.rs/crossterm/0.26.1/crossterm/terminal/index.html#raw-mode
@@ -28,9 +32,13 @@ fn main() -> io::Result<()> {
     let mut engine = Engine::new(&writer);
     // start main game loop which draws -> reads input -> updates state
     loop {
+        let span = span!(Level::INFO, "gameloop");
+        let _enter = span.enter();
+        info!("enter gameloop");
         match engine.draw_and_prompt(&mut game_state) {
             Err(e) => {
                 // an error was encountered in main game loop
+                error!("an error was encountered in the main game loop: {:?}", e);
                 let msg = format!("{:?}", e);
                 let lines = msg.split("\\n").collect::<Vec<&str>>();
                 engine.exit_message(&lines)?;
@@ -39,6 +47,7 @@ fn main() -> io::Result<()> {
             Ok(should_exit) => {
                 if should_exit {
                     // main loop told us user requested an exit
+                    info!("should_exit indicated, exiting");
                     engine.exit_message(&["Thank you for playing!"])?;
                     break;
                 }
