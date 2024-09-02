@@ -1,6 +1,6 @@
 use crossterm::{
     cursor::{MoveToNextLine, Show},
-    event::{poll, read, Event, KeyCode, KeyEvent, KeyModifiers},
+    event::{poll, read, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     execute, queue,
     style::Print,
 };
@@ -106,17 +106,22 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                 // It's guaranteed that read() won't block if `poll` returns `Ok(true)`
                 match read()? {
                     Event::Key(event) => {
-                        // detect exit request
-                        info!("User KeyEvent: {:?} {:?}", event.code, event.modifiers);
-                        if event.modifiers == KeyModifiers::CONTROL
-                            && event.code == KeyCode::Char('c')
-                        {
-                            return Ok(true);
+                        // only react to Press KeyEvents as opposed to Release
+                        // on Windows, both Press and Release get triggered
+                        // if we don't filter to just Press events we will double-update
+                        if event.kind == KeyEventKind::Press {
+                            info!("User Key Press: {:?} {:?}", event.code, event.modifiers);
+                            // detect exit request
+                            if event.modifiers == KeyModifiers::CONTROL
+                                && event.code == KeyCode::Char('c')
+                            {
+                                return Ok(true);
+                            }
+                            // update game state
+                            update_fn(event, game_state)?;
+                            // indicate we do not want to exit
+                            return Ok(false);
                         }
-                        // update game state
-                        update_fn(event, game_state)?;
-                        // indicate we do not want to exit
-                        return Ok(false);
                     }
                     _ => continue,
                 }
