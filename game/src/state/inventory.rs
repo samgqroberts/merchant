@@ -10,6 +10,16 @@ pub struct Inventory {
     pub cotton: u32,
 }
 
+impl std::fmt::Display for Inventory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{{tea:{},coffee:{},sugar:{},tobacco:{},rum:{},cotton:{}}}",
+            self.tea, self.coffee, self.sugar, self.tobacco, self.rum, self.cotton
+        )
+    }
+}
+
 impl Inventory {
     pub fn get_good(&self, good_type: &Good) -> &u32 {
         match good_type {
@@ -85,6 +95,13 @@ impl Inventory {
     pub(crate) fn max_good(&self) -> Good {
         self.iter()
             .max_by_key(|x| x.1)
+            .expect("inventory iterators are always nonempty")
+            .0
+    }
+
+    pub(crate) fn min_good(&self) -> Good {
+        self.iter()
+            .min_by_key(|x| x.1)
             .expect("inventory iterators are always nonempty")
             .0
     }

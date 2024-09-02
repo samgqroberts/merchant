@@ -3,6 +3,7 @@ use rand::{
     rngs::StdRng,
     Rng, RngCore,
 };
+use tracing::{debug, instrument};
 
 use super::Good;
 use super::Inventory;
@@ -123,53 +124,7 @@ impl MerchantRng for StdRng {
                     Some(LocationEvent::ExpensiveGood(good))
                 }
                 // find goods
-                3 => {
-                    // for all goods, get a "comparison price"
-                    // where the good whose comparison price that the player's net worth is closest to
-                    // represents the current phase of the player's progression.
-                    // eg. if the multiple is 30, and the player's net worth is closest to 30 * the avg price of rum,
-                    //     then the player is in the "rum" phase of the game.
-                    const COMPARISON_PRICE_MULTIPLE: u32 = 30;
-                    let comparison_prices = price_config
-                        .avg_prices()
-                        .map(|x| x * COMPARISON_PRICE_MULTIPLE);
-                    // compare how close the player's current net worth is to the "comparison price"
-                    // of each good to produce a probability weight for the user to find that good.
-                    // eg. it should be impossible to find tea if the player has a very low net worth.
-                    let net_worth: u32 = if player_net_worth < 0 {
-                        0
-                    } else {
-                        player_net_worth as u32
-                    };
-                    let comparison_distances = Inventory {
-                        tea: comparison_prices.tea.abs_diff(net_worth),
-                        coffee: comparison_prices.coffee.abs_diff(net_worth),
-                        sugar: comparison_prices.sugar.abs_diff(net_worth),
-                        tobacco: comparison_prices.tobacco.abs_diff(net_worth),
-                        rum: comparison_prices.rum.abs_diff(net_worth),
-                        cotton: comparison_prices.cotton.abs_diff(net_worth),
-                    };
-                    let weights: [u8; 6] = match comparison_distances.max_good() {
-                        Good::Tea => [2, 2, 1, 1, 1, 1],
-                        Good::Coffee => [1, 2, 2, 1, 1, 1],
-                        Good::Sugar => [1, 1, 2, 2, 1, 1],
-                        Good::Tobacco => [0, 1, 1, 2, 2, 1],
-                        Good::Rum => [0, 0, 1, 1, 2, 2],
-                        Good::Cotton => [0, 0, 0, 1, 1, 2],
-                    };
-                    let dist = WeightedIndex::new(weights).unwrap();
-                    const GOODS_SLICE: [Good; 6] = [
-                        Good::Tea,
-                        Good::Coffee,
-                        Good::Sugar,
-                        Good::Tobacco,
-                        Good::Rum,
-                        Good::Cotton,
-                    ];
-                    let good = GOODS_SLICE[dist.sample(self)];
-                    let amount = (self.next_u32() % 10) + 1;
-                    Some(LocationEvent::FindGoods(good, amount))
-                }
+                3 => Some(gen_find_goods(self, price_config, player_net_worth)),
                 // stolen goods
                 4 => Some(LocationEvent::GoodsStolen(None)),
                 // can buy cannon
@@ -198,6 +153,65 @@ impl MerchantRng for StdRng {
         };
         location_info
     }
+}
+
+#[instrument(level = "debug", skip_all)]
+fn gen_find_goods(
+    rng: &mut StdRng,
+    price_config: &PriceConfig,
+    player_net_worth: i32,
+) -> LocationEvent {
+    debug!("player_net_worth: {}", player_net_worth);
+    // for all goods, get a "comparison price"
+    // where the good whose comparison price that the player's net worth is closest to
+    // represents the current phase of the player's progression.
+    // eg. if the multiple is 30, and the player's net worth is closest to 30 * the avg price of rum,
+    //     then the player is in the "rum" phase of the game.
+    const COMPARISON_PRICE_MULTIPLE: u32 = 30;
+    let comparison_prices = price_config
+        .avg_prices()
+        .map(|x| x * COMPARISON_PRICE_MULTIPLE);
+    debug!("comparison_prices: {}", comparison_prices);
+    // compare how close the player's current net worth is to the "comparison price"
+    // of each good to produce a probability weight for the user to find that good.
+    // eg. it should be impossible to find tea if the player has a very low net worth.
+    let net_worth: u32 = if player_net_worth < 0 {
+        0
+    } else {
+        player_net_worth as u32
+    };
+    let comparison_distances = Inventory {
+        tea: comparison_prices.tea.abs_diff(net_worth),
+        coffee: comparison_prices.coffee.abs_diff(net_worth),
+        sugar: comparison_prices.sugar.abs_diff(net_worth),
+        tobacco: comparison_prices.tobacco.abs_diff(net_worth),
+        rum: comparison_prices.rum.abs_diff(net_worth),
+        cotton: comparison_prices.cotton.abs_diff(net_worth),
+    };
+    debug!("comparison_distances: {}", comparison_distances);
+    let min_good = comparison_distances.min_good();
+    debug!("closest comparison good (phase of game): {}", min_good);
+    let weights: [u8; 6] = match min_good {
+        Good::Tea => [3, 2, 1, 1, 1, 1], // 33% chance tea, 22% coffee, 11% sugar tobacco rum cotton
+        Good::Coffee => [2, 3, 2, 1, 1, 1],
+        Good::Sugar => [1, 2, 3, 2, 1, 1],
+        Good::Tobacco => [0, 1, 2, 3, 2, 1],
+        Good::Rum => [0, 0, 1, 2, 3, 2],
+        Good::Cotton => [0, 0, 0, 1, 2, 3], // 0% chance tea coffee sugar, 17% tobacco, 33% rum, 50% cotton
+    };
+    debug!("weights: {:?}", weights);
+    let dist = WeightedIndex::new(weights).unwrap();
+    const GOODS_SLICE: [Good; 6] = [
+        Good::Tea,
+        Good::Coffee,
+        Good::Sugar,
+        Good::Tobacco,
+        Good::Rum,
+        Good::Cotton,
+    ];
+    let good = GOODS_SLICE[dist.sample(rng)];
+    let amount = (rng.next_u32() % 10) + 1;
+    LocationEvent::FindGoods(good, amount)
 }
 
 fn logarithmic_decay(count: u32, decay_factor: f64) -> f64 {
