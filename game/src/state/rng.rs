@@ -5,6 +5,8 @@ use rand::{
 };
 use tracing::{debug, instrument};
 
+use crate::state::goods_map::GoodsMap;
+
 use super::Inventory;
 use super::{
     constants::{GOLD_PER_PIRATE_VICTORY_MAX, GOLD_PER_PIRATE_VICTORY_MIN},
@@ -13,7 +15,7 @@ use super::{
     game_state::PirateEncounterState,
     LocationInfo,
 };
-use super::{PriceRanges, Good};
+use super::{Good, PriceRanges};
 
 /// A trait that abstracts the pieces of logic that need to use some kind of random number generation.
 /// Allows injecting a mocked (deterministic) implementation in testing.
@@ -108,23 +110,9 @@ impl MerchantRng for StdRng {
                 // no event
                 0 => None,
                 // cheap good
-                1 => {
-                    let good = Good::random(self);
-                    // update location prices
-                    let good_price = location_info.prices.get_good_mut(&good);
-                    *good_price = ((*good_price as f64) * 0.5).floor() as u32;
-                    Some(LocationEvent::CheapGood(good))
-                }
+                1 => Some(gen_cheap_good(self, price_config, &mut location_info)),
                 // expensive good
-                2 => {
-                    let good = Good::random(self);
-                    // update location prices
-                    // TODO this can easily generate a price that's below the avg for the good
-                    //      should always be near the high end of the price range, even beyond
-                    let good_price = location_info.prices.get_good_mut(&good);
-                    *good_price = ((*good_price as f64) * 2.0).floor() as u32;
-                    Some(LocationEvent::ExpensiveGood(good))
-                }
+                2 => Some(gen_expensive_good(self, price_config, &mut location_info)),
                 // find goods
                 3 => Some(gen_find_goods(self, price_config, player_net_worth)),
                 // stolen goods
@@ -155,6 +143,64 @@ impl MerchantRng for StdRng {
         };
         location_info
     }
+}
+
+#[instrument(level = "debug", skip_all)]
+fn gen_cheap_good(
+    rng: &mut StdRng,
+    price_config: &PriceRanges,
+    location_info: &mut LocationInfo,
+) -> LocationEvent {
+    // generate a low price for a random good
+    // that's some amount lower than the lowest price the good can be
+    let good = Good::random(rng);
+    const MULTIPLES: GoodsMap<f32> = GoodsMap {
+        tea: 0.85,
+        coffee: 0.8,
+        sugar: 0.75,
+        tobacco: 0.7,
+        rum: 0.65,
+        cotton: 0.6,
+    };
+    let normal_low = price_config.get_good(&good).0;
+    let mut lowest_low = (MULTIPLES.get_good(&good) * (normal_low as f32)).round() as u32;
+    if lowest_low == 0 {
+        lowest_low += 1;
+    };
+    let cheap_price = rng.next_u32() % (normal_low - lowest_low) + lowest_low;
+    debug!("generated cheap price {cheap_price} for good {good} from range of {lowest_low} - {normal_low} (normal range {normal_low} - {})", price_config.get_good(&good).1);
+    let good_price = location_info.prices.get_good_mut(&good);
+    *good_price = cheap_price;
+    LocationEvent::CheapGood(good)
+}
+
+#[instrument(level = "debug", skip_all)]
+fn gen_expensive_good(
+    rng: &mut StdRng,
+    price_config: &PriceRanges,
+    location_info: &mut LocationInfo,
+) -> LocationEvent {
+    // generate a high price for a random good
+    // that's some amount high than the highest price the good can be
+    let good = Good::random(rng);
+    const MULTIPLES: GoodsMap<f32> = GoodsMap {
+        tea: 1.15,
+        coffee: 1.2,
+        sugar: 1.25,
+        tobacco: 1.3,
+        rum: 1.35,
+        cotton: 1.4,
+    };
+    let normal_high = price_config.get_good(&good).1;
+    let mut highest_high = (MULTIPLES.get_good(&good) * (normal_high as f32)).round() as u32;
+    if highest_high > 9999 {
+        highest_high = 9999;
+    };
+    let expensive_price = rng.next_u32() % (highest_high - normal_high) + normal_high;
+    debug!("generated expensive price {expensive_price} for good {good} from range of {normal_high} - {highest_high} (normal range {} - {normal_high})", price_config.get_good(&good).0);
+    let good_price = location_info.prices.get_good_mut(&good);
+    *good_price = expensive_price;
+    LocationEvent::ExpensiveGood(good)
 }
 
 #[instrument(level = "debug", skip_all)]
