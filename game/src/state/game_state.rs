@@ -5,7 +5,7 @@ use chrono::Month;
 use rand::rngs::StdRng;
 use tracing::debug;
 
-use super::{locations::PriceRanges, rng::MerchantRng, Good, StateError};
+use super::{PriceRanges, rng::MerchantRng, Good, StateError};
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Transaction {
@@ -558,8 +558,7 @@ impl GameState {
                 } else {
                     // randomly select a good that we have inventory of
                     let goods_with_inventory = self
-                        .inventory
-                        .iter()
+                        .inventory.clone().into_iter()
                         .filter(|x| x.1 > 0)
                         .collect::<Vec<(Good, u32)>>();
                     let computed_info = if goods_with_inventory.is_empty() {
