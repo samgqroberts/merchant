@@ -11,9 +11,9 @@ use super::{
     game_state::LocationEvent,
     game_state::NoEffectEvent,
     game_state::PirateEncounterState,
-    locations::LocationInfo,
+    LocationInfo,
 };
-use super::{locations::PriceRanges, Good};
+use super::{PriceRanges, Good};
 
 /// A trait that abstracts the pieces of logic that need to use some kind of random number generation.
 /// Allows injecting a mocked (deterministic) implementation in testing.
@@ -119,6 +119,8 @@ impl MerchantRng for StdRng {
                 2 => {
                     let good = Good::random(self);
                     // update location prices
+                    // TODO this can easily generate a price that's below the avg for the good
+                    //      should always be near the high end of the price range, even beyond
                     let good_price = location_info.prices.get_good_mut(&good);
                     *good_price = ((*good_price as f64) * 2.0).floor() as u32;
                     Some(LocationEvent::ExpensiveGood(good))

@@ -5,7 +5,9 @@ mod good;
 mod inventory;
 mod location;
 mod locations;
+mod price_ranges;
 mod rng;
+mod goods_map;
 
 pub use self::error::StateError;
 pub use self::game_state::GameState;
@@ -21,9 +23,7 @@ pub use self::game_state::CANNON_COST;
 pub use self::good::Good;
 pub use self::inventory::Inventory;
 pub use self::location::Location;
-#[cfg(test)]
 pub use self::locations::LocationInfo;
 pub use self::locations::Locations;
-#[cfg(test)]
-pub use self::locations::PriceRanges;
+pub use self::price_ranges::PriceRanges;
 pub use self::rng::MerchantRng;
