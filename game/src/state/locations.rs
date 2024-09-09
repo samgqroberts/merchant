@@ -1,7 +1,6 @@
-use std::rc::Rc;
-
 use super::{
-    location_personalities::LocationConfig, Inventory, Location, LocationEvent, MerchantRng,
+    Inventory, Location, LocationConfig, LocationEvent, LocationMap, LocationPersonality,
+    MerchantRng,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -19,26 +18,15 @@ impl LocationInfo {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct Locations {
-    pub config: Rc<LocationConfig>,
-    pub london: LocationInfo,
-    pub savannah: LocationInfo,
-    pub lisbon: LocationInfo,
-    pub amsterdam: LocationInfo,
-    pub capetown: LocationInfo,
-    pub venice: LocationInfo,
-}
+pub type LocationInfos = LocationMap<LocationInfo>;
 
-impl Locations {
+impl LocationInfos {
     pub fn new(
         rng: &mut Box<dyn MerchantRng>,
-        config: Rc<LocationConfig>,
+        config: &LocationConfig,
         player_net_worth: i32,
-    ) -> Locations {
-        let home_port = config.home_port;
-        let mut res = Locations {
-            config,
+    ) -> LocationInfos {
+        let mut res = LocationInfos {
             london: LocationInfo::empty(),
             savannah: LocationInfo::empty(),
             lisbon: LocationInfo::empty(),
@@ -48,7 +36,13 @@ impl Locations {
         };
         for location in Location::variants() {
             // for new games, don't put an event in home base
-            res.generate_location(rng, location, location != &home_port, player_net_worth);
+            res.generate_location(
+                rng,
+                location,
+                config.personalities.get(location),
+                location != &config.home_port,
+                player_net_worth,
+            );
         }
         res
     }
@@ -57,13 +51,12 @@ impl Locations {
         &mut self,
         rng: &mut Box<dyn MerchantRng>,
         location: &Location,
+        personality: &LocationPersonality,
         allow_events: bool,
         player_net_worth: i32,
     ) -> &LocationInfo {
-        let location_personality = self.config.personalities.get(location);
-        let new_location_info =
-            rng.gen_location_info(allow_events, location_personality, player_net_worth);
-        let location_info = self.location_info_mut(location);
+        let new_location_info = rng.gen_location_info(allow_events, personality, player_net_worth);
+        let location_info = self.location_info_mut(&location);
         *location_info = new_location_info;
         location_info
     }

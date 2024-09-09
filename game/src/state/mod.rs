@@ -25,15 +25,12 @@ pub use self::game_state::CANNON_COST;
 pub use self::good::Good;
 pub use self::inventory::Inventory;
 pub use self::location::Location;
-#[cfg(test)]
 pub use self::location_map::LocationMap;
 #[cfg(test)]
 pub use self::location_personalities::EventWeights;
-#[cfg(test)]
 pub use self::location_personalities::LocationConfig;
-#[cfg(test)]
 pub use self::location_personalities::LocationPersonality;
 pub use self::locations::LocationInfo;
-pub use self::locations::Locations;
+pub use self::locations::LocationInfos;
 pub use self::price_ranges::PriceRanges;
 pub use self::rng::MerchantRng;
