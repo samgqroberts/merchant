@@ -1,11 +1,11 @@
-use crate::state::{Inventory, Location, Locations};
+use crate::state::{location_personalities::LocationConfig, Inventory, Location, Locations};
 use std::{borrow::BorrowMut, rc::Rc};
 
 use chrono::Month;
 use rand::rngs::StdRng;
 use tracing::debug;
 
-use super::{PriceRanges, rng::MerchantRng, Good, StateError};
+use super::{rng::MerchantRng, Good, StateError};
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Transaction {
@@ -113,7 +113,7 @@ pub struct GameState {
     pub location: Location,
     pub stash: Inventory,
     pub inventory: Inventory,
-    pub price_config: Rc<PriceRanges>,
+    pub location_config: Rc<LocationConfig>,
     pub locations: Locations,
     pub debt: u32,
     pub mode: Mode,
@@ -124,15 +124,11 @@ impl GameState {
     pub fn new(mut rng: Box<dyn MerchantRng>) -> GameState {
         let starting_gold = 500;
         let debt = starting_gold * 3;
-        let price_config = Rc::new(PriceRanges::from_start_price_and_spreads(
-            starting_gold / 100, // the lowest price for cotton can be bought 100x at game start 
-            [5.0, 3.0, 2.0, 1.5, 1.0, 0.75],
-            [5.0, 4.2, 3.4, 2.6, 1.8],
-        ));
-        debug!("price_config: {}", price_config);
+        let location_config = Rc::new(rng.gen_location_config(starting_gold));
+        debug!("location_config: {:#?}", location_config);
         let locations = Locations::new(
             &mut rng,
-            price_config.clone(),
+            location_config.clone(),
             starting_gold as i32 - debt as i32,
         );
         GameState {
@@ -143,10 +139,10 @@ impl GameState {
             cannons: 1,
             gold: starting_gold,
             bank: 0,
-            location: Location::London, // home base
+            location: location_config.home_port,
             stash: Inventory::default(),
             inventory: Inventory::default(),
-            price_config,
+            location_config,
             locations,
             debt,
             mode: Mode::ViewingInventory,
@@ -165,7 +161,11 @@ impl GameState {
     /// compute the net worth the player currently has
     /// based on inventory, bank, stash, and debt
     pub fn net_worth(&self) -> i32 {
-        (self.gold as i32) + (self.inventory.net_worth(&self.locations.config)) + (self.bank as i32)
+        (self.gold as i32)
+            + (self
+                .inventory
+                .net_worth(&self.location_config.overall_price_ranges))
+            + (self.bank as i32)
             - (self.debt as i32)
     }
 
@@ -178,7 +178,7 @@ impl GameState {
     }
 
     fn require_location_home_base(&self) -> Result<(), StateError> {
-        if self.location != Location::London {
+        if self.location != self.location_config.home_port {
             Err(StateError::LocationNotHomeBase(self.location.clone()))
         } else {
             Ok(())
@@ -558,7 +558,9 @@ impl GameState {
                 } else {
                     // randomly select a good that we have inventory of
                     let goods_with_inventory = self
-                        .inventory.clone().into_iter()
+                        .inventory
+                        .clone()
+                        .into_iter()
                         .filter(|x| x.1 > 0)
                         .collect::<Vec<(Good, u32)>>();
                     let computed_info = if goods_with_inventory.is_empty() {

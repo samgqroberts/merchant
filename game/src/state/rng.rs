@@ -7,15 +7,16 @@ use tracing::{debug, instrument};
 
 use crate::state::goods_map::GoodsMap;
 
-use super::Inventory;
 use super::{
     constants::{GOLD_PER_PIRATE_VICTORY_MAX, GOLD_PER_PIRATE_VICTORY_MIN},
-    game_state::LocationEvent,
-    game_state::NoEffectEvent,
-    game_state::PirateEncounterState,
+    game_state::{LocationEvent, NoEffectEvent, PirateEncounterState},
+    location_personalities::{
+        EventPossibility, EventWeights, LocationConfig, LocationPersonalities, LocationPersonality,
+    },
     LocationInfo,
 };
 use super::{Good, PriceRanges};
+use super::{Inventory, Location};
 
 /// A trait that abstracts the pieces of logic that need to use some kind of random number generation.
 /// Allows injecting a mocked (deterministic) implementation in testing.
@@ -29,9 +30,10 @@ pub trait MerchantRng {
     fn gen_location_info(
         &mut self,
         allow_events: bool,
-        price_config: &PriceRanges,
+        location_personality: &LocationPersonality,
         player_net_worth: i32,
     ) -> LocationInfo;
+    fn gen_location_config(&mut self, starting_gold: u32) -> LocationConfig;
 }
 
 impl MerchantRng for StdRng {
@@ -87,50 +89,38 @@ impl MerchantRng for StdRng {
     fn gen_location_info(
         &mut self,
         allow_events: bool,
-        price_config: &PriceRanges,
+        location_personality: &LocationPersonality,
         player_net_worth: i32,
     ) -> LocationInfo {
         let mut location_info = LocationInfo::empty();
-        location_info.prices = price_config.randomized_inventory(self);
+        let price_ranges = &location_personality.price_ranges;
+        location_info.prices = price_ranges.randomized_inventory(self);
         if allow_events {
-            let event_possibilities: [u8; 9] = [
-                0, // no event
-                1, // cheap good
-                2, // expensive good
-                3, // find goods
-                4, // stolen goods
-                5, // can buy cannon
-                6, // pirate encounter
-                7, // can buy more hold space
-                8, // no effect
-            ];
-            let weights: [u8; 9] = [6, 1, 1, 1, 1, 1, 1, 1, 1];
-            let dist = WeightedIndex::new(weights).unwrap();
-            location_info.event = match event_possibilities[dist.sample(self)] {
-                // no event
-                0 => None,
-                // cheap good
-                1 => Some(gen_cheap_good(self, price_config, &mut location_info)),
-                // expensive good
-                2 => Some(gen_expensive_good(self, price_config, &mut location_info)),
-                // find goods
-                3 => Some(gen_find_goods(self, price_config, player_net_worth)),
-                // stolen goods
-                4 => Some(LocationEvent::GoodsStolen(None)),
-                // can buy cannon
-                5 => Some(LocationEvent::CanBuyCannon),
-                // pirate encounter
-                6 => Some(LocationEvent::PirateEncounter(
+            location_info.event = match location_personality
+                .event_weights
+                .generate_random_event(self)
+            {
+                EventPossibility::NoEvent => None,
+                EventPossibility::CheapGood => {
+                    Some(gen_cheap_good(self, price_ranges, &mut location_info))
+                }
+                EventPossibility::ExpensiveGood => {
+                    Some(gen_expensive_good(self, price_ranges, &mut location_info))
+                }
+                EventPossibility::FindGoods => {
+                    Some(gen_find_goods(self, price_ranges, player_net_worth))
+                }
+                EventPossibility::StolenGoods => Some(LocationEvent::GoodsStolen(None)),
+                EventPossibility::CanBuyCannon => Some(LocationEvent::CanBuyCannon),
+                EventPossibility::PirateEncounter => Some(LocationEvent::PirateEncounter(
                     PirateEncounterState::Initial,
                 )),
-                // can buy more hold space
-                7 => {
+                EventPossibility::CanBuyHoldSpace => {
                     let price: u32 = self.gen_range(500..1500);
                     let more_hold: u32 = self.gen_range(65..130);
                     Some(LocationEvent::CanBuyHoldSpace { price, more_hold })
                 }
-                // no effect
-                8 => {
+                EventPossibility::NoEffect => {
                     let no_effect_event_possibilities: [NoEffectEvent; 2] =
                         [NoEffectEvent::SunnyDay, NoEffectEvent::StormOnHorizon];
                     let weights: [u8; 2] = [1, 1];
@@ -138,10 +128,92 @@ impl MerchantRng for StdRng {
                     let no_effect_event = no_effect_event_possibilities[dist.sample(self)];
                     Some(LocationEvent::NoEffect(no_effect_event))
                 }
-                _ => unreachable!(),
             };
         };
         location_info
+    }
+
+    fn gen_location_config(&mut self, starting_gold: u32) -> LocationConfig {
+        // this dictates the widest range possible for the prices of each good
+        // locations will have ranges within these
+        let overall_price_ranges = PriceRanges::from_start_price_and_spreads(
+            starting_gold / 100, // the lowest price for cotton can be bought 100x at game start
+            [5.0, 3.0, 2.0, 1.5, 1.0, 0.75],
+            [5.0, 4.2, 3.4, 2.6, 1.8],
+        );
+        let home_port = match self.gen_range(0..=5) {
+            0 => Location::London,
+            1 => Location::Savannah,
+            2 => Location::Lisbon,
+            3 => Location::Amsterdam,
+            4 => Location::CapeTown,
+            _ => Location::Venice,
+        };
+        let mut visited_cheap_goods: Vec<Good> = Vec::new();
+        let mut visited_expensive_goods: Vec<Good> = Vec::new();
+        let personalities = Location::variants()
+            .into_iter()
+            .map(|location| {
+                let location_personality = if location == &home_port {
+                    // home port should be "boring"
+                    let price_ranges = overall_price_ranges.generate_subsection(None, None);
+                    let event_weights = EventWeights {
+                        no_event: 6,
+                        cheap_good: 1,
+                        expensive_good: 1,
+                        find_goods: 0,
+                        stolen_goods: 1,
+                        can_buy_cannon: 1,
+                        pirate_encounter: 1,
+                        can_buy_more_hold_space: 0,
+                        no_effect: 3,
+                    };
+                    LocationPersonality {
+                        price_ranges,
+                        event_weights,
+                    }
+                } else {
+                    // need to generate cheap and expensive goods
+                    // that haven't been seen before
+                    // and also aren't equal to each other
+                    let cheap = Good::variants_iter()
+                        .filter(|x| !visited_cheap_goods.contains(x))
+                        .next()
+                        .map(|x| *x)
+                        .unwrap();
+                    let expensive = Good::variants_iter()
+                        .filter(|x| !visited_expensive_goods.contains(x) && cheap != **x)
+                        .next()
+                        .map(|x| *x)
+                        .unwrap();
+                    visited_cheap_goods.push(cheap);
+                    visited_expensive_goods.push(expensive);
+                    let price_ranges =
+                        overall_price_ranges.generate_subsection(Some(cheap), Some(expensive));
+                    let event_weights = EventWeights {
+                        no_event: 6,
+                        cheap_good: 1,
+                        expensive_good: 1,
+                        find_goods: 1,
+                        stolen_goods: 1,
+                        can_buy_cannon: 1,
+                        pirate_encounter: 1,
+                        can_buy_more_hold_space: 1,
+                        no_effect: 1,
+                    };
+                    LocationPersonality {
+                        price_ranges,
+                        event_weights,
+                    }
+                };
+                (*location, location_personality)
+            })
+            .collect::<LocationPersonalities>();
+        LocationConfig {
+            home_port,
+            overall_price_ranges,
+            personalities,
+        }
     }
 }
 
@@ -272,6 +344,8 @@ fn logarithmic_decay(count: u32, decay_factor: f64) -> f64 {
 mod tests {
     use rand::SeedableRng;
 
+    use crate::state::location_personalities::EventWeights;
+
     use super::*;
 
     #[test]
@@ -307,13 +381,26 @@ mod tests {
         assert_eq!(
             StdRng::seed_from_u64(42).gen_location_info(
                 true,
-                &PriceRanges {
-                    tea: (4253, 7442),
-                    coffee: (2166, 4332),
-                    sugar: (714, 1785),
-                    tobacco: (184, 551),
-                    rum: (35, 140),
-                    cotton: (5, 30)
+                &LocationPersonality {
+                    price_ranges: PriceRanges {
+                        tea: (4253, 7442),
+                        coffee: (2166, 4332),
+                        sugar: (714, 1785),
+                        tobacco: (184, 551),
+                        rum: (35, 140),
+                        cotton: (5, 30)
+                    },
+                    event_weights: EventWeights {
+                        no_event: 1,
+                        cheap_good: 1,
+                        expensive_good: 1,
+                        find_goods: 1,
+                        stolen_goods: 1,
+                        can_buy_cannon: 1,
+                        pirate_encounter: 1,
+                        can_buy_more_hold_space: 1,
+                        no_effect: 1
+                    }
                 },
                 10000
             ),

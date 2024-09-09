@@ -290,12 +290,14 @@ impl Command for KeyInputAction {
 
 pub struct ViewingInventoryActions<'a> {
     pub location: &'a Location,
+    pub home_port: &'a Location,
     pub debt: u32,
 }
 
 impl<'a> Command for ViewingInventoryActions<'a> {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
         let location = self.location;
+        let home_port = self.home_port;
         let debt = self.debt;
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
         const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
@@ -321,7 +323,7 @@ impl<'a> Command for ViewingInventoryActions<'a> {
                 text: "Sail".to_owned()
             },
         );
-        if location == &Location::London {
+        if location == home_port {
             comp!(
                 f,
                 MoveTo(OFFSET_X, OFFSET_Y + 3),
@@ -510,6 +512,7 @@ pub struct HomeBase<'a> {
     bank: u32,
     debt: u32,
     location: &'a Location,
+    home_port: &'a Location,
 }
 
 impl<'a> From<&'a GameState> for HomeBase<'a> {
@@ -519,6 +522,7 @@ impl<'a> From<&'a GameState> for HomeBase<'a> {
             bank: value.bank,
             debt: value.debt,
             location: &value.location,
+            home_port: &value.location_config.home_port,
         }
     }
 }
@@ -564,7 +568,7 @@ impl<'a> Command for HomeBase<'a> {
 (_________)
 (__________)
 "###;
-        if self.location == &Location::London {
+        if self.location == self.home_port {
             for (i, line) in PATH_CONTINUATION.trim_matches('\n').lines().enumerate() {
                 comp!(
                     f,

@@ -1,4 +1,4 @@
-use super::{goods_map::GoodsMap, PriceRanges, Good};
+use super::{goods_map::GoodsMap, Good, PriceRanges};
 
 pub type Inventory = GoodsMap<u32>;
 
@@ -15,7 +15,7 @@ impl std::fmt::Display for Inventory {
 impl Inventory {
     pub fn total_amount(&self) -> u32 {
         let mut total: u32 = 0;
-        for good in Good::variants() {
+        for good in Good::variants_iter() {
             total += self.get_good(good);
         }
         total

@@ -1,6 +1,8 @@
 use std::rc::Rc;
 
-use super::{price_ranges::PriceRanges, Inventory, Location, LocationEvent, MerchantRng};
+use super::{
+    location_personalities::LocationConfig, Inventory, Location, LocationEvent, MerchantRng,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct LocationInfo {
@@ -19,7 +21,7 @@ impl LocationInfo {
 
 #[derive(Clone, Debug)]
 pub struct Locations {
-    pub config: Rc<PriceRanges>,
+    pub config: Rc<LocationConfig>,
     pub london: LocationInfo,
     pub savannah: LocationInfo,
     pub lisbon: LocationInfo,
@@ -31,11 +33,12 @@ pub struct Locations {
 impl Locations {
     pub fn new(
         rng: &mut Box<dyn MerchantRng>,
-        price_config: Rc<PriceRanges>,
+        config: Rc<LocationConfig>,
         player_net_worth: i32,
     ) -> Locations {
+        let home_port = config.home_port;
         let mut res = Locations {
-            config: price_config,
+            config,
             london: LocationInfo::empty(),
             savannah: LocationInfo::empty(),
             lisbon: LocationInfo::empty(),
@@ -45,12 +48,7 @@ impl Locations {
         };
         for location in Location::variants() {
             // for new games, don't put an event in home base
-            res.generate_location(
-                rng,
-                location,
-                location != &Location::London,
-                player_net_worth,
-            );
+            res.generate_location(rng, location, location != &home_port, player_net_worth);
         }
         res
     }
@@ -62,7 +60,9 @@ impl Locations {
         allow_events: bool,
         player_net_worth: i32,
     ) -> &LocationInfo {
-        let new_location_info = rng.gen_location_info(allow_events, &self.config, player_net_worth);
+        let location_personality = self.config.personalities.get(location);
+        let new_location_info =
+            rng.gen_location_info(allow_events, location_personality, player_net_worth);
         let location_info = self.location_info_mut(location);
         *location_info = new_location_info;
         location_info

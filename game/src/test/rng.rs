@@ -1,6 +1,9 @@
 use std::collections::VecDeque;
 
-use crate::state::{Good, Inventory, LocationInfo, MerchantRng};
+use crate::state::{
+    EventWeights, Good, Inventory, Location, LocationConfig, LocationInfo, LocationMap,
+    LocationPersonality, MerchantRng, PriceRanges,
+};
 
 pub struct MockRng {
     gold_recovered_from_pirate_encounter: VecDeque<u32>,
@@ -10,6 +13,7 @@ pub struct MockRng {
     num_pirates_encountered: VecDeque<u8>,
     good_stolen: VecDeque<(Good, u32)>,
     location_info: VecDeque<LocationInfo>,
+    location_config: VecDeque<LocationConfig>,
 }
 
 impl MerchantRng for MockRng {
@@ -52,12 +56,18 @@ impl MerchantRng for MockRng {
     fn gen_location_info(
         &mut self,
         _: bool,
-        _: &crate::state::PriceRanges,
+        _: &crate::state::LocationPersonality,
         _: i32,
     ) -> LocationInfo {
         self.location_info
             .pop_front()
             .expect("MockRng not seeded with enough location_info")
+    }
+
+    fn gen_location_config(&mut self, _: u32) -> LocationConfig {
+        self.location_config
+            .pop_front()
+            .expect("MockRng not seeded with enough location_config")
     }
 }
 
@@ -77,11 +87,60 @@ impl MockRng {
             num_pirates_encountered: VecDeque::new(),
             good_stolen: VecDeque::new(),
             location_info: VecDeque::new(),
+            location_config: VecDeque::new(),
         }
     }
 
     pub fn new_with_default_locations() -> Self {
-        Self::new().push_location_infos(&default_location_infos())
+        let overall_price_ranges = PriceRanges::from_start_price_and_spreads(
+            500,
+            [5.0, 3.0, 2.0, 1.5, 1.0, 0.75],
+            [5.0, 4.2, 3.4, 2.6, 1.8],
+        );
+        let basic_event_weights = EventWeights {
+            no_event: 6,
+            cheap_good: 1,
+            expensive_good: 1,
+            find_goods: 1,
+            stolen_goods: 1,
+            can_buy_cannon: 1,
+            pirate_encounter: 1,
+            can_buy_more_hold_space: 1,
+            no_effect: 1,
+        };
+        let personalities = LocationMap {
+            london: LocationPersonality {
+                price_ranges: overall_price_ranges.clone(),
+                event_weights: basic_event_weights.clone(),
+            },
+            savannah: LocationPersonality {
+                price_ranges: overall_price_ranges.clone(),
+                event_weights: basic_event_weights.clone(),
+            },
+            lisbon: LocationPersonality {
+                price_ranges: overall_price_ranges.clone(),
+                event_weights: basic_event_weights.clone(),
+            },
+            amsterdam: LocationPersonality {
+                price_ranges: overall_price_ranges.clone(),
+                event_weights: basic_event_weights.clone(),
+            },
+            capetown: LocationPersonality {
+                price_ranges: overall_price_ranges.clone(),
+                event_weights: basic_event_weights.clone(),
+            },
+            venice: LocationPersonality {
+                price_ranges: overall_price_ranges.clone(),
+                event_weights: basic_event_weights.clone(),
+            },
+        };
+        Self::new()
+            .push_location_config(LocationConfig {
+                home_port: Location::London,
+                overall_price_ranges,
+                personalities,
+            })
+            .push_location_infos(&default_location_infos())
     }
 
     pub fn push_gold_recovered_from_pirate_encounter(
@@ -130,6 +189,11 @@ impl MockRng {
             x = x.push_location_info(location_info.clone());
         }
         x
+    }
+
+    pub fn push_location_config(mut self, location_config: LocationConfig) -> Self {
+        self.location_config.push_back(location_config);
+        self
     }
 }
 
