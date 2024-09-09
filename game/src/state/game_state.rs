@@ -1,5 +1,5 @@
-use crate::state::{location_personalities::LocationConfig, Inventory, Location, Locations};
-use std::{borrow::BorrowMut, rc::Rc};
+use crate::state::{location_personalities::LocationConfig, Inventory, Location, LocationInfos};
+use std::borrow::BorrowMut;
 
 use chrono::Month;
 use rand::rngs::StdRng;
@@ -113,8 +113,8 @@ pub struct GameState {
     pub location: Location,
     pub stash: Inventory,
     pub inventory: Inventory,
-    pub location_config: Rc<LocationConfig>,
-    pub locations: Locations,
+    pub location_config: LocationConfig,
+    pub locations: LocationInfos,
     pub debt: u32,
     pub mode: Mode,
     pub game_end: bool,
@@ -124,11 +124,11 @@ impl GameState {
     pub fn new(mut rng: Box<dyn MerchantRng>) -> GameState {
         let starting_gold = 500;
         let debt = starting_gold * 3;
-        let location_config = Rc::new(rng.gen_location_config(starting_gold));
+        let location_config = rng.gen_location_config(starting_gold);
         debug!("location_config: {:#?}", location_config);
-        let locations = Locations::new(
+        let locations = LocationInfos::new(
             &mut rng,
-            location_config.clone(),
+            &location_config,
             starting_gold as i32 - debt as i32,
         );
         GameState {
@@ -509,6 +509,7 @@ impl GameState {
                 let new_location_info = self.locations.generate_location(
                     &mut self.rng,
                     destination,
+                    self.location_config.personalities.get(destination),
                     true,
                     player_net_worth,
                 );
