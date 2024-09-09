@@ -2,12 +2,14 @@ mod constants;
 mod error;
 mod game_state;
 mod good;
+mod goods_map;
 mod inventory;
 mod location;
+mod location_map;
+mod location_personalities;
 mod locations;
 mod price_ranges;
 mod rng;
-mod goods_map;
 
 pub use self::error::StateError;
 pub use self::game_state::GameState;
@@ -23,6 +25,14 @@ pub use self::game_state::CANNON_COST;
 pub use self::good::Good;
 pub use self::inventory::Inventory;
 pub use self::location::Location;
+#[cfg(test)]
+pub use self::location_map::LocationMap;
+#[cfg(test)]
+pub use self::location_personalities::EventWeights;
+#[cfg(test)]
+pub use self::location_personalities::LocationConfig;
+#[cfg(test)]
+pub use self::location_personalities::LocationPersonality;
 pub use self::locations::LocationInfo;
 pub use self::locations::Locations;
 pub use self::price_ranges::PriceRanges;

@@ -1,6 +1,6 @@
 use std::fmt::{self, Display};
 
-use rand::{rngs::StdRng, RngCore};
+use rand::{rngs::StdRng, seq::SliceRandom, RngCore};
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum Good {
@@ -26,6 +26,15 @@ impl Display for Good {
     }
 }
 
+static VARIANTS: &[Good] = &[
+    Good::Tea,
+    Good::Coffee,
+    Good::Sugar,
+    Good::Tobacco,
+    Good::Rum,
+    Good::Cotton,
+];
+
 impl Good {
     pub fn random(rng: &mut StdRng) -> Good {
         match rng.next_u32() % 6 {
@@ -38,15 +47,17 @@ impl Good {
         }
     }
 
-    pub fn variants() -> impl Iterator<Item = &'static Good> {
-        static VARIANTS: &[Good] = &[
-            Good::Tea,
-            Good::Coffee,
-            Good::Sugar,
-            Good::Tobacco,
-            Good::Rum,
-            Good::Cotton,
-        ];
-        VARIANTS.iter()
+    pub fn variants() -> &'static [Good] {
+        VARIANTS
+    }
+
+    pub fn variants_iter() -> impl Iterator<Item = &'static Good> {
+        Self::variants().iter()
+    }
+
+    pub fn variants_random_order(rng: &mut StdRng) -> Vec<Good> {
+        let mut variants = Self::variants().to_vec();
+        variants.shuffle(rng);
+        variants
     }
 }

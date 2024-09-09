@@ -1,6 +1,6 @@
 use std::fmt::{self, Display};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum Location {
     London,
     Savannah,
@@ -24,16 +24,17 @@ impl Display for Location {
     }
 }
 
+static VARIANTS: &[Location] = &[
+    Location::London,
+    Location::Savannah,
+    Location::Lisbon,
+    Location::Amsterdam,
+    Location::CapeTown,
+    Location::Venice,
+];
+
 impl Location {
-    pub fn variants() -> impl Iterator<Item = &'static Location> {
-        static VARIANTS: &[Location] = &[
-            Location::London,
-            Location::Savannah,
-            Location::Lisbon,
-            Location::Amsterdam,
-            Location::CapeTown,
-            Location::Venice,
-        ];
-        VARIANTS.iter()
+    pub fn variants() -> &'static [Location] {
+        VARIANTS
     }
 }

@@ -198,6 +198,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         writer,
                         ViewingInventoryActions {
                             location: &state.location,
+                            home_port: &state.location_config.home_port,
                             debt: state.debt
                         }
                     )?;
@@ -210,7 +211,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                             } else if ch == '3' || ch == 'a' {
                                 state.begin_sailing()?;
                             };
-                            if state.location == Location::London {
+                            if state.location == state.location_config.home_port {
                                 if ch == '4' || ch == 'd' {
                                     state.begin_stash_deposit()?;
                                 } else if ch == '5' || ch == 'w' {

@@ -87,4 +87,36 @@ impl PriceRanges {
             })
             .collect::<PriceRanges>()
     }
+
+    pub fn generate_subsection(&self, cheap: Option<Good>, expensive: Option<Good>) -> Self {
+        self.iter()
+            .map(|(good, (overall_low, overall_high))| {
+                if cheap.is_none() && expensive.is_none() {
+                    // this is a "boring" location, read: home port
+                    let low = ((((overall_high - overall_low) as f64) * 0.4) + *overall_low as f64)
+                        .ceil() as u32;
+                    let high = ((((overall_high - overall_low) as f64) * 0.6) + *overall_low as f64)
+                        .ceil() as u32;
+                    (good, (low, high))
+                } else if (&cheap).map(|x| x == good).unwrap_or(false) {
+                    let low = *overall_low;
+                    let high = ((((overall_high - overall_low) as f64) * 0.6) + *overall_low as f64)
+                        .ceil() as u32;
+                    (good, (low, high))
+                } else if (&expensive).map(|x| x == good).unwrap_or(false) {
+                    let low = ((((overall_high - overall_low) as f64) * 0.4) + *overall_low as f64)
+                        .ceil() as u32;
+                    let high = *overall_high;
+                    (good, (low, high))
+                } else {
+                    // this isn't a boring port, but neither is this good cheap or expensive
+                    let low = ((((overall_high - overall_low) as f64) * 0.2) + *overall_low as f64)
+                        .ceil() as u32;
+                    let high = ((((overall_high - overall_low) as f64) * 0.8) + *overall_low as f64)
+                        .ceil() as u32;
+                    (good, (low, high))
+                }
+            })
+            .collect()
+    }
 }
