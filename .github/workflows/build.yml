@@ -20,6 +20,10 @@ jobs:
             os: macOS-latest
             target: aarch64-apple-darwin
             bin: merchant
+          - release_for: Windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bin: merchant.exe
     runs-on: ${{ matrix.platform.os }}
     steps:
       - name: Checkout
@@ -38,17 +42,29 @@ jobs:
           override: true
       - name: Build binary
         run: cargo build --release
-      - name: Create tarball
+      - name: Create tarball (mac & linux)
         id: tarball
+        if: ${{ matrix.platform.os != 'windows-latest' }}
+        shell: bash
         env:
           TARBALLNAME: ${{ format('merchant-{0}-{1}.tar.gz', steps.gameversion.outputs.value, matrix.platform.target) }}
+          BINNAME: ${{ matrix.platform.bin }}
         run: |
           cd target/release
-          tar -czf $TARBALLNAME merchant
+          tar -czf $TARBALLNAME $BINNAME
           echo "tarballname=$TARBALLNAME" >> $GITHUB_OUTPUT
           echo "shasum: $(shasum $TARBALLNAME | head -n1 | awk '{print $1;}')" >> $GITHUB_STEP_SUMMARY
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifact (mac & linux)
+        if: ${{ matrix.platform.os != 'windows-latest' }}
+        uses: actions/upload-artifact@v4
         with:
             name: ${{ steps.tarball.outputs.tarballname }}
             path: target/release/merchant-*.tar.gz
+            if-no-files-found: warn
+      - name: Upload artifact (windows)
+        if: ${{ matrix.platform.os == 'windows-latest' }}
+        uses: actions/upload-artifact@v4
+        with:
+            name: ${{ format('merchant-{0}-{1}.exe', steps.gameversion.outputs.value, matrix.platform.target) }}
+            path: target/release/merchant.exe
             if-no-files-found: warn
