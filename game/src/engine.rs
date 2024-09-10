@@ -123,6 +123,10 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                             return Ok(false);
                         }
                     }
+                    Event::Resize(columns, rows) => {
+                        info!("Terminal resized: {columns} columns, {rows} rows.");
+                        return Ok(false); // trigger a rerender with no state updates
+                    }
                     _ => continue,
                 }
             } else {
