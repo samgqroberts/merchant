@@ -203,7 +203,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         ViewingInventoryActions {
                             location: &state.location,
                             home_port: &state.location_config.home_port,
-                            debt: state.debt
+                            debt: state.debt.0
                         }
                     )?;
                     return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
@@ -225,7 +225,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                                 } else if ch == '7' || ch == 'i' {
                                     state.begin_bank_withdraw()?;
                                 }
-                                if state.debt > 0 {
+                                if state.debt.0 > 0 {
                                     if ch == '8' || ch == 'p' {
                                         state.begin_pay_debt()?;
                                     }

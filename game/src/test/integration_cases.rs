@@ -1,3 +1,5 @@
+use std::num::Saturating;
+
 use pretty_assertions::assert_eq;
 
 use crate::{
@@ -105,8 +107,8 @@ fn end_game_positive() -> UpdateResult<()> {
     let e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
         state.initialize();
-        state.gold = 40000;
-        state.debt = 100;
+        state.gold = Saturating(40000);
+        state.debt = Saturating(100);
         state.game_end = true;
         state
     })?;
@@ -158,8 +160,8 @@ fn end_game_negative() -> UpdateResult<()> {
     let e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
         state.initialize();
-        state.gold = 100;
-        state.debt = 40000;
+        state.gold = Saturating(100);
+        state.debt = Saturating(40000);
         state.game_end = true;
         state
     })?;
@@ -211,7 +213,7 @@ fn buy_good() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
         state.initialize();
-        state.gold = 1400;
+        state.gold = Saturating(1400);
         state.inventory.cotton = 15;
         state.locations.london.prices.cotton = 30;
         state
@@ -264,7 +266,7 @@ fn sell_good() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
         state.initialize();
-        state.gold = 1400;
+        state.gold = Saturating(1400);
         state.inventory.cotton = 15;
         state.locations.london.prices.cotton = 30;
         state
@@ -461,8 +463,8 @@ fn pay_debt() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
         state.initialize();
-        state.debt = 500;
-        state.gold = 1000;
+        state.debt = Saturating(500);
+        state.gold = Saturating(1000);
         state
     })?;
     assert!(e.expect("Gold:    1000"));
@@ -492,7 +494,7 @@ fn pay_debt_back() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
         state.initialize();
-        state.debt = 500;
+        state.debt = Saturating(500);
         state.mode = Mode::PayDebt(None);
         state
     })?;
@@ -508,7 +510,7 @@ fn pay_debt_no_debt_left() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
         state.initialize();
-        state.debt = 0;
+        state.debt = Saturating(0);
         state
     })?;
     assert!(e.expect("Debt:       0"));
@@ -526,8 +528,8 @@ fn bank_deposit() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
         state.initialize();
-        state.gold = 1000;
-        state.bank = 500;
+        state.gold = Saturating(1000);
+        state.bank = Saturating(500);
         state
     })?;
     assert!(e.expect("Gold:    1000"));
@@ -572,8 +574,8 @@ fn bank_withdraw() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
         state.initialize();
-        state.gold = 1000;
-        state.bank = 500;
+        state.gold = Saturating(1000);
+        state.bank = Saturating(500);
         state
     })?;
     assert!(e.expect("Gold:    1000"));
@@ -671,7 +673,7 @@ fn arrive_at_find_goods_event_not_enough_hold() -> UpdateResult<()> {
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
         state.initialize();
         state.inventory.coffee = 4;
-        state.hold_size = 11;
+        state.hold_size = Saturating(11);
         state.mode = Mode::GameEvent(LocationEvent::FindGoods(Good::Coffee, 10));
         state
     })?;
@@ -727,8 +729,8 @@ fn arrive_at_can_buy_cannon_accept() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
         state.initialize();
-        state.gold = 5100;
-        state.cannons = 3;
+        state.gold = Saturating(5100);
+        state.cannons = Saturating(3);
         state.mode = Mode::GameEvent(LocationEvent::CanBuyCannon);
         state
     })?;
@@ -752,8 +754,8 @@ fn arrive_at_can_buy_cannon_not_enough_gold() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
         state.initialize();
-        state.gold = 4999;
-        state.cannons = 3;
+        state.gold = Saturating(4999);
+        state.cannons = Saturating(3);
         state.mode = Mode::GameEvent(LocationEvent::CanBuyCannon);
         state
     })?;
@@ -770,8 +772,8 @@ fn arrive_at_can_buy_cannon_refuse() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
         state.initialize();
-        state.gold = 5100;
-        state.cannons = 3;
+        state.gold = Saturating(5100);
+        state.cannons = Saturating(3);
         state.mode = Mode::GameEvent(LocationEvent::CanBuyCannon);
         state
     })?;
@@ -792,7 +794,7 @@ fn pirate_encounter_initial() -> UpdateResult<()> {
                 .into(),
         );
         state.initialize();
-        state.cannons = 2;
+        state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
             crate::state::PirateEncounterState::Initial,
         ));
@@ -891,7 +893,7 @@ fn pirate_encounter_run_success() -> UpdateResult<()> {
                 .into(),
         );
         state.initialize();
-        state.cannons = 2;
+        state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
             crate::state::PirateEncounterState::Prompt {
                 info: PirateEncounterInfo::new(2),
@@ -995,7 +997,7 @@ fn pirate_encounter_run_failure() -> UpdateResult<()> {
                 .into(),
         );
         state.initialize();
-        state.cannons = 2;
+        state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
             crate::state::PirateEncounterState::Prompt {
                 info: PirateEncounterInfo::new(2),
@@ -1094,7 +1096,7 @@ fn pirate_encounter_pirates_attack_not_destroyed() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
         state.initialize();
-        state.cannons = 2;
+        state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
             crate::state::PirateEncounterState::PiratesAttack {
                 info: PirateEncounterInfo::new(2),
@@ -1193,8 +1195,8 @@ fn pirate_encounter_pirates_attack_is_destroyed() -> UpdateResult<()> {
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
         state.initialize();
         state.inventory.tea = 10;
-        state.gold = 500;
-        state.cannons = 2;
+        state.gold = Saturating(500);
+        state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
             crate::state::PirateEncounterState::PiratesAttack {
                 info: PirateEncounterInfo {
@@ -1304,7 +1306,7 @@ fn pirate_encounter_fight_did_sink_pirate_and_did_not_win() -> UpdateResult<()> 
                 .into(),
         );
         state.initialize();
-        state.cannons = 2;
+        state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
             crate::state::PirateEncounterState::Prompt {
                 info: PirateEncounterInfo::new(2),
@@ -1408,8 +1410,8 @@ fn pirate_encounter_fight_did_sink_pirate_and_did_win() -> UpdateResult<()> {
                 .into(),
         );
         state.initialize();
-        state.gold = 500;
-        state.cannons = 2;
+        state.gold = Saturating(500);
+        state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
             crate::state::PirateEncounterState::Prompt {
                 info: PirateEncounterInfo::new(1),
@@ -1555,8 +1557,8 @@ fn pirate_encounter_fight_did_not_sink_pirate() -> UpdateResult<()> {
                 .into(),
         );
         state.initialize();
-        state.gold = 500;
-        state.cannons = 2;
+        state.gold = Saturating(500);
+        state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
             crate::state::PirateEncounterState::Prompt {
                 info: PirateEncounterInfo::new(1),
@@ -1655,8 +1657,8 @@ fn can_buy_hold_space_accept() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
         state.initialize();
-        state.gold = 500;
-        state.hold_size = 200;
+        state.gold = Saturating(500);
+        state.hold_size = Saturating(200);
         state.mode = Mode::GameEvent(LocationEvent::CanBuyHoldSpace {
             price: 410,
             more_hold: 95,
@@ -1679,8 +1681,8 @@ fn can_buy_hold_space_refuse() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
         state.initialize();
-        state.gold = 500;
-        state.hold_size = 200;
+        state.gold = Saturating(500);
+        state.hold_size = Saturating(200);
         state.mode = Mode::GameEvent(LocationEvent::CanBuyHoldSpace {
             price: 410,
             more_hold: 95,
@@ -1704,8 +1706,8 @@ fn can_buy_hold_space_not_enough_gold() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
         state.initialize();
-        state.gold = 300;
-        state.hold_size = 200;
+        state.gold = Saturating(300);
+        state.hold_size = Saturating(200);
         state.mode = Mode::GameEvent(LocationEvent::CanBuyHoldSpace {
             price: 410,
             more_hold: 95,

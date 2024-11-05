@@ -1,4 +1,7 @@
-use std::fmt::{self};
+use std::{
+    fmt::{self},
+    num::Saturating,
+};
 
 use chrono::Month;
 use crossterm::{
@@ -81,7 +84,7 @@ pub struct GameEndScreen<'a>(pub &'a GameState);
 impl<'a> Command for GameEndScreen<'a> {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
         let state = self.0;
-        let final_gold: i64 = ((state.gold + state.bank) as i64) - (state.debt as i64);
+        let final_gold: i64 = ((state.gold + state.bank).0 as i64) - (state.debt.0 as i64);
         comp!(
             f,
             Clear(crossterm::terminal::ClearType::All),
@@ -519,8 +522,8 @@ impl<'a> From<&'a GameState> for HomeBase<'a> {
     fn from(value: &'a GameState) -> Self {
         HomeBase {
             stash: &value.stash,
-            bank: value.bank,
-            debt: value.debt,
+            bank: value.bank.0,
+            debt: value.debt.0,
             location: &value.location,
             home_port: &value.location_config.home_port,
         }
@@ -669,9 +672,9 @@ impl<'a> From<&'a GameState> for Ship<'a> {
     fn from(value: &'a GameState) -> Self {
         Ship {
             inventory: &value.inventory,
-            gold: value.gold,
-            hold_size: value.hold_size,
-            cannons: value.cannons,
+            gold: value.gold.0,
+            hold_size: value.hold_size.0,
+            cannons: value.cannons.0,
         }
     }
 }
@@ -782,7 +785,7 @@ impl<'a> Command for BuyInput<'a> {
                 .map_or("".to_owned(), |amount| amount.to_string())
         );
         let prompt_len: u16 = prompt.len().try_into().unwrap();
-        let can_afford = gold / good_price;
+        let can_afford = gold / Saturating(*good_price);
         comp!(
             f,
             // prompt what to buy
@@ -794,7 +797,7 @@ impl<'a> Command for BuyInput<'a> {
             Print(format!("(b) <- back")),
         );
         let remaining_hold = state.remaining_hold();
-        if remaining_hold < can_afford {
+        if remaining_hold < can_afford.0 {
             comp!(
                 f,
                 MoveTo(OFFSET_X, OFFSET_Y + 2),
@@ -1341,7 +1344,7 @@ impl From<(PirateEncounterState, &mut GameState)> for PirateEncounter {
     fn from(value: (PirateEncounterState, &mut GameState)) -> Self {
         PirateEncounter {
             pirate_encounter_state: value.0,
-            cannons: value.1.cannons,
+            cannons: value.1.cannons.0,
             date: value.1.date,
         }
     }
