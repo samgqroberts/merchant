@@ -13,7 +13,7 @@ use crossterm::{
 
 use crate::{
     comp,
-    components::Frame,
+    components::{Frame, FrameType},
     state::{
         GameState, Good, GoodsStolenResult, Inventory, Location, NoEffectEvent,
         PirateEncounterState, Transaction, CANNON_COST,
@@ -36,7 +36,7 @@ impl Command for SplashScreen {
         comp!(
             f,
             Clear(crossterm::terminal::ClearType::All),
-            Frame(true),
+            Frame(FrameType::SimpleEmptyInside),
             MoveTo(29, 12),
             Print("A tribute to Drug Wars by samgqroberts"),
             MoveTo(38, 14),
@@ -90,7 +90,7 @@ impl<'a> Command for GameEndScreen<'a> {
             f,
             Clear(crossterm::terminal::ClearType::All),
             Hide,
-            Frame(true),
+            Frame(FrameType::SimpleEmptyInside),
             MoveTo(1, 14),
             Print(
                 CenteredText("Congratulations!".to_string(), (FRAME_WIDTH - 2).into())
@@ -411,31 +411,12 @@ impl<'a> Command for BankDepositInput<'a> {
 pub const FRAME_WIDTH: u16 = 99;
 pub const FRAME_HEIGHT: u16 = 32;
 
-pub struct HorizontalLine(pub u16 /* y-index */, pub bool /* full-width */);
-
-impl Command for HorizontalLine {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
-        comp!(
-            f,
-            MoveTo(if self.1 { 0 } else { 1 }, self.0),
-            Print("-".repeat(if self.1 { FRAME_WIDTH } else { FRAME_WIDTH - 2 }.into()))
-        );
-        Ok(())
-    }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
-}
-
 pub struct TopCenterFramed(String);
 
 impl Command for TopCenterFramed {
     fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
         comp!(
             f,
-            HorizontalLine(2, false),
             MoveTo(40, 0),
             Print("|=================|"),
             MoveTo(40, 1),
@@ -614,7 +595,7 @@ impl<'a> Command for ViewingInventoryBase<'a> {
             f,
             Clear(crossterm::terminal::ClearType::All), // clear the terminal
             Hide,                                       // hide the cursor
-            Frame(false),
+            Frame(FrameType::Location(state.location)),
             Date::from(state),
             HomeBase::from(state),
             Ship::from(state),
@@ -1324,7 +1305,7 @@ impl Command for PirateEncounter {
         comp!(
             f,
             Clear(crossterm::terminal::ClearType::All), // clear the terminal
-            Frame(true),
+            Frame(FrameType::SimpleEmptyInside),
             Date(&self.date),
         );
         match self.pirate_encounter_state {
