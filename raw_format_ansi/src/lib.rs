@@ -46,9 +46,7 @@ fn tokenize_ansi(s: &str) -> Vec<Output<'_>> {
                     broken_out.push(TextBlock(text));
                 }
             }
-            Escape(AnsiSequence::SetGraphicsMode(_)) => {
-                dbg!("skipping");
-            }
+            Escape(AnsiSequence::SetGraphicsMode(_)) => {}
             _ => {
                 broken_out.push(token);
             }
@@ -95,7 +93,7 @@ fn tokenize_ansi(s: &str) -> Vec<Output<'_>> {
 /// assert_eq!(result, "    Jello\n\n World".to_owned());
 /// ```
 pub fn raw_format_ansi(s: &str) -> String {
-    let mut lines: Vec<String> = Vec::new();
+    let mut lines: Vec<Vec<char>> = Vec::new();
     let mut cursor_pos: (usize, usize) = (0, 0);
     let tokens = tokenize_ansi(s);
     for token in tokens {
@@ -130,21 +128,20 @@ pub fn raw_format_ansi(s: &str) -> String {
             let col = *col;
             while lines.len() < row + 1 {
                 // pad with empty lines
-                lines.push("".to_owned());
+                lines.push(vec![]);
             }
-            let line: &mut String = lines.get_mut(row).unwrap();
+            let line: &mut Vec<char> = lines.get_mut(row).unwrap();
             while line.len() < col {
                 // pad with empty spaces
                 line.push(' ');
             }
             // append actual text
-            let remaining = text.chars();
             let mut index = col;
-            for char in remaining {
+            for text_char in text.chars() {
                 if line.len() > index {
-                    line.replace_range(index..(index + 1), &char.to_string());
+                    let _ = std::mem::replace(&mut line[index], text_char);
                 } else {
-                    line.push(char);
+                    line.push(text_char);
                 }
                 index += 1;
                 cursor_pos.1 += 1;
@@ -153,7 +150,11 @@ pub fn raw_format_ansi(s: &str) -> String {
             continue;
         }
     }
-    lines.join("\n")
+    lines
+        .into_iter()
+        .map(|l| l.into_iter().collect::<String>())
+        .collect::<Vec<String>>()
+        .join("\n")
 }
 
 #[cfg(test)]
@@ -193,7 +194,7 @@ pub mod tests {
     }
 
     #[test]
-    fn test_basic() -> io::Result<()> {
+    fn basic() -> io::Result<()> {
         let mut fake = CapturedWrite::new();
         execute!(
             fake,
@@ -223,7 +224,7 @@ pub mod tests {
     }
 
     #[test]
-    fn test_skipping_line_with_move_to() -> io::Result<()> {
+    fn skipping_line_with_move_to() -> io::Result<()> {
         let mut fake = CapturedWrite::new();
         execute!(
             fake,
@@ -239,7 +240,7 @@ pub mod tests {
     }
 
     #[test]
-    fn test_relative_moves() -> io::Result<()> {
+    fn relative_moves() -> io::Result<()> {
         let mut fake = CapturedWrite::new();
         execute!(
             fake,
@@ -269,7 +270,7 @@ pub mod tests {
     }
 
     #[test]
-    fn test_text_with_underline() -> io::Result<()> {
+    fn text_with_underline() -> io::Result<()> {
         let mut fake = CapturedWrite::new();
         execute!(
             fake,
@@ -280,5 +281,21 @@ pub mod tests {
         let stripped = raw_format_ansi(&fake.buffer);
         assert_eq!(stripped, "123");
         Ok(())
+    }
+
+    #[test]
+    fn unicode() {
+        let mut writer = CapturedWrite::new();
+        execute!(
+            writer,
+            Print("╔╗╚╝"),
+            Print('┼'),
+            MoveLeft(2),
+            Print('┉'),
+            MoveRight(2),
+            Print('╿')
+        )
+        .unwrap();
+        assert_eq!(raw_format_ansi(&writer.buffer), "╔╗╚┉┼ ╿");
     }
 }
