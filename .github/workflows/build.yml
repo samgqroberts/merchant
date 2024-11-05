@@ -53,7 +53,7 @@ jobs:
           cd target/release
           tar -czf $TARBALLNAME $BINNAME
           echo "tarballname=$TARBALLNAME" >> $GITHUB_OUTPUT
-          echo "shasum: $(shasum $TARBALLNAME | head -n1 | awk '{print $1;}')" >> $GITHUB_STEP_SUMMARY
+          echo "shasum: $(shasum -a 256 $TARBALLNAME | head -n1 | awk '{print $1;}')" >> $GITHUB_STEP_SUMMARY
       - name: Upload artifact (mac & linux)
         if: ${{ matrix.platform.os != 'windows-latest' }}
         uses: actions/upload-artifact@v4
