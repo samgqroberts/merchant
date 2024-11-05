@@ -3,12 +3,14 @@ use std::fmt::{self, Display};
 
 #[derive(Debug)]
 pub enum StateError {
+    #[allow(dead_code)]
     InvalidMode(Mode),
     CannotAfford,
     InsufficientHold,
     InsufficientInventory,
     InsufficientStash,
     AlreadyInLocation,
+    #[allow(dead_code)]
     LocationNotHomeBase(Location),
     PayDownAmountHigherThanDebt,
     InsufficientBank,

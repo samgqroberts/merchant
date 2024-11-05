@@ -1,6 +1,7 @@
 [package]
 name = "raw_format_ansi"
 version = "0.1.0"
+edition = "2021"
 
 [lib]
 crate-type = ["rlib"]
@@ -12,4 +13,4 @@ regex = "1.8.4"
 
 [dev-dependencies]
 crossterm = "0.27.0"
-captured_write = { path ="../captured_write" }
+captured_write = { path = "../captured_write" }
