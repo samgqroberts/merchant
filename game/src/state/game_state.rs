@@ -1,5 +1,5 @@
 use crate::state::{location_personalities::LocationConfig, Inventory, Location, LocationInfos};
-use std::borrow::BorrowMut;
+use std::{borrow::BorrowMut, num::Saturating};
 
 use chrono::Month;
 use rand::rngs::StdRng;
@@ -106,39 +106,39 @@ pub struct GameState {
     pub rng: Box<dyn MerchantRng>,
     pub initialized: bool,
     pub date: (u16, Month),
-    pub hold_size: u32,
-    pub cannons: u8,
-    pub gold: u32,
-    pub bank: u32,
+    pub hold_size: Saturating<u32>,
+    pub cannons: Saturating<u8>,
+    pub gold: Saturating<u32>,
+    pub bank: Saturating<u32>,
     pub location: Location,
     pub stash: Inventory,
     pub inventory: Inventory,
     pub location_config: LocationConfig,
     pub locations: LocationInfos,
-    pub debt: u32,
+    pub debt: Saturating<u32>,
     pub mode: Mode,
     pub game_end: bool,
 }
 
 impl GameState {
     pub fn new(mut rng: Box<dyn MerchantRng>) -> GameState {
-        let starting_gold = 500;
-        let debt = starting_gold * 3;
-        let location_config = rng.gen_location_config(starting_gold);
+        let starting_gold = Saturating(500);
+        let debt: Saturating<u32> = starting_gold * Saturating(3u32);
+        let location_config = rng.gen_location_config(starting_gold.0);
         debug!("location_config: {:#?}", location_config);
         let locations = LocationInfos::new(
             &mut rng,
             &location_config,
-            starting_gold as i32 - debt as i32,
+            starting_gold.0 as i32 - debt.0 as i32,
         );
         GameState {
             rng,
             initialized: false,
             date: (1782, Month::March),
-            hold_size: 100,
-            cannons: 1,
+            hold_size: Saturating(100),
+            cannons: Saturating(1),
             gold: starting_gold,
-            bank: 0,
+            bank: Saturating(0),
             location: location_config.home_port,
             stash: Inventory::default(),
             inventory: Inventory::default(),
@@ -161,12 +161,12 @@ impl GameState {
     /// compute the net worth the player currently has
     /// based on inventory, bank, stash, and debt
     pub fn net_worth(&self) -> i32 {
-        (self.gold as i32)
+        (self.gold.0 as i32)
             + (self
                 .inventory
                 .net_worth(&self.location_config.overall_price_ranges))
-            + (self.bank as i32)
-            - (self.debt as i32)
+            + (self.bank.0 as i32)
+            - (self.debt.0 as i32)
     }
 
     fn require_viewing_inventory(&self) -> Result<(), StateError> {
@@ -371,13 +371,13 @@ impl GameState {
                 .location_info(&self.location)
                 .prices
                 .get_good(&info.good);
-            let can_afford = self.gold / good_price;
-            if amount > can_afford {
+            let can_afford = self.gold / Saturating(*good_price);
+            if amount > can_afford.0 {
                 return Err(StateError::CannotAfford);
             } else {
                 let hold_size = self.hold_size;
                 let current_hold = self.inventory.total_amount();
-                if current_hold + amount > hold_size {
+                if current_hold.saturating_add(amount) > hold_size.0 {
                     return Err(StateError::InsufficientHold);
                 } else {
                     self.inventory.add_good(&info.good, amount);
@@ -445,11 +445,11 @@ impl GameState {
 
     pub fn commit_pay_debt(&mut self) -> Result<&mut GameState, StateError> {
         if let Mode::PayDebt(amount) = &self.mode {
-            let amount = &amount.unwrap_or(0);
-            if amount > &self.debt {
+            let amount = amount.unwrap_or(0);
+            if amount > self.debt.0 {
                 return Err(StateError::PayDownAmountHigherThanDebt);
             }
-            if amount > &self.gold {
+            if amount > self.gold.0 {
                 return Err(StateError::CannotAfford);
             }
             self.debt -= amount;
@@ -462,8 +462,8 @@ impl GameState {
 
     pub fn commit_bank_deposit(&mut self) -> Result<&mut GameState, StateError> {
         if let Mode::BankDeposit(amount) = &self.mode {
-            let amount = &amount.unwrap_or(0);
-            if amount > &self.gold {
+            let amount = amount.unwrap_or(0);
+            if amount > self.gold.0 {
                 return Err(StateError::CannotAfford);
             }
             self.gold -= amount;
@@ -476,8 +476,8 @@ impl GameState {
 
     pub fn commit_bank_withdraw(&mut self) -> Result<&mut GameState, StateError> {
         if let Mode::BankWithdraw(amount) = &self.mode {
-            let amount = &amount.unwrap_or(0);
-            if amount > &self.bank {
+            let amount = amount.unwrap_or(0);
+            if amount > self.bank.0 {
                 return Err(StateError::InsufficientBank);
             }
             self.gold += amount;
@@ -516,8 +516,8 @@ impl GameState {
                 // set current location
                 self.location = destination.clone();
                 // increment debt, if any
-                let new_debt = f64::from(self.debt) * 1.1;
-                self.debt = new_debt.floor() as u32;
+                let new_debt = f64::from(self.debt.0) * 1.1;
+                self.debt = Saturating(new_debt.floor() as u32);
                 // determine if we've encountered an event
                 if let Some(event) = &new_location_info.event {
                     self.mode = Mode::GameEvent(event.clone());
@@ -548,7 +548,9 @@ impl GameState {
     }
 
     pub fn remaining_hold(&self) -> u32 {
-        self.hold_size.saturating_sub(self.inventory.total_amount())
+        self.hold_size
+            .0
+            .saturating_sub(self.inventory.total_amount())
     }
 
     pub(crate) fn compute_goods_stolen(&mut self) -> GoodsStolenResult {
@@ -589,8 +591,8 @@ impl GameState {
     }
 
     pub(crate) fn confirm_buy_cannon(&mut self) -> Result<(), StateError> {
-        if self.gold >= CANNON_COST.into() {
-            self.gold -= CANNON_COST as u32;
+        if self.gold.0 >= CANNON_COST.into() {
+            self.gold = self.gold - Saturating(CANNON_COST as u32);
             self.cannons += 1;
             self.acknowledge_event()?;
         }
@@ -640,7 +642,7 @@ impl GameState {
             info,
         })) = self.mode
         {
-            let did_kill_a_pirate = self.rng.gen_did_kill_a_pirate(self.cannons);
+            let did_kill_a_pirate = self.rng.gen_did_kill_a_pirate(self.cannons.0);
             self.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
                 PirateEncounterState::AttackResult {
                     info,
@@ -708,7 +710,7 @@ impl GameState {
         {
             // player loses their inventory and half of their gold to the pirates
             self.inventory = Inventory::default();
-            self.gold = self.gold.div_ceil(2);
+            self.gold = Saturating(self.gold.0.div_ceil(2));
             self.mode = Mode::ViewingInventory;
             Ok(())
         } else {
@@ -824,8 +826,8 @@ impl GameState {
         price: u32,
         more_hold: u32,
     ) -> Result<(), StateError> {
-        if self.gold >= price {
-            self.gold -= price;
+        if self.gold.0 >= price {
+            self.gold = self.gold - Saturating(price);
             self.hold_size += more_hold;
             self.acknowledge_event()?;
         }
