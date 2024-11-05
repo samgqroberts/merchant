@@ -5,7 +5,7 @@ use std::{
 
 use chrono::Month;
 use crossterm::{
-    cursor::{Hide, MoveDown, MoveRight, MoveTo, Show},
+    cursor::{Hide, MoveTo, Show},
     style::{style, Attribute, Print, Stylize},
     terminal::Clear,
     Command,
@@ -13,6 +13,7 @@ use crossterm::{
 
 use crate::{
     comp,
+    components::Frame,
     state::{
         GameState, Good, GoodsStolenResult, Inventory, Location, NoEffectEvent,
         PirateEncounterState, Transaction, CANNON_COST,
@@ -407,8 +408,8 @@ impl<'a> Command for BankDepositInput<'a> {
     }
 }
 
-const FRAME_WIDTH: u16 = 99;
-const FRAME_HEIGHT: u16 = 32;
+pub const FRAME_WIDTH: u16 = 99;
+pub const FRAME_HEIGHT: u16 = 32;
 
 pub struct HorizontalLine(pub u16 /* y-index */, pub bool /* full-width */);
 
@@ -419,38 +420,6 @@ impl Command for HorizontalLine {
             MoveTo(if self.1 { 0 } else { 1 }, self.0),
             Print("-".repeat(if self.1 { FRAME_WIDTH } else { FRAME_WIDTH - 2 }.into()))
         );
-        Ok(())
-    }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
-}
-
-pub struct Frame(bool);
-
-impl Command for Frame {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
-        // 2 horizontal lines at top and bottom ends
-        comp!(
-            f,
-            HorizontalLine(0, true),
-            HorizontalLine(FRAME_HEIGHT, true)
-        );
-        if !self.0 {
-            // additional thick horizontal line near location
-            for i in 0..(FRAME_WIDTH) {
-                comp!(f, MoveTo(i, 19), Print("="), MoveRight(1));
-            }
-        }
-        // 2 vertical lines at left and right ends
-        for i in 0..(FRAME_HEIGHT - 1) {
-            comp!(f, MoveTo(0, 1 + i), Print("|"), MoveDown(1));
-        }
-        for i in 0..(FRAME_HEIGHT - 1) {
-            comp!(f, MoveTo(FRAME_WIDTH - 1, 1 + i), Print("|"), MoveDown(1));
-        }
         Ok(())
     }
 

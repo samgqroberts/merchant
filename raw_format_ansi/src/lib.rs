@@ -99,7 +99,6 @@ pub fn raw_format_ansi(s: &str) -> String {
     let mut cursor_pos: (usize, usize) = (0, 0);
     let tokens = tokenize_ansi(s);
     for token in tokens {
-        dbg!(&token);
         if let Escape(sequence) = token {
             if let CursorPos(row, col) = sequence {
                 let row: usize = row.try_into().unwrap();
@@ -154,7 +153,6 @@ pub fn raw_format_ansi(s: &str) -> String {
             continue;
         }
     }
-    dbg!(&lines);
     lines.join("\n")
 }
 
