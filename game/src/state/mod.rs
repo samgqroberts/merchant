@@ -14,6 +14,7 @@ mod rng;
 pub use self::error::StateError;
 pub use self::game_state::GameState;
 pub use self::game_state::GoodsStolenResult;
+pub use self::game_state::Initialization;
 pub use self::game_state::LocationEvent;
 pub use self::game_state::Mode;
 pub use self::game_state::NoEffectEvent;

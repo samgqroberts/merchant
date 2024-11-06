@@ -3,7 +3,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::{cell::RefCell, str};
 
 use crate::{
-    engine::{Engine, UpdateResult},
+    engine::{Engine, UpdateResult, UpdateSignal},
     state::GameState,
 };
 use raw_format_ansi::raw_format_ansi;
@@ -62,24 +62,24 @@ impl TestEngine {
     }
 
     #[allow(unused_must_use)]
-    pub fn keypress(&mut self, key_code: KeyCode) -> UpdateResult<()> {
+    pub fn keypress(&mut self, key_code: KeyCode) -> UpdateResult<UpdateSignal> {
         self.writer_ref.borrow_mut().reset();
         let mut engine = Engine::new(&self.writer_ref);
         let update = engine.draw_scene(&mut self.game_state)?;
-        update(
+        let signal = update(
             KeyEvent::new(key_code, KeyModifiers::empty()),
             &mut self.game_state,
         )?;
         self.writer_ref.borrow_mut().reset();
         engine.draw_scene(&mut self.game_state)?;
-        Ok(())
+        Ok(signal)
     }
 
-    pub fn charpress(&mut self, char: char) -> UpdateResult<()> {
+    pub fn charpress(&mut self, char: char) -> UpdateResult<UpdateSignal> {
         self.keypress(KeyCode::Char(char))
     }
 
-    pub fn enterpress(&mut self) -> UpdateResult<()> {
+    pub fn enterpress(&mut self) -> UpdateResult<UpdateSignal> {
         self.keypress(KeyCode::Enter)
     }
 }

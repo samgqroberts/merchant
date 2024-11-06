@@ -3,7 +3,7 @@ use std::num::Saturating;
 use pretty_assertions::assert_eq;
 
 use crate::{
-    engine::UpdateResult,
+    engine::{UpdateResult, UpdateSignal},
     state::{
         GameState, Good, LocationEvent, Mode, NoEffectEvent, PirateEncounterInfo, Transaction,
     },
@@ -26,28 +26,28 @@ fn splash_screen_into_inventory() -> UpdateResult<()> {
 |                                                                                                 |
 |                                                                                                 |
 |                                                                                                 |
-|                           __  __               _                 _                              |
-|                          |  \/  |             | |               | |                             |
-|                          | \  / | ___ _ __ ___| |__   __ _ _ __ | |_                            |
-|                          | |\/| |/ _ \ '__/ __| '_ \ / _` | '_ \| __|                           |
-|                          | |  | |  __/ | | (__| | | | (_| | | | | |_                            |
-|                          |_|  |_|\___|_|  \___|_| |_|\__,_|_| |_|\__|                           |
+|                            __  __               _                 _                             |
+|                           |  \/  |             | |               | |                            |
+|                           | \  / | ___ _ __ ___| |__   __ _ _ __ | |_                           |
+|                           | |\/| |/ _ \ '__/ __| '_ \ / _` | '_ \| __|                          |
+|                           | |  | |  __/ | | (__| | | | (_| | | | | |_                           |
+|                           |_|  |_|\___|_|  \___|_| |_|\__,_|_| |_|\__|                          |
 |                                                                                                 |
 |                                                                                                 |
-|                            A tribute to Drug Wars by samgqroberts                               |
+|                              A tribute to Drug Wars by samgqroberts                             |
 |                                                                                                 |
-|                                     www.samgqroberts.com                                        |
-|                                                                                                 |
-|                                                                                                 |
-|                                                                                                 |
+|                                       www.samgqroberts.com                                      |
 |                                                                                                 |
 |                                                                                                 |
 |                                                                                                 |
 |                                                                                                 |
 |                                                                                                 |
-|                      You have three years to make as much gold as you can!                      |
 |                                                                                                 |
-|                                    Press any key to begin                                       |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                      Press any key to begin                                     |
 |                                                                                                 |
 |                                                                                                 |
 |                                                                                                 |
@@ -56,6 +56,47 @@ fn splash_screen_into_inventory() -> UpdateResult<()> {
 |                                                                                                 |
 ---------------------------------------------------------------------------------------------------
 ",
+        )
+    );
+    e.charpress('a')?;
+    assert_eq!(
+        e.get_current_formatted(),
+        e.expect_full(
+            r###"
+'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.
+)                                                                                                 (
+|                                                                                                 |
+(                                                                                                 )
+|                                                                                                 |
+)                                        The year is 1782.                                        (
+|                                                                                                 |
+(                        Your father, a rich merchant captain from London,                        )
+|                    is preparing to retire and he is looking for a successor.                    |
+)                                                                                                 (
+|                    He has issued a challenge to you: build a merchant empire                    |
+(                 of your own to prove that you are worthy to carry on his legacy.                )
+|                                                                                                 |
+)                                                                                                 (
+|                     You have three years to make as much money as possible.                     |
+(                                                                                                 )
+|                                                                                                 |
+)                                                                                                 (
+|                                                                                                 |
+('~~.~~'~~.~~'~~.~~'~~.~~'~~.~~'~~.~~'~~.~~'~~.~~'~~.~~'~~.~~'~~.~~'~~.~~'~~.~~'~~.~~'~~.~~'~~.~~')
+|                                                                                                 |
+)                                                                                                 (
+|                                                                                                 |
+(                                                                                                 )
+|                             Fair winds and following seas, captain.                             |
+)                                                                                                 (
+|                                                                                                 |
+(                                    Press any key to continue                                    )
+|                                                                                                 |
+)                                                                                                 (
+|                                                                                                 |
+(                                                                                                 )
+.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'
+"###,
         )
     );
     e.charpress('a')?;
@@ -106,7 +147,7 @@ fn splash_screen_into_inventory() -> UpdateResult<()> {
 fn end_game_positive() -> UpdateResult<()> {
     let e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.gold = Saturating(40000);
         state.debt = Saturating(100);
         state.game_end = true;
@@ -129,23 +170,23 @@ fn end_game_positive() -> UpdateResult<()> {
 |                                                                                                 |
 |                                                                                                 |
 |                                                                                                 |
+|                              After three years, you went from being                             |
 |                                                                                                 |
-|                                        Congratulations!                                         |
-|                                                                                                 |
-|                                                                                                 |
-|                                                                                                 |
-|                                                                                                 |
-|                                                                                                 |
-|                             After three years, you went from being                              |
-|                                                                                                 |
-|                                        1400 gold in debt                                        |
+|                                        1000 gold in debt                                        |
 |                                                                                                 |
 |                                            to having                                            |
 |                                                                                                 |
-|                                           39900 gold                                            |
+|                                            39900 gold                                           |
 |                                                                                                 |
 |                                                                                                 |
 |                                                                                                 |
+|                               Your father expected more from you.                               |
+|                                                                                                 |
+|                    It will likely be a long time before your father retires.                    |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                (q) to quit, (Enter) to play again                               |
 |                                                                                                 |
 |                                                                                                 |
 ---------------------------------------------------------------------------------------------------
@@ -159,7 +200,7 @@ fn end_game_positive() -> UpdateResult<()> {
 fn end_game_negative() -> UpdateResult<()> {
     let e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.gold = Saturating(100);
         state.debt = Saturating(40000);
         state.game_end = true;
@@ -182,23 +223,23 @@ fn end_game_negative() -> UpdateResult<()> {
 |                                                                                                 |
 |                                                                                                 |
 |                                                                                                 |
+|                              After three years, you went from being                             |
 |                                                                                                 |
-|                                        Congratulations!                                         |
+|                                        1000 gold in debt                                        |
 |                                                                                                 |
+|                                             to being                                            |
 |                                                                                                 |
-|                                                                                                 |
-|                                                                                                 |
-|                                                                                                 |
-|                             After three years, you went from being                              |
-|                                                                                                 |
-|                                        1400 gold in debt                                        |
-|                                                                                                 |
-|                                            to being                                             |
-|                                                                                                 |
-|                                       39900 gold in debt                                        |
+|                                        39900 gold in debt                                       |
 |                                                                                                 |
 |                                                                                                 |
 |                                                                                                 |
+|                          Obviously, your father is disappointed in you.                         |
+|                                                                                                 |
+|                            He has made the decision never to retire.                            |
+|                                                                                                 |
+|                                                                                                 |
+|                                                                                                 |
+|                                (q) to quit, (Enter) to play again                               |
 |                                                                                                 |
 |                                                                                                 |
 ---------------------------------------------------------------------------------------------------
@@ -209,10 +250,45 @@ fn end_game_negative() -> UpdateResult<()> {
 }
 
 #[test]
+fn end_game_quit() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(MockRng::new_with_default_locations().into());
+        state.introduction_to_game();
+        state.gold = Saturating(100);
+        state.debt = Saturating(40000);
+        state.game_end = true;
+        state
+    })?;
+    assert!(e.expect("(q) to quit"));
+    assert_eq!(
+        e.charpress('a')?, // expect nothing
+        UpdateSignal::Continue,
+    );
+    assert!(e.expect("(q) to quit"));
+    assert_eq!(e.charpress('q')?, UpdateSignal::Quit,);
+    Ok(())
+}
+
+#[test]
+fn end_game_restart() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(MockRng::new_with_default_locations().into());
+        state.introduction_to_game();
+        state.gold = Saturating(100);
+        state.debt = Saturating(40000);
+        state.game_end = true;
+        state
+    })?;
+    assert!(e.expect("(Enter) to play again"));
+    assert_eq!(e.enterpress()?, UpdateSignal::Restart,);
+    Ok(())
+}
+
+#[test]
 fn buy_good() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.gold = Saturating(1400);
         state.inventory.cotton = 15;
         state.locations.london.prices.cotton = 30;
@@ -244,7 +320,7 @@ fn buy_good() -> UpdateResult<()> {
 fn buy_good_back() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.mode = Mode::Buying(Some(Transaction {
             good: Good::Cotton,
             amount: None,
@@ -265,7 +341,7 @@ fn buy_good_back() -> UpdateResult<()> {
 fn sell_good() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.gold = Saturating(1400);
         state.inventory.cotton = 15;
         state.locations.london.prices.cotton = 30;
@@ -298,7 +374,7 @@ fn sell_good() -> UpdateResult<()> {
 fn sell_good_back() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.mode = Mode::Selling(Some(Transaction {
             good: Good::Cotton,
             amount: None,
@@ -324,7 +400,7 @@ fn sail() -> UpdateResult<()> {
                 .push_location_info(default_location_info())
                 .into(),
         );
-        state.initialize();
+        state.introduction_to_game();
         state
     })?;
     assert!(e.expect("|   London    |"));
@@ -343,7 +419,7 @@ fn sail() -> UpdateResult<()> {
 fn sail_back() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.mode = Mode::Sailing;
         state
     })?;
@@ -358,7 +434,7 @@ fn sail_back() -> UpdateResult<()> {
 fn stash_deposit() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.stash.rum = 5;
         state.inventory.rum = 20;
         state
@@ -389,7 +465,7 @@ fn stash_deposit() -> UpdateResult<()> {
 fn stash_deposit_back() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.mode = Mode::StashDeposit(Some(Transaction {
             good: Good::Coffee,
             amount: None,
@@ -410,7 +486,7 @@ fn stash_deposit_back() -> UpdateResult<()> {
 fn stash_withdraw() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.stash.tea = 30;
         state.inventory.tea = 14;
         state
@@ -441,7 +517,7 @@ fn stash_withdraw() -> UpdateResult<()> {
 fn stash_withdraw_back() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.mode = Mode::StashWithdraw(Some(Transaction {
             good: Good::Rum,
             amount: None,
@@ -462,7 +538,7 @@ fn stash_withdraw_back() -> UpdateResult<()> {
 fn pay_debt() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.debt = Saturating(500);
         state.gold = Saturating(1000);
         state
@@ -493,7 +569,7 @@ fn pay_debt() -> UpdateResult<()> {
 fn pay_debt_back() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.debt = Saturating(500);
         state.mode = Mode::PayDebt(None);
         state
@@ -509,7 +585,7 @@ fn pay_debt_back() -> UpdateResult<()> {
 fn pay_debt_no_debt_left() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.debt = Saturating(0);
         state
     })?;
@@ -527,7 +603,7 @@ fn pay_debt_no_debt_left() -> UpdateResult<()> {
 fn bank_deposit() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.gold = Saturating(1000);
         state.bank = Saturating(500);
         state
@@ -557,7 +633,7 @@ fn bank_deposit() -> UpdateResult<()> {
 fn bank_deposit_back() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.mode = Mode::BankDeposit(None);
         state
     })?;
@@ -573,7 +649,7 @@ fn bank_deposit_back() -> UpdateResult<()> {
 fn bank_withdraw() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.gold = Saturating(1000);
         state.bank = Saturating(500);
         state
@@ -603,7 +679,7 @@ fn bank_withdraw() -> UpdateResult<()> {
 fn bank_withdraw_back() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.mode = Mode::BankWithdraw(None);
         state
     })?;
@@ -619,7 +695,7 @@ fn bank_withdraw_back() -> UpdateResult<()> {
 fn arrive_at_cheap_good_event() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.mode = Mode::GameEvent(LocationEvent::CheapGood(Good::Coffee));
         state
     })?;
@@ -635,7 +711,7 @@ fn arrive_at_cheap_good_event() -> UpdateResult<()> {
 fn arrive_at_expensive_good_event() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.mode = Mode::GameEvent(LocationEvent::ExpensiveGood(Good::Coffee));
         state
     })?;
@@ -652,7 +728,7 @@ fn arrive_at_expensive_good_event() -> UpdateResult<()> {
 fn arrive_at_find_goods_event() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.inventory.coffee = 4;
         state.mode = Mode::GameEvent(LocationEvent::FindGoods(Good::Coffee, 10));
         state
@@ -671,7 +747,7 @@ fn arrive_at_find_goods_event() -> UpdateResult<()> {
 fn arrive_at_find_goods_event_not_enough_hold() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.inventory.coffee = 4;
         state.hold_size = Saturating(11);
         state.mode = Mode::GameEvent(LocationEvent::FindGoods(Good::Coffee, 10));
@@ -695,7 +771,7 @@ fn arrive_at_stolen_goods_event_some_stolen() -> UpdateResult<()> {
                 .push_good_stolen((Good::Coffee, 4))
                 .into(),
         );
-        state.initialize();
+        state.introduction_to_game();
         state.inventory.coffee = 10;
         state.mode = Mode::GameEvent(LocationEvent::GoodsStolen(None));
         state
@@ -712,7 +788,7 @@ fn arrive_at_stolen_goods_event_some_stolen() -> UpdateResult<()> {
 fn arrive_at_stolen_goods_event_nothing_stolen() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.inventory.coffee = 0;
         state.mode = Mode::GameEvent(LocationEvent::GoodsStolen(None));
         state
@@ -728,7 +804,7 @@ fn arrive_at_stolen_goods_event_nothing_stolen() -> UpdateResult<()> {
 fn arrive_at_can_buy_cannon_accept() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.gold = Saturating(5100);
         state.cannons = Saturating(3);
         state.mode = Mode::GameEvent(LocationEvent::CanBuyCannon);
@@ -753,7 +829,7 @@ fn arrive_at_can_buy_cannon_accept() -> UpdateResult<()> {
 fn arrive_at_can_buy_cannon_not_enough_gold() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.gold = Saturating(4999);
         state.cannons = Saturating(3);
         state.mode = Mode::GameEvent(LocationEvent::CanBuyCannon);
@@ -771,7 +847,7 @@ fn arrive_at_can_buy_cannon_not_enough_gold() -> UpdateResult<()> {
 fn arrive_at_can_buy_cannon_refuse() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.gold = Saturating(5100);
         state.cannons = Saturating(3);
         state.mode = Mode::GameEvent(LocationEvent::CanBuyCannon);
@@ -793,7 +869,7 @@ fn pirate_encounter_initial() -> UpdateResult<()> {
                 .push_num_pirates_encountered(4)
                 .into(),
         );
-        state.initialize();
+        state.introduction_to_game();
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
             crate::state::PirateEncounterState::Initial,
@@ -892,7 +968,7 @@ fn pirate_encounter_run_success() -> UpdateResult<()> {
                 .push_run_success(true)
                 .into(),
         );
-        state.initialize();
+        state.introduction_to_game();
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
             crate::state::PirateEncounterState::Prompt {
@@ -996,7 +1072,7 @@ fn pirate_encounter_run_failure() -> UpdateResult<()> {
                 .push_damage_from_pirates(1)
                 .into(),
         );
-        state.initialize();
+        state.introduction_to_game();
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
             crate::state::PirateEncounterState::Prompt {
@@ -1095,7 +1171,7 @@ fn pirate_encounter_run_failure() -> UpdateResult<()> {
 fn pirate_encounter_pirates_attack_not_destroyed() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
             crate::state::PirateEncounterState::PiratesAttack {
@@ -1193,7 +1269,7 @@ fn pirate_encounter_pirates_attack_not_destroyed() -> UpdateResult<()> {
 fn pirate_encounter_pirates_attack_is_destroyed() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.inventory.tea = 10;
         state.gold = Saturating(500);
         state.cannons = Saturating(2);
@@ -1305,7 +1381,7 @@ fn pirate_encounter_fight_did_sink_pirate_and_did_not_win() -> UpdateResult<()> 
                 .push_damage_from_pirates(1)
                 .into(),
         );
-        state.initialize();
+        state.introduction_to_game();
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
             crate::state::PirateEncounterState::Prompt {
@@ -1409,7 +1485,7 @@ fn pirate_encounter_fight_did_sink_pirate_and_did_win() -> UpdateResult<()> {
                 .push_gold_recovered_from_pirate_encounter(42)
                 .into(),
         );
-        state.initialize();
+        state.introduction_to_game();
         state.gold = Saturating(500);
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
@@ -1556,7 +1632,7 @@ fn pirate_encounter_fight_did_not_sink_pirate() -> UpdateResult<()> {
                 .push_damage_from_pirates(1)
                 .into(),
         );
-        state.initialize();
+        state.introduction_to_game();
         state.gold = Saturating(500);
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
@@ -1656,7 +1732,7 @@ fn pirate_encounter_fight_did_not_sink_pirate() -> UpdateResult<()> {
 fn can_buy_hold_space_accept() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.gold = Saturating(500);
         state.hold_size = Saturating(200);
         state.mode = Mode::GameEvent(LocationEvent::CanBuyHoldSpace {
@@ -1680,7 +1756,7 @@ fn can_buy_hold_space_accept() -> UpdateResult<()> {
 fn can_buy_hold_space_refuse() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.gold = Saturating(500);
         state.hold_size = Saturating(200);
         state.mode = Mode::GameEvent(LocationEvent::CanBuyHoldSpace {
@@ -1705,7 +1781,7 @@ fn can_buy_hold_space_refuse() -> UpdateResult<()> {
 fn can_buy_hold_space_not_enough_gold() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.gold = Saturating(300);
         state.hold_size = Saturating(200);
         state.mode = Mode::GameEvent(LocationEvent::CanBuyHoldSpace {
@@ -1728,7 +1804,7 @@ fn can_buy_hold_space_not_enough_gold() -> UpdateResult<()> {
 fn no_effect_sunny_day() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.mode = Mode::GameEvent(LocationEvent::NoEffect(NoEffectEvent::SunnyDay));
         state
     })?;
@@ -1781,7 +1857,7 @@ fn no_effect_sunny_day() -> UpdateResult<()> {
 fn no_effect_storm() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
-        state.initialize();
+        state.introduction_to_game();
         state.mode = Mode::GameEvent(LocationEvent::NoEffect(NoEffectEvent::StormOnHorizon));
         state
     })?;

@@ -20,135 +20,6 @@ use crate::{
     },
 };
 
-pub struct SplashScreen();
-
-const LOGO: &str = r#"
- __  __               _                 _   
-|  \/  |             | |               | |  
-| \  / | ___ _ __ ___| |__   __ _ _ __ | |_ 
-| |\/| |/ _ \ '__/ __| '_ \ / _` | '_ \| __|
-| |  | |  __/ | | (__| | | | (_| | | | | |_ 
-|_|  |_|\___|_|  \___|_| |_|\__,_|_| |_|\__|
-"#;
-
-impl Command for SplashScreen {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
-        comp!(
-            f,
-            Clear(crossterm::terminal::ClearType::All),
-            Frame(FrameType::SimpleEmptyInside),
-            MoveTo(29, 12),
-            Print("A tribute to Drug Wars by samgqroberts"),
-            MoveTo(38, 14),
-            Print("www.samgqroberts.com"),
-            MoveTo(1, 23),
-            Print(
-                CenteredText(
-                    "You have three years to make as much gold as you can!".to_string(),
-                    (FRAME_WIDTH - 2).into()
-                )
-                .to_string()
-            ),
-            MoveTo(37, 25),
-            Print(style("Press any key to begin").attribute(Attribute::Bold),),
-            Hide
-        );
-        const OFFSET_X: u16 = 27;
-        const OFFSET_Y: u16 = 4;
-        for (i, line) in LOGO.trim_matches('\n').lines().enumerate() {
-            comp!(
-                f,
-                MoveTo(OFFSET_X, OFFSET_Y + (i as u16)),
-                Print(line.to_string()),
-            );
-        }
-        Ok(())
-    }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
-}
-
-const GAME_OVER: &str = r"
-  _____                         ____                 
- / ____|                       / __ \                
-| |  __  __ _ _ __ ___   ___  | |  | |_   _____ _ __ 
-| | |_ |/ _` | '_ ` _ \ / _ \ | |  | \ \ / / _ \ '__|
-| |__| | (_| | | | | | |  __/ | |__| |\ V /  __/ |   
- \_____|\__,_|_| |_| |_|\___|  \____/  \_/ \___|_|   
-";
-
-pub struct GameEndScreen<'a>(pub &'a GameState);
-
-impl<'a> Command for GameEndScreen<'a> {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
-        let state = self.0;
-        let final_gold: i64 = ((state.gold + state.bank).0 as i64) - (state.debt.0 as i64);
-        comp!(
-            f,
-            Clear(crossterm::terminal::ClearType::All),
-            Hide,
-            Frame(FrameType::SimpleEmptyInside),
-            MoveTo(1, 14),
-            Print(
-                CenteredText("Congratulations!".to_string(), (FRAME_WIDTH - 2).into())
-                    .to_string()
-                    .attribute(Attribute::Bold)
-            ),
-            MoveTo(1, 20),
-            Print(CenteredText(
-                "After three years, you went from being".to_string(),
-                (FRAME_WIDTH - 2).into()
-            )),
-            MoveTo(1, 22),
-            Print(
-                CenteredText("1400 gold in debt".to_string(), (FRAME_WIDTH - 2).into())
-                    .to_string()
-                    .attribute(Attribute::Bold)
-            ),
-            MoveTo(1, 24),
-            Print(
-                CenteredText(
-                    format!("to {}", if final_gold >= 0 { "having" } else { "being" }),
-                    (FRAME_WIDTH - 2).into()
-                )
-                .to_string()
-            ),
-            MoveTo(1, 26),
-            Print(
-                CenteredText(
-                    (if final_gold >= 0 {
-                        format!("{} gold", final_gold)
-                    } else {
-                        format!("{} gold in debt", final_gold.abs())
-                    })
-                    .to_string(),
-                    (FRAME_WIDTH - 2).into()
-                )
-                .to_string()
-                .attribute(Attribute::Bold)
-            ),
-        );
-        const OFFSET_X: u16 = 23;
-        const OFFSET_Y: u16 = 4;
-        for (i, line) in GAME_OVER.trim_matches('\n').lines().enumerate() {
-            comp!(
-                f,
-                MoveTo(OFFSET_X, OFFSET_Y + (i as u16)),
-                Print(line.to_string()),
-            );
-        }
-        Ok(())
-    }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
-}
-
 pub struct BankWithdrawInput<'a>(pub &'a Option<u32>);
 
 impl<'a> Command for BankWithdrawInput<'a> {
@@ -539,7 +410,7 @@ impl<'a> Command for HomeBase<'a> {
     }
 }
 
-struct CenteredText(String, u32);
+pub struct CenteredText(pub String, pub u32);
 
 impl std::fmt::Display for CenteredText {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -157,17 +157,11 @@ impl Command for Frame {
 
 #[cfg(test)]
 mod tests {
-    use captured_write::CapturedWrite;
-    use crossterm::execute;
     use pretty_assertions::assert_eq;
 
-    use super::*;
+    use crate::test::render_component;
 
-    fn render_component<T: Command>(x: T) -> String {
-        let mut writer = CapturedWrite::new();
-        execute!(&mut writer, x).unwrap();
-        raw_format_ansi::raw_format_ansi(&writer.buffer)
-    }
+    use super::*;
 
     #[test]
     fn simple_empty_inside() {
