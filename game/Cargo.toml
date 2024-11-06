@@ -1,15 +1,15 @@
 [package]
 name = "merchant"
 description = "A terminal UI game."
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 
 [dependencies]
 chrono = "0.4.26"
 crossterm = { version = "0.27.0" }
 rand = "0.8.5"
-captured_write = { path ="../captured_write" }
-raw_format_ansi = { path ="../raw_format_ansi" }
+captured_write = { path = "../captured_write" }
+raw_format_ansi = { path = "../raw_format_ansi" }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ['env-filter'] }
 tracing-appender = "0.2.3"
