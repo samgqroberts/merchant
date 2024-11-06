@@ -102,12 +102,21 @@ pub enum Mode {
     GameEvent(LocationEvent),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Initialization {
+    SplashScreen,
+    Introduction,
+    Game,
+}
+
 pub struct GameState {
     pub rng: Box<dyn MerchantRng>,
-    pub initialized: bool,
+    pub initialization: Initialization,
+    pub starting_date: (u16, Month),
     pub date: (u16, Month),
     pub hold_size: Saturating<u32>,
     pub cannons: Saturating<u8>,
+    pub starting_gold: Saturating<u32>,
     pub gold: Saturating<u32>,
     pub bank: Saturating<u32>,
     pub location: Location,
@@ -115,6 +124,7 @@ pub struct GameState {
     pub inventory: Inventory,
     pub location_config: LocationConfig,
     pub locations: LocationInfos,
+    pub starting_debt: Saturating<u32>,
     pub debt: Saturating<u32>,
     pub mode: Mode,
     pub game_end: bool,
@@ -123,28 +133,32 @@ pub struct GameState {
 impl GameState {
     pub fn new(mut rng: Box<dyn MerchantRng>) -> GameState {
         let starting_gold = Saturating(500);
-        let debt: Saturating<u32> = starting_gold * Saturating(3u32);
+        let starting_debt = starting_gold * Saturating(3u32);
         let location_config = rng.gen_location_config(starting_gold.0);
         debug!("location_config: {:#?}", location_config);
         let locations = LocationInfos::new(
             &mut rng,
             &location_config,
-            starting_gold.0 as i32 - debt.0 as i32,
+            starting_gold.0 as i32 - starting_debt.0 as i32,
         );
+        let starting_date = (1782, Month::March);
         GameState {
             rng,
-            initialized: false,
-            date: (1782, Month::March),
+            initialization: Initialization::SplashScreen,
+            date: starting_date.clone(),
+            starting_date,
             hold_size: Saturating(100),
             cannons: Saturating(1),
-            gold: starting_gold,
+            gold: starting_gold.clone(),
+            starting_gold,
             bank: Saturating(0),
             location: location_config.home_port,
             stash: Inventory::default(),
             inventory: Inventory::default(),
             location_config,
             locations,
-            debt,
+            debt: starting_debt.clone(),
+            starting_debt,
             mode: Mode::ViewingInventory,
             game_end: false,
         }
@@ -154,8 +168,12 @@ impl GameState {
         GameState::new(Box::new(rng))
     }
 
-    pub fn initialize(&mut self) {
-        self.initialized = true;
+    pub fn splash_to_introduction(&mut self) {
+        self.initialization = Initialization::Introduction;
+    }
+
+    pub fn introduction_to_game(&mut self) {
+        self.initialization = Initialization::Game;
     }
 
     /// compute the net worth the player currently has

@@ -16,11 +16,14 @@ use crate::{
     components::{
         BankDepositInput, BankWithdrawInput, BuyInput, BuyPrompt, CanBuyCannon, CanBuyHoldSpace,
         CheapGoodDialog, ExpensiveGoodDialog, FindGoodsDialog, GameEndScreen, GoodsStolenDialog,
-        NoEffect, PayDebtInput, PirateEncounter, SailPrompt, SellInput, SellPrompt, SplashScreen,
-        StashDepositInput, StashDepositPrompt, StashWithdrawInput, StashWithdrawPrompt,
-        ViewingInventoryActions, ViewingInventoryBase,
+        IntroductionScreen, NoEffect, PayDebtInput, PirateEncounter, SailPrompt, SellInput,
+        SellPrompt, SplashScreen, StashDepositInput, StashDepositPrompt, StashWithdrawInput,
+        StashWithdrawPrompt, ViewingInventoryActions, ViewingInventoryBase,
     },
-    state::{GameState, Good, Location, LocationEvent, Mode, PirateEncounterState, StateError},
+    state::{
+        GameState, Good, Initialization, Location, LocationEvent, Mode, PirateEncounterState,
+        StateError,
+    },
 };
 
 #[derive(Debug)]
@@ -39,9 +42,16 @@ impl From<StateError> for UpdateError {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub enum UpdateSignal {
+    Continue,
+    Quit,
+    Restart,
+}
+
 pub type UpdateResult<T> = Result<T, UpdateError>;
 
-pub type UpdateFn = dyn FnOnce(KeyEvent, &mut GameState) -> UpdateResult<()>;
+pub type UpdateFn = dyn FnOnce(KeyEvent, &mut GameState) -> UpdateResult<UpdateSignal>;
 
 trait FromKeyCode
 where
@@ -95,7 +105,10 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
         Self { writer }
     }
 
-    pub fn draw_and_prompt(&mut self, game_state: &mut GameState) -> Result<bool, UpdateError> {
+    pub fn draw_and_prompt(
+        &mut self,
+        game_state: &mut GameState,
+    ) -> Result<UpdateSignal, UpdateError> {
         // draw the game state
         let update_fn = self.draw_scene(game_state)?;
         // Wait for any user event
@@ -115,17 +128,15 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                             if event.modifiers == KeyModifiers::CONTROL
                                 && event.code == KeyCode::Char('c')
                             {
-                                return Ok(true);
+                                return Ok(UpdateSignal::Quit);
                             }
                             // update game state
-                            update_fn(event, game_state)?;
-                            // indicate we do not want to exit
-                            return Ok(false);
+                            return update_fn(event, game_state);
                         }
                     }
                     Event::Resize(columns, rows) => {
                         info!("Terminal resized: {columns} columns, {rows} rows.");
-                        return Ok(false); // trigger a rerender with no state updates
+                        return Ok(UpdateSignal::Continue); // trigger a rerender with no state updates
                     }
                     _ => continue,
                 }
@@ -137,16 +148,22 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
     }
 
     fn queue_scene(writer: &mut Writer, state: &mut GameState) -> io::Result<Box<UpdateFn>> {
-        if !state.initialized {
+        if state.initialization == Initialization::SplashScreen {
             // initial splash screen
             queue!(writer, SplashScreen())?;
             Ok(Box::new(|_: KeyEvent, state: &mut GameState| {
-                state.initialize();
-                Ok(())
+                state.splash_to_introduction();
+                Ok(UpdateSignal::Continue)
             }))
         } else if state.game_end {
             queue!(writer, GameEndScreen(state))?;
-            return Ok(Box::new(|_: KeyEvent, _: &mut GameState| Ok(())));
+            Ok(Box::new(|event: KeyEvent, _: &mut GameState| {
+                match event.code {
+                    KeyCode::Char('q') => Ok(UpdateSignal::Quit),
+                    KeyCode::Enter => Ok(UpdateSignal::Restart),
+                    _ => Ok(UpdateSignal::Continue),
+                }
+            }))
         } else if let Mode::GameEvent(LocationEvent::PirateEncounter(pirate_encounter_state)) =
             &state.mode
         {
@@ -192,8 +209,21 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         state.proceed_pirate_encounter_victory()?;
                     }
                 }
-                Ok(())
+                Ok(UpdateSignal::Continue)
             }));
+        } else if state.initialization == Initialization::Introduction {
+            // introduction screen
+            queue!(
+                writer,
+                IntroductionScreen {
+                    home: state.location_config.home_port,
+                    starting_year: state.starting_date.0
+                }
+            )?;
+            Ok(Box::new(|_: KeyEvent, state: &mut GameState| {
+                state.introduction_to_game();
+                Ok(UpdateSignal::Continue)
+            }))
         } else {
             queue!(writer, ViewingInventoryBase(state))?;
             match &state.mode {
@@ -232,7 +262,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                                 }
                             }
                         }
-                        Ok(())
+                        Ok(UpdateSignal::Continue)
                     }));
                 }
                 Mode::Buying(info) => {
@@ -248,14 +278,16 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                             } else if event.code == KeyCode::Backspace {
                                 state.user_typed_backspace()?;
                             } else if event.code == KeyCode::Enter {
-                                return state.commit_buy().map(|_| ()).or_else(|e| match e {
-                                    StateError::CannotAfford | StateError::InsufficientHold => {
-                                        Ok(())
-                                    }
-                                    x => Err(x.into()),
-                                });
+                                return state.commit_buy().map(|_| UpdateSignal::Continue).or_else(
+                                    |e| match e {
+                                        StateError::CannotAfford | StateError::InsufficientHold => {
+                                            Ok(UpdateSignal::Continue)
+                                        }
+                                        x => Err(x.into()),
+                                    },
+                                );
                             }
-                            Ok(())
+                            Ok(UpdateSignal::Continue)
                         }));
                     } else {
                         queue!(writer, BuyPrompt)?;
@@ -267,7 +299,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                             } else if event.code == KeyCode::Backspace {
                                 state.cancel_buy()?;
                             }
-                            Ok(())
+                            Ok(UpdateSignal::Continue)
                         }));
                     }
                 }
@@ -286,12 +318,17 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                             } else if event.code == KeyCode::Backspace {
                                 state.user_typed_backspace()?;
                             } else if event.code == KeyCode::Enter {
-                                return state.commit_sell().map(|_| ()).or_else(|e| match e {
-                                    StateError::InsufficientInventory => Ok(()),
-                                    x => Err(x.into()),
-                                });
+                                return state
+                                    .commit_sell()
+                                    .map(|_| UpdateSignal::Continue)
+                                    .or_else(|e| match e {
+                                        StateError::InsufficientInventory => {
+                                            Ok(UpdateSignal::Continue)
+                                        }
+                                        x => Err(x.into()),
+                                    });
                             }
-                            Ok(())
+                            Ok(UpdateSignal::Continue)
                         }));
                     } else {
                         // user is choosing which good to sell
@@ -304,7 +341,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                             } else if event.code == KeyCode::Backspace {
                                 state.cancel_sell()?;
                             }
-                            Ok(())
+                            Ok(UpdateSignal::Continue)
                         }));
                     }
                 }
@@ -317,15 +354,15 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         } else if let Some(destination) = Location::from_key_code(&event.code) {
                             return state
                                 .sail_to(&destination)
-                                .map(|_| ())
+                                .map(|_| UpdateSignal::Continue)
                                 .or_else(|e| match e {
-                                    StateError::AlreadyInLocation => Ok(()),
+                                    StateError::AlreadyInLocation => Ok(UpdateSignal::Continue),
                                     x => Err(x.into()),
                                 });
                         } else if event.code == KeyCode::Backspace {
                             state.cancel_sail_to()?;
                         }
-                        Ok(())
+                        Ok(UpdateSignal::Continue)
                     }));
                 }
                 Mode::StashDeposit(info) => {
@@ -346,14 +383,17 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                                 state.user_typed_backspace()?;
                             }
                             if event.code == KeyCode::Enter {
-                                return state.commit_stash_deposit().map(|_| ()).or_else(
-                                    |e| match e {
-                                        StateError::InsufficientInventory => Ok(()),
+                                return state
+                                    .commit_stash_deposit()
+                                    .map(|_| UpdateSignal::Continue)
+                                    .or_else(|e| match e {
+                                        StateError::InsufficientInventory => {
+                                            Ok(UpdateSignal::Continue)
+                                        }
                                         x => Err(x.into()),
-                                    },
-                                );
+                                    });
                             }
-                            Ok(())
+                            Ok(UpdateSignal::Continue)
                         }));
                     } else {
                         // user is choosing which good to stash
@@ -366,7 +406,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                             } else if event.code == KeyCode::Backspace {
                                 state.cancel_stash_deposit()?;
                             }
-                            Ok(())
+                            Ok(UpdateSignal::Continue)
                         }));
                     }
                 }
@@ -386,14 +426,15 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                             } else if event.code == KeyCode::Backspace {
                                 state.user_typed_backspace()?;
                             } else if event.code == KeyCode::Enter {
-                                return state.commit_stash_withdraw().map(|_| ()).or_else(
-                                    |e| match e {
-                                        StateError::InsufficientStash => Ok(()),
+                                return state
+                                    .commit_stash_withdraw()
+                                    .map(|_| UpdateSignal::Continue)
+                                    .or_else(|e| match e {
+                                        StateError::InsufficientStash => Ok(UpdateSignal::Continue),
                                         x => Err(x.into()),
-                                    },
-                                );
+                                    });
                             }
-                            Ok(())
+                            Ok(UpdateSignal::Continue)
                         }));
                     } else {
                         // user is choosing which good to withdraw from stash
@@ -406,7 +447,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                             } else if event.code == KeyCode::Backspace {
                                 state.cancel_stash_withdraw()?;
                             }
-                            Ok(())
+                            Ok(UpdateSignal::Continue)
                         }));
                     }
                 }
@@ -422,13 +463,18 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         } else if event.code == KeyCode::Backspace {
                             state.user_typed_backspace()?;
                         } else if event.code == KeyCode::Enter {
-                            return state.commit_pay_debt().map(|_| ()).or_else(|e| match e {
-                                StateError::PayDownAmountHigherThanDebt => Ok(()),
-                                StateError::CannotAfford => Ok(()),
-                                x => Err(x.into()),
-                            });
+                            return state
+                                .commit_pay_debt()
+                                .map(|_| UpdateSignal::Continue)
+                                .or_else(|e| match e {
+                                    StateError::PayDownAmountHigherThanDebt => {
+                                        Ok(UpdateSignal::Continue)
+                                    }
+                                    StateError::CannotAfford => Ok(UpdateSignal::Continue),
+                                    x => Err(x.into()),
+                                });
                         }
-                        Ok(())
+                        Ok(UpdateSignal::Continue)
                     }));
                 }
                 Mode::BankDeposit(amount) => {
@@ -445,13 +491,13 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         } else if event.code == KeyCode::Enter {
                             return state
                                 .commit_bank_deposit()
-                                .map(|_| ())
+                                .map(|_| UpdateSignal::Continue)
                                 .or_else(|e| match e {
-                                    StateError::CannotAfford => Ok(()),
+                                    StateError::CannotAfford => Ok(UpdateSignal::Continue),
                                     x => Err(x.into()),
                                 });
                         }
-                        Ok(())
+                        Ok(UpdateSignal::Continue)
                     }));
                 }
                 Mode::BankWithdraw(amount) => {
@@ -468,13 +514,13 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         } else if event.code == KeyCode::Enter {
                             return state
                                 .commit_bank_withdraw()
-                                .map(|_| ())
+                                .map(|_| UpdateSignal::Continue)
                                 .or_else(|e| match e {
-                                    StateError::InsufficientBank => Ok(()),
+                                    StateError::InsufficientBank => Ok(UpdateSignal::Continue),
                                     x => Err(x.into()),
                                 });
                         }
-                        Ok(())
+                        Ok(UpdateSignal::Continue)
                     }));
                 }
                 Mode::GameEvent(event) => match event {
@@ -482,14 +528,14 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         queue!(writer, CheapGoodDialog(good))?;
                         return Ok(Box::new(|_: KeyEvent, state: &mut GameState| {
                             state.acknowledge_event()?;
-                            Ok(())
+                            Ok(UpdateSignal::Continue)
                         }));
                     }
                     LocationEvent::ExpensiveGood(good) => {
                         queue!(writer, ExpensiveGoodDialog(good))?;
                         return Ok(Box::new(|_: KeyEvent, state: &mut GameState| {
                             state.acknowledge_event()?;
-                            Ok(())
+                            Ok(UpdateSignal::Continue)
                         }));
                     }
                     LocationEvent::FindGoods(good, amount) => {
@@ -503,7 +549,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                                 state.inventory.add_good(&good, amount_to_add);
                             }
                             state.acknowledge_event()?;
-                            Ok(())
+                            Ok(UpdateSignal::Continue)
                         }));
                     }
                     LocationEvent::GoodsStolen(info) => {
@@ -512,7 +558,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         return Ok(Box::new(move |_: KeyEvent, state: &mut GameState| {
                             state.remove_stolen_goods(info);
                             state.acknowledge_event()?;
-                            Ok(())
+                            Ok(UpdateSignal::Continue)
                         }));
                     }
                     LocationEvent::CanBuyCannon => {
@@ -525,7 +571,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                                     state.acknowledge_event()?;
                                 }
                             }
-                            Ok(())
+                            Ok(UpdateSignal::Continue)
                         }));
                     }
                     // TODO<samgqroberts> 2024-04-10 use actual error type
@@ -542,14 +588,14 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                                     state.acknowledge_event()?;
                                 }
                             }
-                            Ok(())
+                            Ok(UpdateSignal::Continue)
                         }));
                     }
                     LocationEvent::NoEffect(variant) => {
                         queue!(writer, NoEffect { variant: *variant })?;
                         return Ok(Box::new(move |_: KeyEvent, state: &mut GameState| {
                             state.acknowledge_event()?;
-                            Ok(())
+                            Ok(UpdateSignal::Continue)
                         }));
                     }
                 },

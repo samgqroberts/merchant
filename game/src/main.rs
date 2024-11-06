@@ -7,7 +7,7 @@ mod state;
 #[cfg(test)]
 mod test;
 
-use engine::Engine;
+use engine::{Engine, UpdateSignal};
 use logging::initialize_logging;
 use rand::{rngs::StdRng, SeedableRng};
 use std::cell::RefCell;
@@ -44,12 +44,21 @@ fn main() -> io::Result<()> {
                 engine.exit_message(&lines)?;
                 break;
             }
-            Ok(should_exit) => {
-                if should_exit {
-                    // main loop told us user requested an exit
-                    info!("should_exit indicated, exiting");
-                    engine.exit_message(&["Thank you for playing!"])?;
-                    break;
+            Ok(signal) => {
+                match signal {
+                    UpdateSignal::Continue => {
+                        // do nothing, loop again
+                    }
+                    UpdateSignal::Quit => {
+                        // main loop told us user requested an exit
+                        info!("should_exit indicated, exiting");
+                        engine.exit_message(&["Thank you for playing!"])?;
+                        break;
+                    }
+                    UpdateSignal::Restart => {
+                        let rng = StdRng::from_entropy();
+                        game_state = GameState::new_std_rng(rng);
+                    }
                 }
             }
         }
