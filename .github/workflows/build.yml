@@ -1,6 +1,7 @@
 name: build
 run-name: Build Executables
-on: [push]
+# on: [push]
+on: []
 
 jobs:
   release:
