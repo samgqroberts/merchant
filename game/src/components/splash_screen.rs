@@ -35,6 +35,7 @@ impl Command for SplashScreen {
                 &[style("Press any key to begin").attribute(Attribute::Bold)],
                 25
             ),
+            ScreenCenteredText::new(&["ctrl-c to quit at any time".to_owned()], 29),
             Hide
         );
         const OFFSET_X: u16 = 28;
@@ -65,6 +66,7 @@ mod tests {
 
     #[test]
     fn basic() {
+        println!("{}", render_component(SplashScreen()));
         assert_eq!(
             render_component(SplashScreen()),
             r#"
@@ -97,7 +99,7 @@ mod tests {
 |                                                                                                 |
 |                                                                                                 |
 |                                                                                                 |
-|                                                                                                 |
+|                                    ctrl-c to quit at any time                                   |
 |                                                                                                 |
 |                                                                                                 |
 ---------------------------------------------------------------------------------------------------
