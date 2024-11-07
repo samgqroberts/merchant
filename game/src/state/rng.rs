@@ -152,7 +152,7 @@ impl MerchantRng for StdRng {
         let mut visited_cheap_goods: Vec<Good> = Vec::new();
         let mut visited_expensive_goods: Vec<Good> = Vec::new();
         let personalities = Location::variants()
-            .into_iter()
+            .iter()
             .map(|location| {
                 let location_personality = if location == &home_port {
                     // home port should be "boring"
@@ -176,15 +176,9 @@ impl MerchantRng for StdRng {
                     // need to generate cheap and expensive goods
                     // that haven't been seen before
                     // and also aren't equal to each other
-                    let cheap = Good::variants_iter()
-                        .filter(|x| !visited_cheap_goods.contains(x))
-                        .next()
-                        .map(|x| *x)
+                    let cheap = Good::variants_iter().find(|x| !visited_cheap_goods.contains(x)).copied()
                         .unwrap();
-                    let expensive = Good::variants_iter()
-                        .filter(|x| !visited_expensive_goods.contains(x) && cheap != **x)
-                        .next()
-                        .map(|x| *x)
+                    let expensive = Good::variants_iter().find(|x| !visited_expensive_goods.contains(x) && cheap != **x).copied()
                         .unwrap();
                     visited_cheap_goods.push(cheap);
                     visited_expensive_goods.push(expensive);

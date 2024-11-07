@@ -5,8 +5,8 @@ use tracing_subscriber::{
     EnvFilter,
 };
 
-pub fn initialize_logging() -> () {
-    if !std::env::var("MERCHANT_LOG").is_ok() {
+pub fn initialize_logging() {
+    if std::env::var("MERCHANT_LOG").is_err() {
         // there is no env var for MERCHANT_LOG
         // logging is not enabled
         // do not initialize tracing (do not create log file)

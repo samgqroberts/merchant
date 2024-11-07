@@ -39,7 +39,7 @@ impl<'a> Command for BankWithdrawInput<'a> {
             MoveTo(OFFSET_X, OFFSET_Y + 1),
             Print(prompt),
             MoveTo(OFFSET_X, OFFSET_Y + 5),
-            Print(format!("(b) <- back")),
+            Print("(b) <- back".to_string()),
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
         );
@@ -266,7 +266,7 @@ impl<'a> Command for BankDepositInput<'a> {
             MoveTo(OFFSET_X, OFFSET_Y + 1),
             Print(prompt),
             MoveTo(OFFSET_X, OFFSET_Y + 5),
-            Print(format!("(b) <- back")),
+            Print("(b) <- back".to_string()),
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
         );
@@ -615,7 +615,7 @@ impl<'a> Command for BuyInput<'a> {
             MoveTo(OFFSET_X, OFFSET_Y + 1),
             Print(format!("You can afford ({})", can_afford)),
             MoveTo(OFFSET_X, OFFSET_Y + 5),
-            Print(format!("(b) <- back")),
+            Print("(b) <- back".to_string()),
         );
         let remaining_hold = state.remaining_hold();
         if remaining_hold < can_afford.0 {
@@ -739,7 +739,7 @@ impl<'a> Command for SellInput<'a> {
             MoveTo(OFFSET_X, OFFSET_Y + 2),
             Print(format!("You have ({})", current_amount)),
             MoveTo(OFFSET_X, OFFSET_Y + 5),
-            Print(format!("(b) <- back")),
+            Print("(b) <- back".to_string()),
             // position cursor for input
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
@@ -857,7 +857,7 @@ impl<'a> Command for StashDepositInput<'a> {
             MoveTo(OFFSET_X, OFFSET_Y + 2),
             Print(format!("You have ({})", current_amount)),
             MoveTo(OFFSET_X, OFFSET_Y + 5),
-            Print(format!("(b) <- back")),
+            Print("(b) <- back".to_string()),
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
         );
@@ -916,7 +916,7 @@ impl<'a> Command for StashWithdrawInput<'a> {
             MoveTo(OFFSET_X, OFFSET_Y + 2),
             Print(format!("There are ({})", current_amount)),
             MoveTo(OFFSET_X, OFFSET_Y + 5),
-            Print(format!("(b) <- back")),
+            Print("(b) <- back".to_string()),
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
         );
@@ -969,7 +969,7 @@ impl<'a> Command for PayDebtInput<'a> {
             MoveTo(OFFSET_X, OFFSET_Y + 1),
             Print(prompt),
             MoveTo(OFFSET_X, OFFSET_Y + 5),
-            Print(format!("(b) <- back")),
+            Print("(b) <- back".to_string()),
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
         );
@@ -1044,11 +1044,11 @@ impl<'a> Command for FindGoodsDialog<'a> {
         comp!(
             f,
             MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y),
-            Print(format!("You notice a crate on the docks")),
+            Print("You notice a crate on the docks".to_string()),
             MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 1),
-            Print(format!("that seems to be abandoned.")),
+            Print("that seems to be abandoned.".to_string()),
             MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 2),
-            Print(format!("After eyeing it for a while, you decide")),
+            Print("After eyeing it for a while, you decide".to_string()),
             MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 3),
             Print(format!("to claim it. Inside you find {} {}!", amount, good)),
             MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 6),

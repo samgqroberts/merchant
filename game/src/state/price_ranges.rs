@@ -98,12 +98,12 @@ impl PriceRanges {
                     let high = ((((overall_high - overall_low) as f64) * 0.6) + *overall_low as f64)
                         .ceil() as u32;
                     (good, (low, high))
-                } else if (&cheap).map(|x| x == good).unwrap_or(false) {
+                } else if cheap.map(|x| x == good).unwrap_or(false) {
                     let low = *overall_low;
                     let high = ((((overall_high - overall_low) as f64) * 0.6) + *overall_low as f64)
                         .ceil() as u32;
                     (good, (low, high))
-                } else if (&expensive).map(|x| x == good).unwrap_or(false) {
+                } else if expensive.map(|x| x == good).unwrap_or(false) {
                     let low = ((((overall_high - overall_low) as f64) * 0.4) + *overall_low as f64)
                         .ceil() as u32;
                     let high = *overall_high;

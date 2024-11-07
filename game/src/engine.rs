@@ -255,10 +255,8 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                                 } else if ch == '7' || ch == 'i' {
                                     state.begin_bank_withdraw()?;
                                 }
-                                if state.debt.0 > 0 {
-                                    if ch == '8' || ch == 'p' {
-                                        state.begin_pay_debt()?;
-                                    }
+                                if state.debt.0 > 0 && (ch == '8' || ch == 'p') {
+                                    state.begin_pay_debt()?;
                                 }
                             }
                         }
