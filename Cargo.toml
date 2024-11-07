@@ -5,3 +5,8 @@ resolver = "2"
 [profile.release]
 debug = 0       # do not include debug symbols
 opt-level = "z" # optimize for small compiled binary size
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
