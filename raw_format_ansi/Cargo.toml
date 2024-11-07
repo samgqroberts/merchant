@@ -8,9 +8,9 @@ crate-type = ["rlib"]
 name = "raw_format_ansi"
 
 [dependencies]
-ansi-parser = "0.9.0"
-regex = "1.8.4"
+ansi-parser = "0.9.1"
+regex = "1.11.1"
 
 [dev-dependencies]
-crossterm = "0.27.0"
+crossterm = { workspace = true }
 captured_write = { path = "../captured_write" }

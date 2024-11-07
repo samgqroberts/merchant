@@ -14,8 +14,8 @@ license = false
 eula = false
 
 [dependencies]
-chrono = "0.4.26"
-crossterm = { version = "0.27.0" }
+chrono = "0.4.38"
+crossterm = { workspace = true }
 rand = "0.8.5"
 captured_write = { path = "../captured_write" }
 raw_format_ansi = { path = "../raw_format_ansi" }
@@ -24,4 +24,4 @@ tracing-subscriber = { version = "0.3.18", features = ['env-filter'] }
 tracing-appender = "0.2.3"
 
 [dev-dependencies]
-pretty_assertions = "1.4.0"
+pretty_assertions = "1.4.1"

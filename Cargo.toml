@@ -10,3 +10,6 @@ opt-level = "z" # optimize for small compiled binary size
 [profile.dist]
 inherits = "release"
 lto = "thin"
+
+[workspace.dependencies]
+crossterm = { version = "0.28.1" }
