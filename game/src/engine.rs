@@ -10,15 +10,16 @@ use std::{
     io::{self, Write},
     time::Duration,
 };
-use tracing::info;
+use tracing::{debug, error, info};
 
 use crate::{
     components::{
         BankDepositInput, BankWithdrawInput, BuyInput, BuyPrompt, CanBuyCannon, CanBuyHoldSpace,
         CheapGoodDialog, ExpensiveGoodDialog, FindGoodsDialog, GameEndScreen, GoodsStolenDialog,
-        IntroductionScreen, NoEffect, PayDebtInput, PirateEncounter, SailPrompt, SellInput,
-        SellPrompt, SplashScreen, StashDepositInput, StashDepositPrompt, StashWithdrawInput,
-        StashWithdrawPrompt, ViewingInventoryActions, ViewingInventoryBase,
+        IntroductionScreen, NoEffect, PayDebtInput, PirateEncounter, RequireResize, SailPrompt,
+        SellInput, SellPrompt, SplashScreen, StashDepositInput, StashDepositPrompt,
+        StashWithdrawInput, StashWithdrawPrompt, ViewingInventoryActions, ViewingInventoryBase,
+        FRAME_HEIGHT, FRAME_WIDTH,
     },
     state::{
         GameState, Good, Initialization, Location, LocationEvent, Mode, PirateEncounterState,
@@ -109,8 +110,23 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
         &mut self,
         game_state: &mut GameState,
     ) -> Result<UpdateSignal, UpdateError> {
-        // draw the game state
-        let update_fn = self.draw_scene(game_state)?;
+        // check the terminal size, and if it needs to be taller or wider to fit the game, render those
+        // instructions INSTEAD of the screen based on the game state
+        let mut require_resize = false;
+        if let Ok((current_x_cols, current_y_cols)) = crossterm::terminal::size() {
+            debug!("Terminal size: {{x: {current_x_cols}, y: {current_y_cols}}}");
+            if current_x_cols < FRAME_WIDTH || current_y_cols < FRAME_HEIGHT {
+                require_resize = true;
+                self.draw_need_resize(current_x_cols, current_y_cols)?;
+            }
+        } else {
+            error!("Could not determine terminal size.");
+        }
+        // if terminal does not need to be resized draw the game state
+        let mut update_fn: Option<_> = None;
+        if !require_resize {
+            update_fn = Some(self.draw_scene(game_state)?);
+        }
         // Wait for any user event
         loop {
             // Wait up to 1s for some user event per loop iteration
@@ -130,8 +146,13 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                             {
                                 return Ok(UpdateSignal::Quit);
                             }
-                            // update game state
-                            return update_fn(event, game_state);
+                            // update game state (if we have an update_fn, we may not if
+                            // terminal needs to be resized)
+                            if let Some(update_fn) = update_fn {
+                                return update_fn(event, game_state);
+                            } else {
+                                return Ok(UpdateSignal::Continue);
+                            }
                         }
                     }
                     Event::Resize(columns, rows) => {
@@ -607,6 +628,20 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
         let update = Engine::queue_scene(writer, state)?;
         writer.flush()?;
         Ok(update)
+    }
+
+    pub fn draw_need_resize(&mut self, current_x_cols: u16, current_y_cols: u16) -> io::Result<()> {
+        info!("Drawing screen requiring resize");
+        let writer = &mut *self.writer.borrow_mut();
+        queue!(
+            writer,
+            RequireResize {
+                current_x_cols,
+                current_y_cols
+            }
+        )?;
+        writer.flush()?;
+        Ok(())
     }
 
     pub fn exit_message(&mut self, msg: &[&str]) -> io::Result<()> {

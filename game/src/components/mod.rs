@@ -10,3 +10,5 @@ mod screen_centered_text;
 pub use screen_centered_text::*;
 mod game_end_screen;
 pub use game_end_screen::*;
+mod require_resize;
+pub use require_resize::*;
