@@ -4,29 +4,14 @@ A clone of the classic terminal UI game Drug Wars, but now set on a merchant shi
 
 ![image](https://github.com/user-attachments/assets/79e77491-9485-4939-aadb-315563fa2cd2)
 
-## Installation
-
-### Via Homebrew (MacOSX Intel & ARM)
-
-Install:
+## Play via Homebrew
 
 ```sh
-brew tap samgqroberts/tap
-brew update
-brew install merchant
-```
-
-Upgrade:
-
-```sh
-brew update
-brew upgrade merchant
-```
-
-Play:
-```sh
+brew install samgqroberts/tap/merchant
 merchant
 ```
+
+## Developer notes
 
 ### Download binaries directly
 

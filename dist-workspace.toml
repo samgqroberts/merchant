@@ -19,6 +19,6 @@ targets = [
 # A GitHub repo to push Homebrew formulas to
 tap = "samgqroberts/homebrew-tap"
 # A namespace to use when publishing this package to the npm registry
-npm-scope = "@samgqroberts"
+npm-package = "merchant-game"
 # Publish jobs to run in CI
-publish-jobs = ["homebrew"]
+publish-jobs = ["homebrew", "npm"]
