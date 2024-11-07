@@ -145,11 +145,11 @@ impl GameState {
         GameState {
             rng,
             initialization: Initialization::SplashScreen,
-            date: starting_date.clone(),
+            date: starting_date,
             starting_date,
             hold_size: Saturating(100),
             cannons: Saturating(1),
-            gold: starting_gold.clone(),
+            gold: starting_gold,
             starting_gold,
             bank: Saturating(0),
             location: location_config.home_port,
@@ -157,7 +157,7 @@ impl GameState {
             inventory: Inventory::default(),
             location_config,
             locations,
-            debt: starting_debt.clone(),
+            debt: starting_debt,
             starting_debt,
             mode: Mode::ViewingInventory,
             game_end: false,
@@ -197,7 +197,7 @@ impl GameState {
 
     fn require_location_home_base(&self) -> Result<(), StateError> {
         if self.location != self.location_config.home_port {
-            Err(StateError::LocationNotHomeBase(self.location.clone()))
+            Err(StateError::LocationNotHomeBase(self.location))
         } else {
             Ok(())
         }
@@ -532,7 +532,7 @@ impl GameState {
                     player_net_worth,
                 );
                 // set current location
-                self.location = destination.clone();
+                self.location = *destination;
                 // increment debt, if any
                 let new_debt = f64::from(self.debt.0) * 1.1;
                 self.debt = Saturating(new_debt.floor() as u32);
@@ -610,7 +610,7 @@ impl GameState {
 
     pub(crate) fn confirm_buy_cannon(&mut self) -> Result<(), StateError> {
         if self.gold.0 >= CANNON_COST.into() {
-            self.gold = self.gold - Saturating(CANNON_COST as u32);
+            self.gold -= Saturating(CANNON_COST as u32);
             self.cannons += 1;
             self.acknowledge_event()?;
         }
@@ -845,7 +845,7 @@ impl GameState {
         more_hold: u32,
     ) -> Result<(), StateError> {
         if self.gold.0 >= price {
-            self.gold = self.gold - Saturating(price);
+            self.gold -= Saturating(price);
             self.hold_size += more_hold;
             self.acknowledge_event()?;
         }

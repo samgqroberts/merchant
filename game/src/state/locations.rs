@@ -56,7 +56,7 @@ impl LocationInfos {
         player_net_worth: i32,
     ) -> &LocationInfo {
         let new_location_info = rng.gen_location_info(allow_events, personality, player_net_worth);
-        let location_info = self.location_info_mut(&location);
+        let location_info = self.location_info_mut(location);
         *location_info = new_location_info;
         location_info
     }
