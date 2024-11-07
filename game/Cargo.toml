@@ -1,8 +1,17 @@
 [package]
 name = "merchant"
 description = "A terminal UI game."
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
+repository = "https://github.com/samgqroberts/merchant"
+homepage = "https://github.com/samgqroberts/merchant"
+authors = ["Sam Roberts"]
+
+[package.metadata.wix]
+upgrade-guid = "F4AED3DF-33E5-4EEA-964D-9BCEE61F3280"
+path-guid = "639FE90B-10F2-40E8-938E-9B26743A991A"
+license = false
+eula = false
 
 [dependencies]
 chrono = "0.4.26"
