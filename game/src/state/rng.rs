@@ -76,13 +76,17 @@ impl MerchantRng for StdRng {
         self.gen_range(2..=4)
     }
 
-    // TODO gen_range panics if range is empty
     fn gen_good_stolen(&mut self, goods_with_inventory: &[(Good, u32)]) -> (Good, u32) {
+        debug_assert!(!goods_with_inventory.is_empty());
         let index = self.gen_range(0..goods_with_inventory.len());
         // safe unwrap, we generated the index to be in range
         let good_to_steal = goods_with_inventory.get(index).unwrap();
         // choose some amount of good to steal
-        let amount = self.gen_range(1..good_to_steal.1);
+        let amount = if good_to_steal.1 == 1 {
+            1
+        } else {
+            self.gen_range(1..good_to_steal.1)
+        };
         (good_to_steal.0, amount)
     }
 
@@ -176,9 +180,13 @@ impl MerchantRng for StdRng {
                     // need to generate cheap and expensive goods
                     // that haven't been seen before
                     // and also aren't equal to each other
-                    let cheap = Good::variants_iter().find(|x| !visited_cheap_goods.contains(x)).copied()
+                    let cheap = Good::variants_iter()
+                        .find(|x| !visited_cheap_goods.contains(x))
+                        .copied()
                         .unwrap();
-                    let expensive = Good::variants_iter().find(|x| !visited_expensive_goods.contains(x) && cheap != **x).copied()
+                    let expensive = Good::variants_iter()
+                        .find(|x| !visited_expensive_goods.contains(x) && cheap != **x)
+                        .copied()
                         .unwrap();
                     visited_cheap_goods.push(cheap);
                     visited_expensive_goods.push(expensive);
@@ -368,6 +376,24 @@ mod tests {
     #[test]
     fn gen_num_pirates_encountered() {
         assert_eq!(StdRng::seed_from_u64(42).gen_num_pirates_encountered(), 2);
+    }
+
+    #[test]
+    fn gen_goods_stolen() {
+        let mut rng = StdRng::seed_from_u64(57);
+        let goods_with_inventory = vec![(Good::Coffee, 3)];
+        let (good_stolen, amount_stolen) = rng.gen_good_stolen(&goods_with_inventory);
+        assert_eq!(good_stolen, Good::Coffee);
+        assert_eq!(amount_stolen, 2);
+    }
+
+    #[test]
+    fn gen_goods_stolen_exactly_one_good() {
+        let mut rng = StdRng::seed_from_u64(42);
+        let goods_with_inventory = vec![(Good::Coffee, 1)];
+        let (good_stolen, amount_stolen) = rng.gen_good_stolen(&goods_with_inventory);
+        assert_eq!(good_stolen, Good::Coffee);
+        assert_eq!(amount_stolen, 1);
     }
 
     #[test]
