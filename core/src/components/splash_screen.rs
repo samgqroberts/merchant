@@ -1,16 +1,12 @@
-use std::fmt::{self};
-
-use crossterm::{
-    cursor::{Hide, MoveTo},
-    style::{style, Attribute, Print, Stylize},
-    terminal::Clear,
-    Command,
-};
-
-use crate::{
+use ansi_commands::{
     comp,
-    components::{Frame, FrameType, ScreenCenteredText},
+    cursor::{Hide, MoveTo},
+    style::{style, Attribute, Print},
+    terminal::Clear,
+    Component,
 };
+
+use crate::components::{FrameType, SceneFrame, ScreenCenteredText};
 
 pub struct SplashScreen();
 
@@ -23,12 +19,12 @@ const LOGO: &str = r#"
 |_|  |_|\___|_|  \___|_| |_|\__,_|_| |_|\__|
 "#;
 
-impl Command for SplashScreen {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl Component for SplashScreen {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         comp!(
             f,
-            Clear(crossterm::terminal::ClearType::All),
-            Frame(FrameType::SimpleEmptyInside),
+            Clear(ansi_commands::terminal::ClearType::All),
+            SceneFrame(FrameType::SimpleEmptyInside),
             ScreenCenteredText::new(&["A tribute to Drug Wars by samgqroberts".to_owned()], 12),
             ScreenCenteredText::new(&["www.samgqroberts.com".to_owned()], 14),
             ScreenCenteredText::new_styleds(
@@ -37,7 +33,7 @@ impl Command for SplashScreen {
             ),
             ScreenCenteredText::new(&["ctrl-c to quit at any time".to_owned()], 29),
             Hide
-        );
+        )?;
         const OFFSET_X: u16 = 28;
         const OFFSET_Y: u16 = 4;
         for (i, line) in LOGO.trim_matches('\n').lines().enumerate() {
@@ -45,7 +41,7 @@ impl Command for SplashScreen {
                 f,
                 MoveTo(OFFSET_X, OFFSET_Y + (i as u16)),
                 Print(line.to_string()),
-            );
+            )?;
         }
         Ok(())
     }

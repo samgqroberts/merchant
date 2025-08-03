@@ -1,15 +1,13 @@
-use std::fmt::{self};
-
-use crossterm::{
+use ansi_commands::{
+    comp,
     cursor::Hide,
-    style::{style, Attribute, Stylize},
+    style::{style, Attribute},
     terminal::Clear,
-    Command,
+    Component,
 };
 
 use crate::{
-    comp,
-    components::{Frame, FrameType, ScreenCenteredText},
+    components::{FrameType, SceneFrame, ScreenCenteredText},
     state::Location,
 };
 
@@ -18,16 +16,16 @@ pub struct IntroductionScreen {
     pub starting_year: u16,
 }
 
-impl Command for IntroductionScreen {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl Component for IntroductionScreen {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let IntroductionScreen {
             home,
             starting_year,
         } = self;
         comp!(
             f,
-            Clear(crossterm::terminal::ClearType::All),
-            Frame(FrameType::Location(self.home)),
+            Clear(ansi_commands::terminal::ClearType::All),
+            SceneFrame(FrameType::Location(self.home)),
             ScreenCenteredText::new_styleds(
                 &[
                     style("The year is "),
@@ -79,7 +77,7 @@ impl Command for IntroductionScreen {
                 27
             ),
             Hide
-        );
+        )?;
         Ok(())
     }
 

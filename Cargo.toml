@@ -1,5 +1,12 @@
 [workspace]
-members = ["game", "captured_write", "raw_format_ansi"]
+members = [
+    "ansi-commands",
+    "core",
+    "game",
+    "captured_write",
+    "raw_format_ansi",
+    "web",
+]
 resolver = "2"
 
 [profile.release]

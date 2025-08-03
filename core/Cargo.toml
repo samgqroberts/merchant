@@ -1,0 +1,19 @@
+[package]
+name = "merchant-core"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+name = "merchant_core"
+
+[dependencies]
+getrandom = { version = "0.2.15", features = ["js"] }
+ansi-commands = { path = "../ansi-commands" }
+chrono = "0.4.38"
+rand = "0.8.5"
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ['env-filter'] }
+tracing-appender = "0.2.3"
+
+[dev-dependencies]
+pretty_assertions = "1.4.1"

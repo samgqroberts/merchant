@@ -1,0 +1,39 @@
+[package]
+name = "merchant-web"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+console_error_panic_hook = "0.1.7"
+getrandom = { version = "0.2.15", features = ["js"] }
+web-sys = { version = "0.3.77", features = [
+    'Document',
+    'Element',
+    'HtmlElement',
+    'HtmlPreElement',
+    'Node',
+    'Window',
+    'KeyboardEvent',
+    'EventTarget',
+    'CssStyleDeclaration',
+] }
+js-sys = "0.3.77"
+wasm-bindgen = "0.2.100"
+merchant-core = { path = "../core" }
+ansi-commands = { path = "../ansi-commands" }
+rand = "0.8.5"
+# getrandom = { workspace = true, features = ["js"] }
+# wasm-bindgen = { workspace = true }
+# js-sys = { workspace = true }
+# serde = { workspace = true }
+# serde_json = { workspace = true }
+# serde-wasm-bindgen = { workspace = true }
+# console_error_panic_hook = { workspace = true }
+# web-sys = { workspace = true }
+# uuid = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions = "1.4.1"
