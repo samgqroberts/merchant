@@ -1,13 +1,11 @@
-use std::fmt::{self};
-
-use crossterm::{
+use ansi_commands::{
+    comp,
     cursor::{MoveDown, MoveLeft, MoveTo},
     style::Print,
-    Command,
+    Component,
 };
 
 use crate::{
-    comp,
     components::{FRAME_HEIGHT, FRAME_WIDTH},
     state::Location,
 };
@@ -23,14 +21,14 @@ struct VerticalSequence {
     pub len: u16,
 }
 
-impl Command for VerticalSequence {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl Component for VerticalSequence {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let mut iter = self.char_sequence.iter().cycle();
         for _ in 0..(self.len) {
             let Some(symbol) = iter.next() else {
                 continue;
             };
-            comp!(f, Print(symbol), MoveDown(1), MoveLeft(1));
+            comp!(f, Print(symbol), MoveDown(1), MoveLeft(1))?;
         }
         Ok(())
     }
@@ -41,7 +39,7 @@ impl Command for VerticalSequence {
     }
 }
 
-pub struct Frame(pub FrameType);
+pub struct SceneFrame(pub FrameType);
 
 const LOCATION_DIVIDER_Y: u16 = 19;
 
@@ -71,8 +69,8 @@ pub const VENICE_HORIZONTAL_TOP: &str = "╱╳╲╳╱╳╲╳╱╳╲╳╱
 pub const VENICE_HORIZONTAL_BOT: &str = "╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱";
 pub const VENICE_HORIZONTAL_MID: &str = "╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲";
 
-impl Command for Frame {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl Component for SceneFrame {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let (top, bot, mid, left_char_seq, right_char_seq) = match self.0 {
             FrameType::SimpleEmptyInside => (
                 SIMPLE_HORIZONTAL_FULL,
@@ -142,9 +140,9 @@ impl Command for Frame {
                 char_sequence: right_char_seq,
                 len: FRAME_HEIGHT - 1
             },
-        );
+        )?;
         if let Some(mid) = mid {
-            comp!(f, MoveTo(1, LOCATION_DIVIDER_Y), Print(mid),);
+            comp!(f, MoveTo(1, LOCATION_DIVIDER_Y), Print(mid))?;
         }
         Ok(())
     }
@@ -166,7 +164,7 @@ mod tests {
     #[test]
     fn simple_empty_inside() {
         assert_eq!(
-            render_component(Frame(FrameType::SimpleEmptyInside)),
+            render_component(SceneFrame(FrameType::SimpleEmptyInside)),
             r#"
 ---------------------------------------------------------------------------------------------------
 |                                                                                                 |
@@ -209,7 +207,7 @@ mod tests {
     #[test]
     fn location_london() {
         assert_eq!(
-            render_component(Frame(FrameType::Location(Location::London))),
+            render_component(SceneFrame(FrameType::Location(Location::London))),
             r#"
 '~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.
 )                                                                                                 (
@@ -252,7 +250,7 @@ mod tests {
     #[test]
     fn location_savannah() {
         assert_eq!(
-            render_component(Frame(FrameType::Location(Location::Savannah))),
+            render_component(SceneFrame(FrameType::Location(Location::Savannah))),
             r#"
 ┼┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┴┬┼
 ├                                                                                                 ┤
@@ -295,7 +293,7 @@ mod tests {
     #[test]
     fn location_lisbon() {
         assert_eq!(
-            render_component(Frame(FrameType::Location(Location::Lisbon))),
+            render_component(SceneFrame(FrameType::Location(Location::Lisbon))),
             r#"
 ▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚▞▚
 ▚                                                                                                 ▞
@@ -338,7 +336,7 @@ mod tests {
     #[test]
     fn location_amsterdam() {
         assert_eq!(
-            render_component(Frame(FrameType::Location(Location::Amsterdam))),
+            render_component(SceneFrame(FrameType::Location(Location::Amsterdam))),
             r#"
 ▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷◁▷
 ◊                                                                                                 ◊
@@ -381,7 +379,7 @@ mod tests {
     #[test]
     fn location_capetown() {
         assert_eq!(
-            render_component(Frame(FrameType::Location(Location::CapeTown))),
+            render_component(SceneFrame(FrameType::Location(Location::CapeTown))),
             r#"
 ◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖◗●◖
 ○                                                                                                 ○
@@ -424,7 +422,7 @@ mod tests {
     #[test]
     fn location_venice() {
         assert_eq!(
-            render_component(Frame(FrameType::Location(Location::Venice))),
+            render_component(SceneFrame(FrameType::Location(Location::Venice))),
             r#"
 ╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲╳╱╳╲
 ╳                                                                                                 ╳

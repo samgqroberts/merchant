@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/merchant.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Merchant - Web Edition</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #000;
+        color: #fff;
+        font-family: monospace;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+      }
+      #game-container {
+        text-align: center;
+      }
+      #game-display {
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        line-height: 1.2;
+        background-color: black;
+        color: white;
+        padding: 20px;
+        margin: 0 auto;
+        white-space: pre;
+        text-align: left;
+        border: 2px solid #333;
+        min-width: 80ch;
+        min-height: 40em;
+      }
+      #instructions {
+        margin-top: 20px;
+        font-size: 12px;
+        color: #888;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container">
+      <pre id="game-display">Loading Merchant...</pre>
+      <!-- <div id="instructions">
+        Use arrow keys to navigate, Enter to select, Ctrl+C to quit
+      </div> -->
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

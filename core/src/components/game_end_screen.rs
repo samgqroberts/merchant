@@ -1,15 +1,13 @@
-use std::fmt::{self};
-
-use crossterm::{
+use ansi_commands::{
+    comp,
     cursor::{Hide, MoveTo},
-    style::{style, Attribute, Print, Stylize},
+    style::{style, Attribute, Print},
     terminal::Clear,
-    Command,
+    Component,
 };
 
 use crate::{
-    comp,
-    components::{Frame, FrameType, ScreenCenteredText},
+    components::{FrameType, SceneFrame, ScreenCenteredText},
     state::{GameState, PriceRanges},
 };
 
@@ -49,8 +47,8 @@ impl AchievementTier {
     }
 }
 
-impl<'a> Command for GameEndScreen<'a> {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl<'a> Component for GameEndScreen<'a> {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let state = self.0;
         let starting_net_worth = state.starting_debt.0 as i64 - state.starting_gold.0 as i64;
         // let starting_gold = state.starting_gold.0;
@@ -63,9 +61,9 @@ impl<'a> Command for GameEndScreen<'a> {
         // results
         comp!(
             f,
-            Clear(crossterm::terminal::ClearType::All),
+            Clear(ansi_commands::terminal::ClearType::All),
             Hide,
-            Frame(FrameType::SimpleEmptyInside),
+            SceneFrame(FrameType::SimpleEmptyInside),
             ScreenCenteredText::new(&["After three years, you went from being".to_owned()], 13),
             ScreenCenteredText::new_styleds(
                 &[style(format!("{starting_net_worth} gold in debt").as_str())
@@ -95,7 +93,7 @@ impl<'a> Command for GameEndScreen<'a> {
                 .attribute(Attribute::Bold)],
                 19
             ),
-        );
+        )?;
         match achievement_tier {
             AchievementTier::InDebt => comp!(
                 f,
@@ -152,11 +150,11 @@ impl<'a> Command for GameEndScreen<'a> {
                     25
                 )
             ),
-        }
+        }?;
         comp!(
             f,
             ScreenCenteredText::new(&["(q) to quit, (Enter) to play again".to_owned()], 29),
-        );
+        )?;
         // "game over" ascii art terxt
         const OFFSET_X: u16 = 23;
         const OFFSET_Y: u16 = 4;
@@ -165,7 +163,7 @@ impl<'a> Command for GameEndScreen<'a> {
                 f,
                 MoveTo(OFFSET_X, OFFSET_Y + (i as u16)),
                 Print(line.to_string()),
-            );
+            )?;
         }
         Ok(())
     }

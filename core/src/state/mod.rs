@@ -18,7 +18,6 @@ pub use self::game_state::Initialization;
 pub use self::game_state::LocationEvent;
 pub use self::game_state::Mode;
 pub use self::game_state::NoEffectEvent;
-#[cfg(test)]
 pub use self::game_state::PirateEncounterInfo;
 pub use self::game_state::PirateEncounterState;
 pub use self::game_state::Transaction;
@@ -27,7 +26,6 @@ pub use self::good::Good;
 pub use self::inventory::Inventory;
 pub use self::location::Location;
 pub use self::location_map::LocationMap;
-#[cfg(test)]
 pub use self::location_personalities::EventWeights;
 pub use self::location_personalities::LocationConfig;
 pub use self::location_personalities::LocationPersonality;

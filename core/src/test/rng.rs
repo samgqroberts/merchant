@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use merchant_core::state::{
+use crate::state::{
     EventWeights, Good, Inventory, Location, LocationConfig, LocationInfo, LocationMap,
     LocationPersonality, MerchantRng, PriceRanges,
 };
@@ -56,7 +56,7 @@ impl MerchantRng for MockRng {
     fn gen_location_info(
         &mut self,
         _: bool,
-        _: &merchant_core::state::LocationPersonality,
+        _: &crate::state::LocationPersonality,
         _: i32,
     ) -> LocationInfo {
         self.location_info

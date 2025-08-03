@@ -3,17 +3,18 @@ use std::{
     num::Saturating,
 };
 
-use chrono::Month;
-use crossterm::{
+use ansi_commands::{
+    comp,
     cursor::{Hide, MoveTo, Show},
-    style::{style, Attribute, Print, Stylize},
+    frame::Printable,
+    style::{style, Attribute, ContentStyle, Print, StyledContent},
     terminal::Clear,
-    Command,
+    Component,
 };
+use chrono::Month;
 
 use crate::{
-    comp,
-    components::{Frame, FrameType},
+    components::{FrameType, SceneFrame},
     state::{
         GameState, Good, GoodsStolenResult, Inventory, Location, NoEffectEvent,
         PirateEncounterState, Transaction, CANNON_COST,
@@ -22,8 +23,8 @@ use crate::{
 
 pub struct BankWithdrawInput<'a>(pub &'a Option<u32>);
 
-impl<'a> Command for BankWithdrawInput<'a> {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl<'a> Component for BankWithdrawInput<'a> {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let amount = self.0;
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
         const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
@@ -42,7 +43,7 @@ impl<'a> Command for BankWithdrawInput<'a> {
             Print("(b) <- back".to_string()),
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
-        );
+        )?;
         Ok(())
     }
 
@@ -78,8 +79,8 @@ impl std::fmt::Display for Numeric7Digits {
 
 pub struct InventoryList<'a>(pub &'a Inventory, pub u16, pub u16);
 
-impl<'a> Command for InventoryList<'a> {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl<'a> Component for InventoryList<'a> {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let inventory = self.0;
         let offset_x = self.1;
         let offset_y = self.2;
@@ -97,7 +98,7 @@ impl<'a> Command for InventoryList<'a> {
             Print(format!("Rum: {}", Numeric4Digits(inventory.rum))),
             MoveTo(offset_x + 1, offset_y + 5),
             Print(format!("Cotton: {}", Numeric4Digits(inventory.cotton))),
-        );
+        )?;
         Ok(())
     }
 
@@ -109,8 +110,8 @@ impl<'a> Command for InventoryList<'a> {
 
 pub struct CurrentPrices<'a>(pub &'a Inventory);
 
-impl<'a> Command for CurrentPrices<'a> {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl<'a> Component for CurrentPrices<'a> {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let prices = self.0;
         const OFFSET_X: u16 = 53;
         const OFFSET_Y: u16 = 23;
@@ -119,7 +120,7 @@ impl<'a> Command for CurrentPrices<'a> {
             MoveTo(OFFSET_X, OFFSET_Y),
             Print("Captain, the prices of goods here are:"),
             InventoryList(prices, OFFSET_X + 11, OFFSET_Y + 1),
-        );
+        )?;
         Ok(())
     }
 
@@ -135,8 +136,8 @@ pub struct KeyInputAction {
     text: String,
 }
 
-impl Command for KeyInputAction {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl Component for KeyInputAction {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let char_index = self
             .text
             .to_ascii_lowercase()
@@ -153,7 +154,7 @@ impl Command for KeyInputAction {
             Print(segment_before),
             Print(style(char_segment).attribute(Attribute::Underlined)),
             Print(segment_after),
-        );
+        )?;
         Ok(())
     }
 
@@ -169,8 +170,8 @@ pub struct ViewingInventoryActions<'a> {
     pub debt: u32,
 }
 
-impl<'a> Command for ViewingInventoryActions<'a> {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl<'a> Component for ViewingInventoryActions<'a> {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let location = self.location;
         let home_port = self.home_port;
         let debt = self.debt;
@@ -197,7 +198,7 @@ impl<'a> Command for ViewingInventoryActions<'a> {
                 char_key: 'a',
                 text: "Sail".to_owned()
             },
-        );
+        )?;
         if location == home_port {
             comp!(
                 f,
@@ -225,7 +226,7 @@ impl<'a> Command for ViewingInventoryActions<'a> {
                     char_key: 'i',
                     text: "Bank withdraw".to_owned()
                 },
-            );
+            )?;
             if debt > 0 {
                 comp!(
                     f,
@@ -235,7 +236,7 @@ impl<'a> Command for ViewingInventoryActions<'a> {
                         char_key: 'p',
                         text: "Pay down debt".to_owned()
                     },
-                );
+                )?;
             }
         }
         Ok(())
@@ -249,8 +250,8 @@ impl<'a> Command for ViewingInventoryActions<'a> {
 
 pub struct BankDepositInput<'a>(pub &'a Option<u32>);
 
-impl<'a> Command for BankDepositInput<'a> {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl<'a> Component for BankDepositInput<'a> {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let amount = self.0;
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
         const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
@@ -269,7 +270,7 @@ impl<'a> Command for BankDepositInput<'a> {
             Print("(b) <- back".to_string()),
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
-        );
+        )?;
         Ok(())
     }
 
@@ -284,8 +285,8 @@ pub const FRAME_HEIGHT: u16 = 32;
 
 pub struct TopCenterFramed(String);
 
-impl Command for TopCenterFramed {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl Component for TopCenterFramed {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         comp!(
             f,
             MoveTo(40, 0),
@@ -294,7 +295,7 @@ impl Command for TopCenterFramed {
             Print(format!("|{}|", self.0)),
             MoveTo(40, 2),
             Print("|=================|"),
-        );
+        )?;
         Ok(())
     }
 
@@ -306,8 +307,8 @@ impl Command for TopCenterFramed {
 
 pub struct Date<'a>(&'a (u16, Month));
 
-impl<'a> Command for Date<'a> {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl<'a> Component for Date<'a> {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let month_name = self.0 .1.name();
         let mut year = self.0 .0.to_string();
         const TOTAL_NUM_CHARS: u8 = 15;
@@ -315,7 +316,7 @@ impl<'a> Command for Date<'a> {
             year.insert(0, ' ');
         }
         let text = format!(" {}{} ", month_name, year);
-        comp!(f, TopCenterFramed(text));
+        comp!(f, TopCenterFramed(text))?;
         Ok(())
     }
 
@@ -351,8 +352,8 @@ impl<'a> From<&'a GameState> for HomeBase<'a> {
     }
 }
 
-impl<'a> Command for HomeBase<'a> {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl<'a> Component for HomeBase<'a> {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         const HOME: &str = r###"
   _____[LLL]______[LLL]____
  /     [LLL]      [LLL]    \
@@ -378,7 +379,7 @@ impl<'a> Command for HomeBase<'a> {
                 f,
                 MoveTo(OFFSET_X, OFFSET_Y + (i as u16)),
                 Print(line.to_string()),
-            );
+            )?;
         }
         comp!(
             f,
@@ -387,7 +388,7 @@ impl<'a> Command for HomeBase<'a> {
             Print(format!("Bank: {}", Numeric7Digits(self.bank))),
             MoveTo(OFFSET_X + 12, OFFSET_Y + 12),
             Print(format!("Debt: {}", Numeric7Digits(self.debt))),
-        );
+        )?;
         const PATH_CONTINUATION: &str = r###"
 (_________)
 (__________)
@@ -398,7 +399,7 @@ impl<'a> Command for HomeBase<'a> {
                     f,
                     MoveTo(OFFSET_X + 3, OFFSET_Y + 16 + (i as u16)),
                     Print(line.to_string()),
-                );
+                )?;
             }
         }
         Ok(())
@@ -410,6 +411,7 @@ impl<'a> Command for HomeBase<'a> {
     }
 }
 
+#[derive(Clone)]
 pub struct CenteredText(pub String, pub u32);
 
 impl std::fmt::Display for CenteredText {
@@ -425,6 +427,19 @@ impl std::fmt::Display for CenteredText {
     }
 }
 
+impl From<CenteredText> for StyledContent<String> {
+    fn from(value: CenteredText) -> Self {
+        let content = value.to_string();
+        StyledContent::new(ContentStyle::new(), content)
+    }
+}
+
+impl From<CenteredText> for Printable {
+    fn from(value: CenteredText) -> Self {
+        value.to_string().into()
+    }
+}
+
 pub struct CurrentLocation<'a> {
     location: &'a Location,
 }
@@ -437,8 +452,8 @@ impl<'a> From<&'a GameState> for CurrentLocation<'a> {
     }
 }
 
-impl<'a> Command for CurrentLocation<'a> {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl<'a> Component for CurrentLocation<'a> {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         comp!(
             f,
             MoveTo(42, 19),
@@ -447,7 +462,7 @@ impl<'a> Command for CurrentLocation<'a> {
             Print(format!("|{}|", CenteredText(self.location.to_string(), 13))),
             MoveTo(42, 21),
             Print("<------------->"),
-        );
+        )?;
         Ok(())
     }
 
@@ -459,20 +474,20 @@ impl<'a> Command for CurrentLocation<'a> {
 
 pub struct ViewingInventoryBase<'a>(pub &'a GameState);
 
-impl<'a> Command for ViewingInventoryBase<'a> {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl<'a> Component for ViewingInventoryBase<'a> {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let state = self.0;
         comp!(
             f,
-            Clear(crossterm::terminal::ClearType::All), // clear the terminal
-            Hide,                                       // hide the cursor
-            Frame(FrameType::Location(state.location)),
+            Clear(ansi_commands::terminal::ClearType::All), // clear the terminal
+            Hide,                                           // hide the cursor
+            SceneFrame(FrameType::Location(state.location)),
             Date::from(state),
             HomeBase::from(state),
             Ship::from(state),
             CurrentLocation::from(state),
             CurrentPrices(&state.locations.location_info(&state.location).prices)
-        );
+        )?;
         Ok(())
     }
 
@@ -500,8 +515,8 @@ impl<'a> From<&'a GameState> for Ship<'a> {
     }
 }
 
-impl<'a> Command for Ship<'a> {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl<'a> Component for Ship<'a> {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         const SHIP: &str = r###"
                              |                            
                  |          )_)                           
@@ -527,7 +542,7 @@ impl<'a> Command for Ship<'a> {
                 f,
                 MoveTo(OFFSET_X, OFFSET_Y + (i as u16)),
                 Print(line.to_string()),
-            );
+            )?;
         }
         let inventory = self.inventory;
         comp!(
@@ -550,7 +565,7 @@ impl<'a> Command for Ship<'a> {
             Print(format!("Hold: {}", Numeric4Digits(self.hold_size))),
             MoveTo(OFFSET_X + 37, OFFSET_Y + 11),
             Print(format!("Cannons: {}", self.cannons)),
-        );
+        )?;
         const DOCK_CONTINUATION_1: &str = r###"
 /......../
 "###;
@@ -562,14 +577,14 @@ impl<'a> Command for Ship<'a> {
                 f,
                 MoveTo(OFFSET_X + 40, OFFSET_Y + 16 + (i as u16)),
                 Print(line.to_string()),
-            );
+            )?;
         }
         for (i, line) in DOCK_CONTINUATION_2.trim_matches('\n').lines().enumerate() {
             comp!(
                 f,
                 MoveTo(OFFSET_X + 38, OFFSET_Y + 17 + (i as u16)),
                 Print(line.to_string()),
-            );
+            )?;
         }
         Ok(())
     }
@@ -585,8 +600,8 @@ pub struct BuyInput<'a> {
     pub state: &'a GameState,
 }
 
-impl<'a> Command for BuyInput<'a> {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl<'a> Component for BuyInput<'a> {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let info = self.info;
         let state = self.state;
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
@@ -616,16 +631,16 @@ impl<'a> Command for BuyInput<'a> {
             Print(format!("You can afford ({})", can_afford)),
             MoveTo(OFFSET_X, OFFSET_Y + 5),
             Print("(b) <- back".to_string()),
-        );
+        )?;
         let remaining_hold = state.remaining_hold();
         if remaining_hold < can_afford.0 {
             comp!(
                 f,
                 MoveTo(OFFSET_X, OFFSET_Y + 2),
                 Print(format!("You have space for ({})", remaining_hold)),
-            )
+            )?;
         }
-        comp!(f, MoveTo(OFFSET_X + prompt_len, OFFSET_Y), Show);
+        comp!(f, MoveTo(OFFSET_X + prompt_len, OFFSET_Y), Show)?;
         Ok(())
     }
 
@@ -640,8 +655,8 @@ const PROMPT_OFFSET_Y: u16 = 23;
 
 pub struct BuyPrompt;
 
-impl Command for BuyPrompt {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl Component for BuyPrompt {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
         const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         comp!(
@@ -649,7 +664,7 @@ impl Command for BuyPrompt {
             MoveTo(OFFSET_X, OFFSET_Y),
             Print("Which do you want to buy?"),
             GoodOptions(OFFSET_X, OFFSET_Y + 1)
-        );
+        )?;
         Ok(())
     }
 
@@ -661,8 +676,8 @@ impl Command for BuyPrompt {
 
 pub struct GoodOptions(pub u16, pub u16);
 
-impl Command for GoodOptions {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl Component for GoodOptions {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let offset_x = self.0;
         let offset_y = self.1;
         comp!(
@@ -705,7 +720,7 @@ impl Command for GoodOptions {
             },
             MoveTo(offset_x, offset_y + 6),
             Print("(b) <- back"),
-        );
+        )?;
         Ok(())
     }
 
@@ -717,8 +732,8 @@ impl Command for GoodOptions {
 
 pub struct SellInput<'a>(pub &'a Transaction, pub &'a u32);
 
-impl<'a> Command for SellInput<'a> {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl<'a> Component for SellInput<'a> {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let info = self.0;
         let current_amount = self.1;
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
@@ -743,7 +758,7 @@ impl<'a> Command for SellInput<'a> {
             // position cursor for input
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
-        );
+        )?;
         Ok(())
     }
 
@@ -755,8 +770,8 @@ impl<'a> Command for SellInput<'a> {
 
 pub struct SellPrompt;
 
-impl Command for SellPrompt {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl Component for SellPrompt {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
         const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         comp!(
@@ -764,7 +779,7 @@ impl Command for SellPrompt {
             MoveTo(OFFSET_X, OFFSET_Y),
             Print("Which do you want to sell?"),
             GoodOptions(OFFSET_X, OFFSET_Y + 1),
-        );
+        )?;
         Ok(())
     }
 
@@ -776,8 +791,8 @@ impl Command for SellPrompt {
 
 pub struct SailPrompt;
 
-impl Command for SailPrompt {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl Component for SailPrompt {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
         const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         comp!(
@@ -822,7 +837,7 @@ impl Command for SailPrompt {
             },
             MoveTo(OFFSET_X, OFFSET_Y + 7),
             Print("(b) <- back"),
-        );
+        )?;
         Ok(())
     }
 
@@ -834,8 +849,8 @@ impl Command for SailPrompt {
 
 pub struct StashDepositInput<'a>(pub &'a Transaction, pub &'a u32);
 
-impl<'a> Command for StashDepositInput<'a> {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl<'a> Component for StashDepositInput<'a> {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let info = self.0;
         let current_amount = self.1;
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
@@ -860,7 +875,7 @@ impl<'a> Command for StashDepositInput<'a> {
             Print("(b) <- back".to_string()),
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
-        );
+        )?;
         Ok(())
     }
 
@@ -872,8 +887,8 @@ impl<'a> Command for StashDepositInput<'a> {
 
 pub struct StashDepositPrompt;
 
-impl Command for StashDepositPrompt {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl Component for StashDepositPrompt {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let offset_x: u16 = PROMPT_OFFSET_X;
         let offset_y: u16 = PROMPT_OFFSET_Y;
         comp!(
@@ -881,7 +896,7 @@ impl Command for StashDepositPrompt {
             MoveTo(offset_x, offset_y),
             Print("Which do you want to stash?"),
             GoodOptions(offset_x, offset_y + 1),
-        );
+        )?;
         Ok(())
     }
 
@@ -893,8 +908,8 @@ impl Command for StashDepositPrompt {
 
 pub struct StashWithdrawInput<'a>(pub &'a Transaction, pub &'a u32);
 
-impl<'a> Command for StashWithdrawInput<'a> {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl<'a> Component for StashWithdrawInput<'a> {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let info = self.0;
         let current_amount = self.1;
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
@@ -919,7 +934,7 @@ impl<'a> Command for StashWithdrawInput<'a> {
             Print("(b) <- back".to_string()),
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
-        );
+        )?;
         Ok(())
     }
 
@@ -931,8 +946,8 @@ impl<'a> Command for StashWithdrawInput<'a> {
 
 pub struct StashWithdrawPrompt;
 
-impl Command for StashWithdrawPrompt {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl Component for StashWithdrawPrompt {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
         const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         comp!(
@@ -940,7 +955,7 @@ impl Command for StashWithdrawPrompt {
             MoveTo(OFFSET_X, OFFSET_Y),
             Print("Which do you want to withdraw?"),
             GoodOptions(OFFSET_X, OFFSET_Y + 1),
-        );
+        )?;
         Ok(())
     }
 
@@ -952,8 +967,8 @@ impl Command for StashWithdrawPrompt {
 
 pub struct PayDebtInput<'a>(pub &'a Option<u32>);
 
-impl<'a> Command for PayDebtInput<'a> {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl<'a> Component for PayDebtInput<'a> {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let amount = self.0;
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
         const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
@@ -972,7 +987,7 @@ impl<'a> Command for PayDebtInput<'a> {
             Print("(b) <- back".to_string()),
             MoveTo(OFFSET_X + prompt_len, OFFSET_Y + 1),
             Show
-        );
+        )?;
         Ok(())
     }
 
@@ -984,8 +999,8 @@ impl<'a> Command for PayDebtInput<'a> {
 
 pub struct CheapGoodDialog<'a>(pub &'a Good);
 
-impl<'a> Command for CheapGoodDialog<'a> {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl<'a> Component for CheapGoodDialog<'a> {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let good = self.0;
         comp!(
             f,
@@ -997,7 +1012,7 @@ impl<'a> Command for CheapGoodDialog<'a> {
             Print("the price significantly!".to_owned()),
             MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 5),
             Print("(press any key to continue)".to_string())
-        );
+        )?;
         Ok(())
     }
 
@@ -1009,8 +1024,8 @@ impl<'a> Command for CheapGoodDialog<'a> {
 
 pub struct ExpensiveGoodDialog<'a>(pub &'a Good);
 
-impl<'a> Command for ExpensiveGoodDialog<'a> {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl<'a> Component for ExpensiveGoodDialog<'a> {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let good = self.0;
         comp!(
             f,
@@ -1024,7 +1039,7 @@ impl<'a> Command for ExpensiveGoodDialog<'a> {
             Print("price significantly!".to_owned()),
             MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 5),
             Print("(press any key to continue)".to_string())
-        );
+        )?;
         Ok(())
     }
 
@@ -1036,8 +1051,8 @@ impl<'a> Command for ExpensiveGoodDialog<'a> {
 
 pub struct FindGoodsDialog<'a>(pub &'a Good, pub &'a u32, pub &'a GameState);
 
-impl<'a> Command for FindGoodsDialog<'a> {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl<'a> Component for FindGoodsDialog<'a> {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let good = self.0;
         let amount = self.1;
         let state = self.2;
@@ -1053,14 +1068,14 @@ impl<'a> Command for FindGoodsDialog<'a> {
             Print(format!("to claim it. Inside you find {} {}!", amount, good)),
             MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 6),
             Print("(press any key to continue)".to_string())
-        );
+        )?;
         let remaining_hold = state.remaining_hold();
         if &remaining_hold < amount {
             comp!(
                 f,
                 MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 4),
                 Print(format!("You have space for ({})", remaining_hold)),
-            )
+            )?;
         }
         Ok(())
     }
@@ -1072,8 +1087,8 @@ impl<'a> Command for FindGoodsDialog<'a> {
 }
 pub struct GoodsStolenDialog(pub GoodsStolenResult);
 
-impl Command for GoodsStolenDialog {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl Component for GoodsStolenDialog {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         match self.0 {
             GoodsStolenResult::NothingStolen => comp!(
                 f,
@@ -1081,14 +1096,14 @@ impl Command for GoodsStolenDialog {
                 Print("Thieves were on the prowl, but they"),
                 MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 1),
                 Print("couldn't find anything to steal"),
-            ),
+            )?,
             GoodsStolenResult::WasStolen { good, amount } => comp!(
                 f,
                 MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y),
                 Print("Prowling harbor thieves stole"),
                 MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 1),
                 Print(format!("{} {} from you!", amount, good)),
-            ),
+            )?,
         }
         Ok(())
     }
@@ -1101,8 +1116,8 @@ impl Command for GoodsStolenDialog {
 
 pub struct CanBuyCannon;
 
-impl Command for CanBuyCannon {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl Component for CanBuyCannon {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         comp!(
             f,
             MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y),
@@ -1113,7 +1128,7 @@ impl Command for CanBuyCannon {
             Print(format!("additional cannon for {CANNON_COST} gold.")),
             MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 4),
             Print("Accept? y/n"),
-        );
+        )?;
         Ok(())
     }
 
@@ -1128,8 +1143,8 @@ pub struct CanBuyHoldSpace {
     pub more_hold: u32,
 }
 
-impl Command for CanBuyHoldSpace {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl Component for CanBuyHoldSpace {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         comp!(
             f,
             MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y),
@@ -1145,7 +1160,7 @@ impl Command for CanBuyHoldSpace {
             )),
             MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 5),
             Print("(y/n)"),
-        );
+        )?;
         Ok(())
     }
 
@@ -1171,14 +1186,14 @@ impl From<(PirateEncounterState, &mut GameState)> for PirateEncounter {
     }
 }
 
-impl Command for PirateEncounter {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl Component for PirateEncounter {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         comp!(
             f,
-            Clear(crossterm::terminal::ClearType::All), // clear the terminal
-            Frame(FrameType::SimpleEmptyInside),
+            Clear(ansi_commands::terminal::ClearType::All), // clear the terminal
+            SceneFrame(FrameType::SimpleEmptyInside),
             Date(&self.date),
-        );
+        )?;
         match self.pirate_encounter_state {
             PirateEncounterState::Initial => {
                 comp!(
@@ -1193,7 +1208,7 @@ impl Command for PirateEncounter {
                         "(press any key)".to_string(),
                         (FRAME_WIDTH - 2).into()
                     )),
-                );
+                )?;
             }
             PirateEncounterState::Prompt { info } => {
                 comp!(
@@ -1211,7 +1226,7 @@ impl Command for PirateEncounter {
                         "Will you (r)un or (f)ight ?".to_owned(),
                         (FRAME_WIDTH - 2).into()
                     )),
-                );
+                )?;
             }
             PirateEncounterState::RunSuccess => {
                 comp!(
@@ -1226,7 +1241,7 @@ impl Command for PirateEncounter {
                         "(press any key to continue)".to_string(),
                         (FRAME_WIDTH - 2).into()
                     )),
-                );
+                )?;
             }
             PirateEncounterState::RunFailure { info } => {
                 comp!(
@@ -1249,7 +1264,7 @@ impl Command for PirateEncounter {
                         "(press any key to continue)".to_string(),
                         (FRAME_WIDTH - 2).into()
                     )),
-                )
+                )?;
             }
             PirateEncounterState::PiratesAttack {
                 info,
@@ -1275,7 +1290,7 @@ impl Command for PirateEncounter {
                         "(press any key to continue)".to_string(),
                         (FRAME_WIDTH - 2).into()
                     )),
-                )
+                )?;
             }
             PirateEncounterState::Destroyed => {
                 comp!(
@@ -1295,7 +1310,7 @@ impl Command for PirateEncounter {
                         "(press any key to continue)".to_string(),
                         (FRAME_WIDTH - 2).into()
                     )),
-                )
+                )?;
             }
             PirateEncounterState::AttackResult {
                 info,
@@ -1328,7 +1343,7 @@ impl Command for PirateEncounter {
                         "(press any key to continue)".to_string(),
                         (FRAME_WIDTH - 2).into()
                     )),
-                )
+                )?;
             }
             PirateEncounterState::Victory { gold_recovered } => {
                 comp!(
@@ -1348,7 +1363,7 @@ impl Command for PirateEncounter {
                         "(press any key to continue)".to_string(),
                         (FRAME_WIDTH - 2).into()
                     )),
-                )
+                )?;
             }
         };
         Ok(())
@@ -1364,8 +1379,8 @@ pub struct NoEffect {
     pub variant: NoEffectEvent,
 }
 
-impl Command for NoEffect {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl Component for NoEffect {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         match self.variant {
             NoEffectEvent::SunnyDay => {
                 comp!(
@@ -1380,7 +1395,7 @@ impl Command for NoEffect {
                     Print("on your face."),
                     MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 5),
                     Print("(press any key to continue)".to_string())
-                );
+                )?;
             }
             NoEffectEvent::StormOnHorizon => {
                 comp!(
@@ -1393,7 +1408,7 @@ impl Command for NoEffect {
                     Print("You see an ominous storm forming."),
                     MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y + 5),
                     Print("(press any key to continue)".to_string())
-                );
+                )?;
             }
         }
         Ok(())

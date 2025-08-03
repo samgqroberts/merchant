@@ -1,14 +1,11 @@
 mod engine;
-#[macro_use]
-mod macros;
-mod components;
 mod logging;
-mod state;
+mod renderer;
 #[cfg(test)]
 mod test;
 
-use engine::{Engine, UpdateSignal};
 use logging::initialize_logging;
+use merchant_core::engine::UpdateSignal;
 use rand::{rngs::StdRng, SeedableRng};
 use std::cell::RefCell;
 use std::io::Stdout;
@@ -16,7 +13,9 @@ use std::io::{self, stdout};
 use tracing::{error, info, span, Level};
 
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
-use state::GameState;
+use merchant_core::state::GameState;
+
+use crate::engine::Engine;
 
 fn main() -> io::Result<()> {
     initialize_logging();
