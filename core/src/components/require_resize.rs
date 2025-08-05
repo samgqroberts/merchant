@@ -1,24 +1,20 @@
-use std::fmt::{self};
-
-use crossterm::{
+use ansi_commands::{
+    comp,
     cursor::{Hide, MoveTo},
     style::Print,
     terminal::Clear,
-    Command,
+    Component,
 };
 
-use crate::{
-    comp,
-    components::{FRAME_HEIGHT, FRAME_WIDTH},
-};
+use crate::components::{FRAME_HEIGHT, FRAME_WIDTH};
 
 pub struct RequireResize {
     pub current_x_cols: u16,
     pub current_y_cols: u16,
 }
 
-impl Command for RequireResize {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl Component for RequireResize {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let RequireResize {
             current_x_cols,
             current_y_cols,
@@ -34,11 +30,11 @@ impl Command for RequireResize {
         };
         comp!(
             f,
-            Clear(crossterm::terminal::ClearType::All),
+            Clear(ansi_commands::terminal::ClearType::All),
             MoveTo(0, 0),
             Print(msg),
             Hide
-        );
+        )?;
         Ok(())
     }
 

@@ -2,13 +2,15 @@ use std::num::Saturating;
 
 use pretty_assertions::assert_eq;
 
-use crate::test::{
-    rng::{default_location_info, MockRng},
-    test_engine::TestEngine,
-};
-use merchant_core::engine::{UpdateResult, UpdateSignal};
-use merchant_core::state::{
-    GameState, Good, LocationEvent, Mode, NoEffectEvent, PirateEncounterInfo, Transaction,
+use crate::{
+    engine::{UpdateResult, UpdateSignal},
+    state::{
+        GameState, Good, LocationEvent, Mode, NoEffectEvent, PirateEncounterInfo, Transaction,
+    },
+    test::{
+        rng::{default_location_info, MockRng},
+        test_engine::TestEngine,
+    },
 };
 
 #[test]
@@ -870,7 +872,7 @@ fn pirate_encounter_initial() -> UpdateResult<()> {
         state.introduction_to_game();
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
-            merchant_core::state::PirateEncounterState::Initial,
+            crate::state::PirateEncounterState::Initial,
         ));
         state
     })?;
@@ -969,7 +971,7 @@ fn pirate_encounter_run_success() -> UpdateResult<()> {
         state.introduction_to_game();
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
-            merchant_core::state::PirateEncounterState::Prompt {
+            crate::state::PirateEncounterState::Prompt {
                 info: PirateEncounterInfo::new(2),
             },
         ));
@@ -1073,7 +1075,7 @@ fn pirate_encounter_run_failure() -> UpdateResult<()> {
         state.introduction_to_game();
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
-            merchant_core::state::PirateEncounterState::Prompt {
+            crate::state::PirateEncounterState::Prompt {
                 info: PirateEncounterInfo::new(2),
             },
         ));
@@ -1172,7 +1174,7 @@ fn pirate_encounter_pirates_attack_not_destroyed() -> UpdateResult<()> {
         state.introduction_to_game();
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
-            merchant_core::state::PirateEncounterState::PiratesAttack {
+            crate::state::PirateEncounterState::PiratesAttack {
                 info: PirateEncounterInfo::new(2),
                 damage_this_attack: 2,
             },
@@ -1272,7 +1274,7 @@ fn pirate_encounter_pirates_attack_is_destroyed() -> UpdateResult<()> {
         state.gold = Saturating(500);
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
-            merchant_core::state::PirateEncounterState::PiratesAttack {
+            crate::state::PirateEncounterState::PiratesAttack {
                 info: PirateEncounterInfo {
                     health: 2,
                     cur_pirates: 2,
@@ -1382,7 +1384,7 @@ fn pirate_encounter_fight_did_sink_pirate_and_did_not_win() -> UpdateResult<()> 
         state.introduction_to_game();
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
-            merchant_core::state::PirateEncounterState::Prompt {
+            crate::state::PirateEncounterState::Prompt {
                 info: PirateEncounterInfo::new(2),
             },
         ));
@@ -1487,7 +1489,7 @@ fn pirate_encounter_fight_did_sink_pirate_and_did_win() -> UpdateResult<()> {
         state.gold = Saturating(500);
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
-            merchant_core::state::PirateEncounterState::Prompt {
+            crate::state::PirateEncounterState::Prompt {
                 info: PirateEncounterInfo::new(1),
             },
         ));
@@ -1634,7 +1636,7 @@ fn pirate_encounter_fight_did_not_sink_pirate() -> UpdateResult<()> {
         state.gold = Saturating(500);
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
-            merchant_core::state::PirateEncounterState::Prompt {
+            crate::state::PirateEncounterState::Prompt {
                 info: PirateEncounterInfo::new(1),
             },
         ));

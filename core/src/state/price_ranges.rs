@@ -54,7 +54,7 @@ impl PriceRanges {
         }
     }
 
-    pub(crate) fn from_start_price_and_spreads(
+    pub fn from_start_price_and_spreads(
         cotton_low: u32,
         spreads: [f32; 6],
         avg_proportions: [f32; 5],

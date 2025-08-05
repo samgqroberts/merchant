@@ -13,6 +13,9 @@ path-guid = "639FE90B-10F2-40E8-938E-9B26743A991A"
 license = false
 eula = false
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 chrono = "0.4.38"
 crossterm = { workspace = true }
@@ -22,6 +25,8 @@ raw_format_ansi = { path = "../raw_format_ansi" }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ['env-filter'] }
 tracing-appender = "0.2.3"
+ansi-commands = { path = "../ansi-commands" }
+merchant-core = { path = "../core" }
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

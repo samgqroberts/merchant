@@ -1,56 +1,51 @@
-use std::fmt::{self, Display};
-
-use crossterm::{
+use ansi_commands::{
+    comp,
     cursor::MoveTo,
+    frame::Printable,
     style::{Print, StyledContent},
-    Command,
+    Component,
 };
 
-use crate::{comp, components::FRAME_WIDTH};
+use crate::components::FRAME_WIDTH;
 
-pub struct ScreenCenteredText<'a, T: Display> {
-    content: &'a [T],
+pub struct ScreenCenteredText {
+    content: Vec<Printable>,
     content_len: usize,
     line: u16,
 }
 
-impl<'a> ScreenCenteredText<'a, String> {
-    pub fn new(content: &'a [String], line: u16) -> Self {
+impl ScreenCenteredText {
+    pub fn new(content: &[String], line: u16) -> Self {
         let content_len = content.iter().map(|x| x.len()).sum();
         Self {
             content_len,
-            content,
+            content: content.iter().map(|x| x.clone().into()).collect(),
             line,
         }
     }
 }
 
-impl<'a> ScreenCenteredText<'a, StyledContent<&'a str>> {
-    pub fn new_styleds(content: &'a [StyledContent<&'a str>], line: u16) -> Self {
+impl ScreenCenteredText {
+    pub fn new_styleds(content: &[StyledContent<&str>], line: u16) -> Self {
         let content_len = content.iter().map(|x| x.content().len()).sum();
         Self {
-            content,
+            content: content.iter().map(|x| x.clone().into()).collect(),
             content_len,
             line,
         }
     }
 }
 
-impl<'a, T: Display> Command for ScreenCenteredText<'a, T> {
-    fn write_ansi(&self, f: &mut impl fmt::Write) -> fmt::Result {
+impl Component for ScreenCenteredText {
+    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
         let content_len = self.content_len as u16;
         let starting_index =
             ((FRAME_WIDTH as f64 / 2f64) - ((content_len as f64) / 2f64)).round() as u16;
-        comp!(f, MoveTo(starting_index, self.line));
-        for content in self.content {
-            comp!(f, Print(content));
+        comp!(f, MoveTo(starting_index, self.line))?;
+        for content in &self.content {
+            comp!(f, Print(content.clone()))?;
         }
         Ok(())
-    }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
     }
 }
 
