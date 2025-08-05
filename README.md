@@ -42,3 +42,9 @@ Clone this repository, ensure you have the Rust / Cargo toolchain available, the
 ```sh
 cargo run --release
 ```
+
+--- 
+---
+
+This project is licensed under the GNU General Public License v3.0 or later.
+See the LICENSE file for details.
