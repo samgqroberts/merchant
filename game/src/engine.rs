@@ -98,7 +98,9 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
             Ok(result) => result,
             Err(e) => todo!("Error rendering scene: {:?}", e),
         };
-        let render_result = CrosstermRenderer.render(&frame);
+        let render_result = CrosstermRenderer
+            .render(&frame)
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.0))?;
         writer.write_all(render_result.result.as_bytes())?;
         writer.flush()?;
         Ok(update)
@@ -114,7 +116,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                 current_y_cols,
             })
             .unwrap(); // todo
-        let render_result = CrosstermRenderer.render(&frame);
+        let render_result = CrosstermRenderer.render(&frame).unwrap() /* todo */;
         writer.write_all(render_result.result.as_bytes())?;
         writer.flush()?;
         Ok(())

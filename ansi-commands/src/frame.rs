@@ -72,11 +72,22 @@ pub struct Frame {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct RenderResult {
+pub struct RenderError(pub String);
+
+impl From<String> for RenderError {
+    fn from(s: String) -> Self {
+        RenderError(s)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct RenderOutput {
     pub result: String,
     pub cursor: (u16, u16),
     pub show_cursor: bool,
 }
+
+pub type RenderResult = Result<RenderOutput, RenderError>;
 
 impl Frame {
     pub fn new() -> Self {
@@ -181,34 +192,10 @@ impl Renderer for RawRenderer {
             .map(|l| l.into_iter().collect::<String>())
             .collect::<Vec<String>>()
             .join("\n");
-        RenderResult {
+        Ok(RenderOutput {
             result,
             cursor: (cursor.0 as u16, cursor.1 as u16),
             show_cursor,
-        }
+        })
     }
 }
-
-// #[cfg(feature = "crossterm")]
-// impl Frame {
-//     pub fn render_crossterm(&self, f: &mut impl std::io::Write) -> std::io::Result<()> {
-//         for (i, row) in self.rows.iter().enumerate() {
-//             use crossterm::cursor::MoveTo;
-//             use crossterm::queue;
-//             use crossterm::style::Print;
-
-//             for (j, cell) in row.iter().enumerate() {
-//                 queue!(f, MoveTo(j as u16, i as u16))?;
-//                 if let Some(styled_content) = cell {
-//                     queue!(f, Print(styled_content))?;
-//                 }
-//             }
-//             if self.show_cursor {
-//                 queue!(f, crossterm::cursor::Show)?;
-//             } else {
-//                 queue!(f, crossterm::cursor::Hide)?;
-//             }
-//         }
-//         Ok(())
-//     }
-// }

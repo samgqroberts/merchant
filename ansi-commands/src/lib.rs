@@ -25,7 +25,7 @@ mod tests {
     fn test_frame() -> Result<(), String> {
         let mut frame = Frame::new();
         comp!(frame, MoveTo(1, 1), Print("Hello, world!"))?;
-        assert_eq!(frame.render_raw().result, "\n Hello, world!");
+        assert_eq!(frame.render_raw().unwrap().result, "\n Hello, world!");
         Ok(())
     }
 
@@ -38,7 +38,7 @@ mod tests {
             Print("H".attribute(Attribute::Underlined)),
             Print("ello, world!")
         )?;
-        assert_eq!(frame.render_raw().result, "\n Hello, world!");
+        assert_eq!(frame.render_raw().unwrap().result, "\n Hello, world!");
         Ok(())
     }
 

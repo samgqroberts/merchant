@@ -1,5 +1,5 @@
-use ansi_commands::frame::{Frame, RenderResult, Renderer};
-use ansi_commands::style::{Attribute, Attributes, Color, ContentStyle, StyledContent};
+use ansi_commands::frame::{Frame, Printable, RenderOutput, RenderResult, Renderer};
+use ansi_commands::style::{Attribute, Attributes, Color, ContentStyle};
 use captured_write::CapturedWrite;
 use crossterm::queue;
 
@@ -16,49 +16,49 @@ impl Renderer for CrosstermRenderer {
                         writer,
                         crossterm::terminal::Clear(crossterm::terminal::ClearType::All)
                     )
-                    .unwrap() // todo;
                 }
                 ansi_commands::frame::Cmd::MoveTo(x, y) => {
-                    queue!(writer, crossterm::cursor::MoveTo(*x as u16, *y as u16)).unwrap()
-                    // todo;
+                    queue!(writer, crossterm::cursor::MoveTo(*x as u16, *y as u16))
                 }
                 ansi_commands::frame::Cmd::MoveUp(y) => {
-                    queue!(writer, crossterm::cursor::MoveUp(*y as u16)).unwrap()
-                    // todo;
+                    queue!(writer, crossterm::cursor::MoveUp(*y as u16))
                 }
                 ansi_commands::frame::Cmd::MoveDown(y) => {
-                    queue!(writer, crossterm::cursor::MoveDown(*y as u16)).unwrap()
-                    // todo;
+                    queue!(writer, crossterm::cursor::MoveDown(*y as u16))
                 }
                 ansi_commands::frame::Cmd::MoveLeft(x) => {
-                    queue!(writer, crossterm::cursor::MoveLeft(*x as u16)).unwrap()
-                    // todo;
+                    queue!(writer, crossterm::cursor::MoveLeft(*x as u16))
                 }
                 ansi_commands::frame::Cmd::MoveRight(x) => {
-                    queue!(writer, crossterm::cursor::MoveRight(*x as u16)).unwrap()
-                    // todo;
+                    queue!(writer, crossterm::cursor::MoveRight(*x as u16))
                 }
                 ansi_commands::frame::Cmd::HideCursor => {
-                    queue!(writer, crossterm::cursor::Hide).unwrap() // todo;
+                    queue!(writer, crossterm::cursor::Hide)
                 }
                 ansi_commands::frame::Cmd::ShowCursor => {
-                    queue!(writer, crossterm::cursor::Show).unwrap() // todo;
+                    queue!(writer, crossterm::cursor::Show)
                 }
                 ansi_commands::frame::Cmd::MoveToNextLine(y) => {
-                    queue!(writer, crossterm::cursor::MoveToNextLine(*y as u16)).unwrap()
-                    // todo;
+                    queue!(writer, crossterm::cursor::MoveToNextLine(*y as u16))
                 }
-                ansi_commands::frame::Cmd::Print(printable) => {
-                    queue!(writer, crossterm::style::Print(printable.raw_text())).unwrap()
-                    // todo;
-                }
+                ansi_commands::frame::Cmd::Print(printable) => match printable {
+                    Printable::String(x) => queue!(writer, crossterm::style::Print(x)),
+                    Printable::Char(x) => queue!(writer, crossterm::style::Print(x)),
+                    Printable::StyledContent(styled_content) => {
+                        let style = convert_content_style(&styled_content.style);
+                        let content = styled_content.content();
+                        let styled_content = crossterm::style::StyledContent::new(style, content);
+                        queue!(writer, crossterm::style::Print(styled_content))
+                    }
+                },
             }
+            .map_err(|e| e.to_string())?;
         }
-        RenderResult {
+        Ok(RenderOutput {
             result: writer.buffer,
             cursor: (0, 0),
             show_cursor: true,
-        }
+        })
     }
 }
 
@@ -110,16 +110,6 @@ pub fn convert_content_style(content_style: &ContentStyle) -> crossterm::style::
     }
 }
 
-pub fn convert_styled_content(
-    styled_content: &StyledContent<char>,
-) -> crossterm::style::StyledContent<char> {
-    let as_crossterm = crossterm::style::StyledContent::new(
-        convert_content_style(&styled_content.style),
-        styled_content.content.clone(),
-    );
-    as_crossterm
-}
-
 #[cfg(test)]
 mod tests {
     use ansi_commands::{
@@ -143,7 +133,7 @@ mod tests {
         .unwrap();
         let result = CrosstermRenderer.render(&frame);
         assert_eq!(
-            raw_format_ansi::raw_format_ansi(&result.result),
+            raw_format_ansi::raw_format_ansi(&result.unwrap().result),
             "\n  Hello,\nworld!"
         );
     }
