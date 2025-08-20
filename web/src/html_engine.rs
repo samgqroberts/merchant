@@ -100,16 +100,21 @@ impl HtmlEngine {
         event: KeyboardEvent,
         game_state: &mut GameState,
     ) -> Result<UpdateSignal, JsValue> {
-        // Prevent default browser behavior
+        // first, see if use wants to quit (restart)
+        if event.ctrl_key() && event.key() == "c" {
+            return Ok(UpdateSignal::Quit);
+        }
+
+        // otherwise, don't intervene if meta or ctrl key is pressed
+        if event.meta_key() || event.ctrl_key() {
+            return Ok(UpdateSignal::Continue);
+        }
+
+        // at this point, we handle the keypress, so prevent default browser behavior
         event.prevent_default();
 
         // Convert web keyboard event to ansi_commands KeyEvent
         let key_event = convert_web_key_event(&event);
-
-        // Check for quit command (Ctrl+C)
-        if event.ctrl_key() && event.key() == "c" {
-            return Ok(UpdateSignal::Quit);
-        }
 
         // If we have an update function, call it
         if let Some(update_fn) = self.update_fn.take() {
