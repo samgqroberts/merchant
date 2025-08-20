@@ -1,12 +1,15 @@
-use wasm_bindgen::prelude::*;
-use web_sys::KeyboardEvent;
-use merchant_core::state::GameState;
 use merchant_core::engine::UpdateSignal;
+use merchant_core::state::GameState;
 use rand::{rngs::StdRng, SeedableRng};
 use std::cell::RefCell;
+use wasm_bindgen::prelude::*;
+use web_sys::KeyboardEvent;
 
-mod html_renderer;
+#[cfg(test)]
+mod test;
+
 mod html_engine;
+mod html_renderer;
 
 use html_engine::HtmlEngine;
 
@@ -32,20 +35,20 @@ thread_local! {
 pub fn start() -> Result<(), JsValue> {
     // Set panic hook for better error messages
     console_error_panic_hook::set_once();
-    
+
     console_log!("Merchant Web starting...");
-    
+
     // Initialize game state with RNG
     let rng = StdRng::from_entropy();
     let game_state = GameState::new_std_rng(rng);
-    
+
     // Initialize HTML engine
     let mut engine = HtmlEngine::new()?;
-    
+
     // Initial draw
     let mut state = game_state;
     draw_game(&mut engine, &mut state)?;
-    
+
     // Store game state and engine
     GAME_STATE.with(|gs| {
         *gs.borrow_mut() = Some(state);
@@ -53,10 +56,10 @@ pub fn start() -> Result<(), JsValue> {
     ENGINE.with(|e| {
         *e.borrow_mut() = Some(engine);
     });
-    
+
     // Set up keyboard event listener
     setup_keyboard_listener()?;
-    
+
     console_log!("Merchant Web initialized successfully");
     Ok(())
 }
@@ -64,20 +67,20 @@ pub fn start() -> Result<(), JsValue> {
 fn draw_game(engine: &mut HtmlEngine, state: &mut GameState) -> Result<(), JsValue> {
     // Check if terminal needs resizing
     let (needs_resize, width, height) = engine.check_terminal_size();
-    
+
     if needs_resize {
         engine.draw_need_resize(width, height)?;
     } else {
         engine.draw_scene(state)?;
     }
-    
+
     Ok(())
 }
 
 fn setup_keyboard_listener() -> Result<(), JsValue> {
     let window = web_sys::window().ok_or("no global window")?;
     let document = window.document().ok_or("no document")?;
-    
+
     // Create a closure to handle keyboard events
     let closure = Closure::wrap(Box::new(move |event: KeyboardEvent| {
         // Process the key event
@@ -85,7 +88,7 @@ fn setup_keyboard_listener() -> Result<(), JsValue> {
             GAME_STATE.with(|state_cell| {
                 let mut engine_opt = engine_cell.borrow_mut();
                 let mut state_opt = state_cell.borrow_mut();
-                
+
                 if let (Some(engine), Some(state)) = (engine_opt.as_mut(), state_opt.as_mut()) {
                     match engine.handle_key_event(event, state) {
                         Ok(signal) => {
@@ -101,9 +104,14 @@ fn setup_keyboard_listener() -> Result<(), JsValue> {
                                     // Could show exit message
                                     if let Some(window) = web_sys::window() {
                                         if let Some(document) = window.document() {
-                                            if let Some(pre) = document.get_element_by_id("game-display") {
-                                                if let Ok(pre_element) = pre.dyn_into::<web_sys::HtmlPreElement>() {
-                                                    pre_element.set_inner_html("Thank you for playing!");
+                                            if let Some(display_element) =
+                                                document.get_element_by_id("game-display")
+                                            {
+                                                if let Ok(pre_element) = display_element
+                                                    .dyn_into::<web_sys::HtmlDivElement>(
+                                                ) {
+                                                    pre_element
+                                                        .set_inner_html("Thank you for playing!");
                                                 }
                                             }
                                         }
@@ -130,16 +138,16 @@ fn setup_keyboard_listener() -> Result<(), JsValue> {
                 }
             })
         });
-        
+
         result
     }) as Box<dyn FnMut(KeyboardEvent)>);
-    
+
     // Add the event listener to the document
     document.add_event_listener_with_callback("keydown", closure.as_ref().unchecked_ref())?;
-    
+
     // Keep the closure alive
     closure.forget();
-    
+
     Ok(())
 }
 
@@ -150,12 +158,12 @@ pub fn reset_game() -> Result<(), JsValue> {
         ENGINE.with(|engine_cell| {
             let mut state_opt = state_cell.borrow_mut();
             let mut engine_opt = engine_cell.borrow_mut();
-            
+
             if let (Some(state), Some(engine)) = (state_opt.as_mut(), engine_opt.as_mut()) {
                 // Create new game state
                 let rng = StdRng::from_entropy();
                 *state = GameState::new_std_rng(rng);
-                
+
                 // Redraw
                 draw_game(engine, state)?;
             }

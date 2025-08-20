@@ -1,18 +1,17 @@
-use ansi_commands::frame::{RawRenderer, Renderer};
+use ansi_commands::frame::Renderer;
 use merchant_core::{
     components::{RequireResize, FRAME_HEIGHT, FRAME_WIDTH},
     engine::{render_scene, UpdateFn, UpdateSignal},
     state::GameState,
 };
 use wasm_bindgen::prelude::*;
-use web_sys::{Document, HtmlPreElement, KeyboardEvent, Window};
+use web_sys::{HtmlDivElement, KeyboardEvent, Window};
 
-use crate::{html_renderer::HtmlRenderer, log};
+use crate::html_renderer::HtmlRenderer;
 
 pub struct HtmlEngine {
     window: Window,
-    document: Document,
-    pre_element: HtmlPreElement,
+    container_element: HtmlDivElement,
     update_fn: Option<Box<UpdateFn>>,
 }
 
@@ -24,12 +23,12 @@ impl HtmlEngine {
         // Find or create the pre element for displaying the game
         let pre_element = match document.get_element_by_id("game-display") {
             Some(element) => element
-                .dyn_into::<HtmlPreElement>()
+                .dyn_into::<HtmlDivElement>()
                 .map_err(|_| "element is not a pre element")?,
             None => {
                 let pre = document
                     .create_element("pre")?
-                    .dyn_into::<HtmlPreElement>()?;
+                    .dyn_into::<HtmlDivElement>()?;
                 pre.set_id("game-display");
 
                 // Set monospace font and styling
@@ -51,8 +50,7 @@ impl HtmlEngine {
 
         Ok(Self {
             window,
-            document,
-            pre_element,
+            container_element: pre_element,
             update_fn: None,
         })
     }
@@ -61,11 +59,14 @@ impl HtmlEngine {
         let (frame, update) = render_scene(state)
             .map_err(|e| JsValue::from_str(&format!("Error rendering scene: {:?}", e)))?;
 
-        let render_result = RawRenderer.render(&frame);
-        // let render_result = HtmlRenderer.render(&frame); TODO: use this
+        let render_result = HtmlRenderer.render(&frame);
 
         // Convert the rendered text to HTML
-        self.pre_element.set_inner_html(&render_result.result);
+        self.container_element.set_inner_html(
+            &render_result
+                .unwrap() /* todo */
+                .result,
+        );
 
         self.update_fn = Some(update);
         Ok(())
@@ -85,7 +86,11 @@ impl HtmlEngine {
             .map_err(|e| JsValue::from_str(&format!("Error rendering resize: {:?}", e)))?;
 
         let render_result = HtmlRenderer.render(&frame);
-        self.pre_element.set_inner_html(&render_result.result);
+        self.container_element.set_inner_html(
+            &render_result
+                .unwrap() /* todo */
+                .result,
+        );
 
         Ok(())
     }
