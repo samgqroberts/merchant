@@ -59,14 +59,25 @@ impl HtmlEngine {
         let (frame, update) = render_scene(state)
             .map_err(|e| JsValue::from_str(&format!("Error rendering scene: {:?}", e)))?;
 
-        let render_result = HtmlRenderer.render(&frame);
+        let render_result = HtmlRenderer.render(&frame).unwrap() /* todo */;
+
+        let mut inner_html = render_result.result;
+
+        if render_result.show_cursor {
+            let height = self.container_element.client_height();
+            let width = self.container_element.client_width();
+            let char_height = height / FRAME_HEIGHT as i32;
+            let char_width = width / FRAME_WIDTH as i32;
+            let (cursor_x, cursor_y) = render_result.cursor;
+            inner_html.push_str(&format!(
+                "<div id=\"cursor\" style=\"top: {}px; left: {}px;\"></div>",
+                cursor_y as i32 * char_height - 4,
+                (cursor_x as i32 + 2) * char_width
+            ));
+        }
 
         // Convert the rendered text to HTML
-        self.container_element.set_inner_html(
-            &render_result
-                .unwrap() /* todo */
-                .result,
-        );
+        self.container_element.set_inner_html(&inner_html);
 
         self.update_fn = Some(update);
         Ok(())
