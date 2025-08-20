@@ -426,6 +426,30 @@ pub trait Stylize: Sized {
         styled
     }
 
+    fn underlined(self) -> Self::Styled {
+        let mut styled = self.stylize();
+        styled.as_mut().attributes.set(Attribute::Underlined);
+        styled
+    }
+
+    fn bold(self) -> Self::Styled {
+        let mut styled = self.stylize();
+        styled.as_mut().attributes.set(Attribute::Bold);
+        styled
+    }
+
+    fn red(self) -> Self::Styled {
+        let mut styled = self.stylize();
+        styled.as_mut().foreground_color = Some(Color::Red);
+        styled
+    }
+
+    fn blue(self) -> Self::Styled {
+        let mut styled = self.stylize();
+        styled.as_mut().foreground_color = Some(Color::Blue);
+        styled
+    }
+
     /// Styles the content with the attribute.
     fn attribute(self, attr: Attribute) -> Self::Styled {
         let mut styled = self.stylize();

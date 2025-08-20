@@ -30,3 +30,4 @@ merchant-core = { path = "../core" }
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"
+merchant-core = { path = "../core", features = ["test"] }

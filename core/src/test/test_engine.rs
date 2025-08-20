@@ -22,7 +22,7 @@ impl TestEngine {
     }
 
     pub fn get_current_formatted(&self) -> String {
-        self.frame.render_raw().result
+        self.frame.render_raw().unwrap().result
     }
 
     pub fn expect(&self, expectation: &str) -> bool {

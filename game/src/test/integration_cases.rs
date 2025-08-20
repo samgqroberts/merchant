@@ -2,14 +2,12 @@ use std::num::Saturating;
 
 use pretty_assertions::assert_eq;
 
-use crate::test::{
-    rng::{default_location_info, MockRng},
-    test_engine::TestEngine,
-};
+use crate::test::test_engine::TestEngine;
 use merchant_core::engine::{UpdateResult, UpdateSignal};
 use merchant_core::state::{
     GameState, Good, LocationEvent, Mode, NoEffectEvent, PirateEncounterInfo, Transaction,
 };
+use merchant_core::test::rng::{default_location_info, MockRng};
 
 #[test]
 fn splash_screen_into_inventory() -> UpdateResult<()> {
