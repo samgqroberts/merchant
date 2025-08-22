@@ -167,9 +167,4 @@ impl<'a> Component for GameEndScreen<'a> {
         }
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }

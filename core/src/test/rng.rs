@@ -5,6 +5,8 @@ use crate::state::{
     LocationPersonality, MerchantRng, PriceRanges,
 };
 
+/// An implementer of [MerchantRng] for testing purposes.
+/// Allows deterministic control of results of events that would normally involve random number generation.
 pub struct MockRng {
     gold_recovered_from_pirate_encounter: VecDeque<u32>,
     damage_from_pirates: VecDeque<u8>,

@@ -46,11 +46,6 @@ impl<'a> Component for BankWithdrawInput<'a> {
         )?;
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }
 
 pub struct Numeric4Digits(u32);
@@ -101,11 +96,6 @@ impl<'a> Component for InventoryList<'a> {
         )?;
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }
 
 pub struct CurrentPrices<'a>(pub &'a Inventory);
@@ -122,11 +112,6 @@ impl<'a> Component for CurrentPrices<'a> {
             InventoryList(prices, OFFSET_X + 11, OFFSET_Y + 1),
         )?;
         Ok(())
-    }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
     }
 }
 
@@ -156,11 +141,6 @@ impl Component for KeyInputAction {
             Print(segment_after),
         )?;
         Ok(())
-    }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
     }
 }
 
@@ -241,11 +221,6 @@ impl<'a> Component for ViewingInventoryActions<'a> {
         }
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }
 
 pub struct BankDepositInput<'a>(pub &'a Option<u32>);
@@ -273,11 +248,6 @@ impl<'a> Component for BankDepositInput<'a> {
         )?;
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }
 
 pub const FRAME_WIDTH: u16 = 99;
@@ -298,11 +268,6 @@ impl Component for TopCenterFramed {
         )?;
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }
 
 pub struct Date<'a>(&'a (u16, Month));
@@ -318,11 +283,6 @@ impl<'a> Component for Date<'a> {
         let text = format!(" {}{} ", month_name, year);
         comp!(f, TopCenterFramed(text))?;
         Ok(())
-    }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
     }
 }
 
@@ -404,11 +364,6 @@ impl<'a> Component for HomeBase<'a> {
         }
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }
 
 #[derive(Clone)]
@@ -465,11 +420,6 @@ impl<'a> Component for CurrentLocation<'a> {
         )?;
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }
 
 pub struct ViewingInventoryBase<'a>(pub &'a GameState);
@@ -489,11 +439,6 @@ impl<'a> Component for ViewingInventoryBase<'a> {
             CurrentPrices(&state.locations.location_info(&state.location).prices)
         )?;
         Ok(())
-    }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
     }
 }
 
@@ -588,11 +533,6 @@ impl<'a> Component for Ship<'a> {
         }
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }
 
 pub struct BuyInput<'a> {
@@ -643,11 +583,6 @@ impl<'a> Component for BuyInput<'a> {
         comp!(f, MoveTo(OFFSET_X + prompt_len, OFFSET_Y), Show)?;
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }
 
 const PROMPT_OFFSET_X: u16 = 10;
@@ -666,11 +601,6 @@ impl Component for BuyPrompt {
             GoodOptions(OFFSET_X, OFFSET_Y + 1)
         )?;
         Ok(())
-    }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
     }
 }
 
@@ -723,11 +653,6 @@ impl Component for GoodOptions {
         )?;
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }
 
 pub struct SellInput<'a>(pub &'a Transaction, pub &'a u32);
@@ -761,11 +686,6 @@ impl<'a> Component for SellInput<'a> {
         )?;
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }
 
 pub struct SellPrompt;
@@ -781,11 +701,6 @@ impl Component for SellPrompt {
             GoodOptions(OFFSET_X, OFFSET_Y + 1),
         )?;
         Ok(())
-    }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
     }
 }
 
@@ -840,11 +755,6 @@ impl Component for SailPrompt {
         )?;
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }
 
 pub struct StashDepositInput<'a>(pub &'a Transaction, pub &'a u32);
@@ -878,11 +788,6 @@ impl<'a> Component for StashDepositInput<'a> {
         )?;
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }
 
 pub struct StashDepositPrompt;
@@ -898,11 +803,6 @@ impl Component for StashDepositPrompt {
             GoodOptions(offset_x, offset_y + 1),
         )?;
         Ok(())
-    }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
     }
 }
 
@@ -937,11 +837,6 @@ impl<'a> Component for StashWithdrawInput<'a> {
         )?;
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }
 
 pub struct StashWithdrawPrompt;
@@ -957,11 +852,6 @@ impl Component for StashWithdrawPrompt {
             GoodOptions(OFFSET_X, OFFSET_Y + 1),
         )?;
         Ok(())
-    }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
     }
 }
 
@@ -990,11 +880,6 @@ impl<'a> Component for PayDebtInput<'a> {
         )?;
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }
 
 pub struct CheapGoodDialog<'a>(pub &'a Good);
@@ -1014,11 +899,6 @@ impl<'a> Component for CheapGoodDialog<'a> {
             Print("(press any key to continue)".to_string())
         )?;
         Ok(())
-    }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
     }
 }
 
@@ -1041,11 +921,6 @@ impl<'a> Component for ExpensiveGoodDialog<'a> {
             Print("(press any key to continue)".to_string())
         )?;
         Ok(())
-    }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
     }
 }
 
@@ -1079,12 +954,8 @@ impl<'a> Component for FindGoodsDialog<'a> {
         }
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }
+
 pub struct GoodsStolenDialog(pub GoodsStolenResult);
 
 impl Component for GoodsStolenDialog {
@@ -1107,11 +978,6 @@ impl Component for GoodsStolenDialog {
         }
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }
 
 pub struct CanBuyCannon;
@@ -1130,11 +996,6 @@ impl Component for CanBuyCannon {
             Print("Accept? y/n"),
         )?;
         Ok(())
-    }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
     }
 }
 
@@ -1162,11 +1023,6 @@ impl Component for CanBuyHoldSpace {
             Print("(y/n)"),
         )?;
         Ok(())
-    }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
     }
 }
 
@@ -1368,11 +1224,6 @@ impl Component for PirateEncounter {
         };
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }
 
 pub struct NoEffect {
@@ -1412,10 +1263,5 @@ impl Component for NoEffect {
             }
         }
         Ok(())
-    }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
     }
 }

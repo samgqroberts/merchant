@@ -45,11 +45,6 @@ impl Component for SplashScreen {
         }
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }
 
 #[cfg(test)]

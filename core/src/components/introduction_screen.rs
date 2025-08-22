@@ -80,11 +80,6 @@ impl Component for IntroductionScreen {
         )?;
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }
 
 #[cfg(test)]

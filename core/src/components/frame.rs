@@ -32,11 +32,6 @@ impl Component for VerticalSequence {
         }
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }
 
 pub struct SceneFrame(pub FrameType);
@@ -145,11 +140,6 @@ impl Component for SceneFrame {
             comp!(f, MoveTo(1, LOCATION_DIVIDER_Y), Print(mid))?;
         }
         Ok(())
-    }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
     }
 }
 

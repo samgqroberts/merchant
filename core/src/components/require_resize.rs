@@ -37,11 +37,6 @@ impl Component for RequireResize {
         )?;
         Ok(())
     }
-
-    #[cfg(windows)]
-    fn execute_winapi(&self) -> std::io::Result<()> {
-        todo!()
-    }
 }
 
 #[cfg(test)]
