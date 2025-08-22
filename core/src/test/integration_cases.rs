@@ -5,7 +5,8 @@ use pretty_assertions::assert_eq;
 use crate::{
     engine::{UpdateResult, UpdateSignal},
     state::{
-        GameState, Good, LocationEvent, Mode, NoEffectEvent, PirateEncounterInfo, Transaction,
+        GameState, Good, Inventory, Location, LocationEvent, LocationInfo, Mode, NoEffectEvent,
+        PirateEncounterInfo, Transaction,
     },
     test::{
         rng::{default_location_info, MockRng},
@@ -764,18 +765,34 @@ fn arrive_at_find_goods_event_not_enough_hold() -> UpdateResult<()> {
 }
 
 #[test]
-fn arrive_at_stolen_goods_event_some_stolen() -> UpdateResult<()> {
+fn sail_to_stolen_goods_event_some_stolen() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(
             MockRng::new_with_default_locations()
+                .push_location_info(LocationInfo {
+                    prices: Inventory {
+                        tea: 1,
+                        coffee: 2,
+                        sugar: 3,
+                        tobacco: 4,
+                        rum: 5,
+                        cotton: 6,
+                    },
+                    event: None,
+                })
                 .push_good_stolen((Good::Coffee, 4))
                 .into(),
         );
         state.introduction_to_game();
         state.inventory.coffee = 10;
-        state.mode = Mode::GameEvent(LocationEvent::GoodsStolen(None));
+        state.location = Location::London;
+        state.locations.lisbon.event = Some(LocationEvent::GoodsStolen(None));
         state
     })?;
+    assert!(e.expect("(3) Sail"));
+    e.charpress('3')?;
+    assert!(e.expect("(3) Lisbon"));
+    e.charpress('3')?;
     assert!(e.expect("Prowling harbor thieves stole"));
     assert!(e.expect("4 Coffee from you!"));
     assert!(e.expect("Coffee:   10"));
@@ -785,14 +802,34 @@ fn arrive_at_stolen_goods_event_some_stolen() -> UpdateResult<()> {
 }
 
 #[test]
-fn arrive_at_stolen_goods_event_nothing_stolen() -> UpdateResult<()> {
+fn sail_to_stolen_goods_event_nothing_stolen() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
-        let mut state = GameState::new(MockRng::new_with_default_locations().into());
+        let mut state = GameState::new(
+            MockRng::new_with_default_locations()
+                .push_location_info(LocationInfo {
+                    prices: Inventory {
+                        tea: 1,
+                        coffee: 2,
+                        sugar: 3,
+                        tobacco: 4,
+                        rum: 5,
+                        cotton: 6,
+                    },
+                    event: None,
+                })
+                .push_good_stolen((Good::Coffee, 4))
+                .into(),
+        );
         state.introduction_to_game();
         state.inventory.coffee = 0;
-        state.mode = Mode::GameEvent(LocationEvent::GoodsStolen(None));
+        state.location = Location::London;
+        state.locations.lisbon.event = Some(LocationEvent::GoodsStolen(None));
         state
     })?;
+    assert!(e.expect("(3) Sail"));
+    e.charpress('3')?;
+    assert!(e.expect("(3) Lisbon"));
+    e.charpress('3')?;
     assert!(e.expect("Thieves were on the prowl, but they"));
     assert!(e.expect("couldn't find anything to steal"));
     e.charpress('a')?;

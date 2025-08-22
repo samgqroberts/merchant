@@ -91,7 +91,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
         }
     }
 
-    pub fn draw_scene(&mut self, state: &mut GameState) -> io::Result<Box<UpdateFn>> {
+    pub fn draw_scene(&mut self, state: &GameState) -> io::Result<Box<UpdateFn>> {
         info!("Drawing scene: {:?}", state.mode);
         let writer = &mut *self.writer.borrow_mut();
         let (commands, update) = match render_scene(state) {

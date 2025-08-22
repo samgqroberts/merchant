@@ -955,9 +955,9 @@ impl<'a> Component for FindGoodsDialog<'a> {
     }
 }
 
-pub struct GoodsStolenDialog(pub GoodsStolenResult);
+pub struct GoodsStolenDialog<'a>(pub &'a GoodsStolenResult);
 
-impl Component for GoodsStolenDialog {
+impl<'a> Component for GoodsStolenDialog<'a> {
     fn render(&self, f: &mut Commands) -> Result<(), String> {
         match self.0 {
             GoodsStolenResult::NothingStolen => comp!(
@@ -1031,8 +1031,8 @@ pub struct PirateEncounter {
     pub date: (u16, Month),
 }
 
-impl From<(PirateEncounterState, &mut GameState)> for PirateEncounter {
-    fn from(value: (PirateEncounterState, &mut GameState)) -> Self {
+impl From<(PirateEncounterState, &GameState)> for PirateEncounter {
+    fn from(value: (PirateEncounterState, &GameState)) -> Self {
         PirateEncounter {
             pirate_encounter_state: value.0,
             cannons: value.1.cannons.0,

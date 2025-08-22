@@ -1,5 +1,5 @@
 use crate::state::{location_personalities::LocationConfig, Inventory, Location, LocationInfos};
-use std::{borrow::BorrowMut, num::Saturating};
+use std::num::Saturating;
 
 use chrono::Month;
 use rand::rngs::StdRng;
@@ -526,7 +526,7 @@ impl GameState {
                 let player_net_worth = self.net_worth();
                 let new_location_info = self.locations.generate_location(
                     &mut self.rng,
-                    destination,
+                    &self.location,
                     self.location_config.personalities.get(destination),
                     true,
                     player_net_worth,
@@ -537,8 +537,31 @@ impl GameState {
                 let new_debt = f64::from(self.debt.0) * 1.1;
                 self.debt = Saturating(new_debt.floor() as u32);
                 // determine if we've encountered an event
-                if let Some(event) = &new_location_info.event {
-                    self.mode = Mode::GameEvent(event.clone());
+                dbg!(&new_location_info);
+                if let Some(event) = &self.locations.get(&self.location).event {
+                    self.mode = if let LocationEvent::GoodsStolen(None) = event {
+                        // if that event is a GoodsStolen event, we need to generate the specifics
+                        // randomly select a good that we have inventory of
+                        let goods_with_inventory = self
+                            .inventory
+                            .clone()
+                            .into_iter()
+                            .filter(|x| x.1 > 0)
+                            .collect::<Vec<(Good, u32)>>();
+                        let computed_info = if goods_with_inventory.is_empty() {
+                            GoodsStolenResult::NothingStolen
+                        } else {
+                            let (good_stolen, amount_stolen) =
+                                self.rng.gen_good_stolen(&goods_with_inventory);
+                            GoodsStolenResult::WasStolen {
+                                good: good_stolen,
+                                amount: amount_stolen,
+                            }
+                        };
+                        Mode::GameEvent(LocationEvent::GoodsStolen(Some(computed_info)))
+                    } else {
+                        Mode::GameEvent(event.clone())
+                    };
                 }
                 Ok(self)
             }
@@ -569,37 +592,6 @@ impl GameState {
         self.hold_size
             .0
             .saturating_sub(self.inventory.total_amount())
-    }
-
-    pub(crate) fn compute_goods_stolen(&mut self) -> GoodsStolenResult {
-        if let Mode::GameEvent(event) = &mut self.mode {
-            if let LocationEvent::GoodsStolen(info) = event.borrow_mut() {
-                if let Some(info) = info {
-                    return *info;
-                } else {
-                    // randomly select a good that we have inventory of
-                    let goods_with_inventory = self
-                        .inventory
-                        .clone()
-                        .into_iter()
-                        .filter(|x| x.1 > 0)
-                        .collect::<Vec<(Good, u32)>>();
-                    let computed_info = if goods_with_inventory.is_empty() {
-                        GoodsStolenResult::NothingStolen
-                    } else {
-                        let (good_stolen, amount_stolen) =
-                            self.rng.gen_good_stolen(&goods_with_inventory);
-                        GoodsStolenResult::WasStolen {
-                            good: good_stolen,
-                            amount: amount_stolen,
-                        }
-                    };
-                    *info = Some(computed_info);
-                    return computed_info;
-                }
-            }
-        }
-        GoodsStolenResult::NothingStolen
     }
 
     pub(crate) fn remove_stolen_goods(&mut self, goods_stolen_info: GoodsStolenResult) {

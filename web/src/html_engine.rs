@@ -55,7 +55,7 @@ impl HtmlEngine {
         })
     }
 
-    pub fn draw_scene(&mut self, state: &mut GameState) -> Result<(), JsValue> {
+    pub fn draw_scene(&mut self, state: &GameState) -> Result<(), JsValue> {
         let (commands, update) = render_scene(state)
             .map_err(|e| JsValue::from_str(&format!("Error rendering scene: {:?}", e)))?;
 
@@ -83,11 +83,7 @@ impl HtmlEngine {
         Ok(())
     }
 
-    pub fn draw_need_resize(
-        &mut self,
-        current_width: u16,
-        current_height: u16,
-    ) -> Result<(), JsValue> {
+    pub fn draw_need_resize(&self, current_width: u16, current_height: u16) -> Result<(), JsValue> {
         let mut commands = Commands::new();
         comp!(
             commands,

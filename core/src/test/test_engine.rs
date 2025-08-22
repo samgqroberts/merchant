@@ -16,8 +16,8 @@ pub struct TestEngine {
 
 impl TestEngine {
     #[allow(unused_must_use)]
-    pub fn from_game_state(mut game_state: GameState) -> UpdateResult<Self> {
-        let (frame, _) = render_scene(&mut game_state).unwrap();
+    pub fn from_game_state(game_state: GameState) -> UpdateResult<Self> {
+        let (frame, _) = render_scene(&game_state).unwrap();
         Ok(Self {
             commands: frame,
             game_state,
@@ -60,12 +60,12 @@ impl TestEngine {
 
     #[allow(unused_must_use)]
     pub fn keypress(&mut self, key_code: KeyCode) -> UpdateResult<UpdateSignal> {
-        let (_, update) = render_scene(&mut self.game_state).unwrap();
+        let (_, update) = render_scene(&self.game_state).unwrap();
         let signal = update(
             KeyEvent::new(key_code, KeyModifiers::empty()),
             &mut self.game_state,
         )?;
-        let (frame, _) = render_scene(&mut self.game_state).unwrap();
+        let (frame, _) = render_scene(&self.game_state).unwrap();
         self.commands = frame;
         Ok(signal)
     }

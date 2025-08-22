@@ -94,7 +94,7 @@ impl FromKeyCode for Location {
 
 pub fn render_scene_to_existing(
     commands: &mut terminal_commands::Commands,
-    state: &mut GameState,
+    state: &GameState,
 ) -> Result<Box<UpdateFn>, String> {
     if state.initialization == Initialization::SplashScreen {
         // initial splash screen
@@ -494,8 +494,11 @@ pub fn render_scene_to_existing(
                     }));
                 }
                 LocationEvent::GoodsStolen(info) => {
-                    let info = info.unwrap_or_else(|| state.compute_goods_stolen());
-                    comp!(commands, GoodsStolenDialog(info))?;
+                    let Some(info) = info else {
+                        return Err("No information about stolen goods".into());
+                    };
+                    let info = info.clone();
+                    comp!(commands, GoodsStolenDialog(&info))?;
                     return Ok(Box::new(move |_: KeyEvent, state: &mut GameState| {
                         state.remove_stolen_goods(info);
                         state.acknowledge_event()?;
@@ -545,7 +548,7 @@ pub fn render_scene_to_existing(
     }
 }
 
-pub fn render_scene(state: &mut GameState) -> Result<(Commands, Box<UpdateFn>), String> {
+pub fn render_scene(state: &GameState) -> Result<(Commands, Box<UpdateFn>), String> {
     let mut frame = Commands::new();
     let update = render_scene_to_existing(&mut frame, state)?;
     Ok((frame, update))
