@@ -41,27 +41,4 @@ mod tests {
         assert_eq!(frame.render_raw().unwrap().result, "\n Hello, world!");
         Ok(())
     }
-
-    // #[cfg(feature = "crossterm")]
-    // #[test]
-    // fn test_frame_crossterm() -> Result<(), String> {
-    //     use crate::style::Stylize;
-    //     use raw_format_ansi::raw_format_ansi;
-
-    //     use crate::style::Attribute;
-
-    //     let mut frame = Frame::new();
-    //     comp!(
-    //         frame,
-    //         MoveTo(1, 1),
-    //         Print("Hello, world!".attribute(Attribute::Bold)),
-    //     )?;
-
-    //     let mut captured_write = captured_write::CapturedWrite::new();
-    //     frame.render_crossterm(&mut captured_write).unwrap();
-    //     let buffer = captured_write.buffer;
-    //     let formatted = raw_format_ansi(&buffer);
-    //     assert_eq!(formatted, "\n Hello, world!");
-    //     Ok(())
-    // }
 }

@@ -20,7 +20,6 @@ crate-type = ["cdylib", "rlib"]
 chrono = "0.4.38"
 crossterm = { workspace = true }
 rand = "0.8.5"
-captured_write = { path = "../captured_write" }
 raw_format_ansi = { path = "../raw_format_ansi" }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ['env-filter'] }

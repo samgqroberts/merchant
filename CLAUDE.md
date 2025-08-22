@@ -14,7 +14,6 @@ The codebase is organized as a Rust workspace with the following crates:
 - **core/** - Core game logic including state management, components, and game engine
 - **terminal-commands/** - Terminal control and ANSI escape sequence handling
 - **web/** - WebAssembly/WASM version of the game for browser deployment
-- **captured_write/** - Utility for capturing write operations
 - **raw_format_ansi/** - ANSI formatting utilities
 
 ### Key Architectural Components

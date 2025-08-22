@@ -96,7 +96,12 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
         let writer = &mut *self.writer.borrow_mut();
         let (frame, update) = match render_scene(state) {
             Ok(result) => result,
-            Err(e) => todo!("Error rendering scene: {:?}", e),
+            Err(e) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("Error rendering scene: {:?}", e),
+                ))
+            }
         };
         let render_result = CrosstermRenderer
             .render(&frame)
@@ -115,8 +120,10 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                 current_x_cols,
                 current_y_cols,
             })
-            .unwrap(); // todo
-        let render_result = CrosstermRenderer.render(&frame).unwrap() /* todo */;
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        let render_result = CrosstermRenderer
+            .render(&frame)
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
         writer.write_all(render_result.result.as_bytes())?;
         writer.flush()?;
         Ok(())

@@ -1,4 +1,3 @@
-use captured_write::CapturedWrite;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::{cell::RefCell, str};
 
@@ -9,15 +8,15 @@ use merchant_core::state::GameState;
 use raw_format_ansi::raw_format_ansi;
 
 pub struct TestEngine {
-    writer_ref: RefCell<CapturedWrite>,
+    writer_ref: RefCell<Vec<u8>>,
     game_state: GameState,
 }
 
 impl TestEngine {
     #[allow(unused_must_use)]
     pub fn from_game_state(mut game_state: GameState) -> UpdateResult<Self> {
-        let writer = CapturedWrite::new();
-        let writer_box: RefCell<CapturedWrite> = RefCell::from(writer);
+        let writer = Vec::new();
+        let writer_box: RefCell<Vec<u8>> = RefCell::from(writer);
         let mut engine = Engine::new(&writer_box);
         engine.draw_scene(&mut game_state)?;
         Ok(Self {
@@ -27,7 +26,7 @@ impl TestEngine {
     }
 
     pub fn get_current_formatted(&self) -> String {
-        let buffer = self.writer_ref.borrow().buffer.clone();
+        let buffer = String::from_utf8(self.writer_ref.borrow().clone()).unwrap();
         raw_format_ansi(&buffer)
     }
 
@@ -63,14 +62,14 @@ impl TestEngine {
 
     #[allow(unused_must_use)]
     pub fn keypress(&mut self, key_code: KeyCode) -> UpdateResult<UpdateSignal> {
-        self.writer_ref.borrow_mut().reset();
+        self.writer_ref.borrow_mut().clear();
         let mut engine = Engine::new(&self.writer_ref);
         let update = engine.draw_scene(&mut self.game_state)?;
         let signal = update(
             convert_key_event(KeyEvent::new(key_code, KeyModifiers::empty())),
             &mut self.game_state,
         )?;
-        self.writer_ref.borrow_mut().reset();
+        self.writer_ref.borrow_mut().clear();
         engine.draw_scene(&mut self.game_state)?;
         Ok(signal)
     }

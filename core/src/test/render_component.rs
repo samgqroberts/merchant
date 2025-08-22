@@ -5,7 +5,3 @@ pub fn render_component<T: Component>(x: T) -> String {
     frame.render(&x).unwrap();
     frame.render_raw().unwrap().result
 }
-
-pub fn render_component_crossterm<T: Component>(_x: T) -> String {
-    todo!();
-}

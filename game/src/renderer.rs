@@ -1,4 +1,3 @@
-use captured_write::CapturedWrite;
 use crossterm::queue;
 use terminal_commands::frame::{Frame, Printable, RenderOutput, RenderResult, Renderer};
 use terminal_commands::style::{Attribute, Attributes, Color, ContentStyle};
@@ -7,7 +6,7 @@ pub struct CrosstermRenderer;
 
 impl Renderer for CrosstermRenderer {
     fn render(&self, frame: &Frame) -> RenderResult {
-        let mut writer = CapturedWrite::new();
+        let mut writer = Vec::<u8>::new();
 
         for cmd in frame.commands().iter() {
             match cmd {
@@ -55,7 +54,7 @@ impl Renderer for CrosstermRenderer {
             .map_err(|e| e.to_string())?;
         }
         Ok(RenderOutput {
-            result: writer.buffer,
+            result: String::from_utf8(writer).map_err(|e| e.to_string())?,
             cursor: (0, 0),
             show_cursor: true,
         })

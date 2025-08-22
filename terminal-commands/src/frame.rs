@@ -80,6 +80,12 @@ impl From<String> for RenderError {
     }
 }
 
+impl std::fmt::Display for RenderError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "RenderError: {}", self.0)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RenderOutput {
     pub result: String,

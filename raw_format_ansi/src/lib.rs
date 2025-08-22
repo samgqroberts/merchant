@@ -1,7 +1,5 @@
 extern crate ansi_parser;
 #[cfg(test)]
-extern crate captured_write;
-#[cfg(test)]
 extern crate crossterm;
 extern crate regex;
 
@@ -162,7 +160,6 @@ pub mod tests {
     use super::*;
 
     use ansi_parser::AnsiSequence::{CursorBackward, CursorDown, CursorPos};
-    use captured_write::CapturedWrite;
     use crossterm::cursor::{MoveDown, MoveLeft, MoveRight, MoveTo, MoveToNextLine, MoveUp};
     use crossterm::execute;
     use crossterm::style::{style, Attribute, Color, Print, PrintStyledContent, Stylize};
@@ -171,7 +168,7 @@ pub mod tests {
 
     #[test]
     fn test_tokenize_ansi() -> io::Result<()> {
-        let mut fake = CapturedWrite::new();
+        let mut fake = Vec::new();
         execute!(
             fake,
             MoveTo(1, 5),
@@ -179,7 +176,8 @@ pub mod tests {
             MoveToNextLine(2),
             Print("bye")
         )?;
-        let tokens = tokenize_ansi(&fake.buffer);
+        let s = String::from_utf8(fake).unwrap();
+        let tokens = tokenize_ansi(s.as_str());
         assert_eq!(
             tokens,
             vec![
@@ -195,7 +193,7 @@ pub mod tests {
 
     #[test]
     fn basic() -> io::Result<()> {
-        let mut fake = CapturedWrite::new();
+        let mut fake = Vec::new();
         execute!(
             fake,
             Clear(crossterm::terminal::ClearType::All),
@@ -215,7 +213,7 @@ pub mod tests {
             MoveToNextLine(2),
             PrintStyledContent("Third line after blank line.".with(Color::White)),
         )?;
-        let stripped = raw_format_ansi(&fake.buffer);
+        let stripped = raw_format_ansi(&String::from_utf8(fake).unwrap());
         assert_eq!(
             stripped,
             "First line.\n     Indented second line.\n\nThird line after blank line.".to_owned()
@@ -225,7 +223,7 @@ pub mod tests {
 
     #[test]
     fn skipping_line_with_move_to() -> io::Result<()> {
-        let mut fake = CapturedWrite::new();
+        let mut fake = Vec::new();
         execute!(
             fake,
             Clear(crossterm::terminal::ClearType::All),
@@ -234,14 +232,14 @@ pub mod tests {
             MoveTo(0, 2),
             PrintStyledContent("Skipped line.".with(Color::Blue)),
         )?;
-        let stripped = raw_format_ansi(&fake.buffer);
+        let stripped = raw_format_ansi(&String::from_utf8(fake).unwrap());
         assert_eq!(stripped, "First line.\n\nSkipped line.".to_owned());
         Ok(())
     }
 
     #[test]
     fn relative_moves() -> io::Result<()> {
-        let mut fake = CapturedWrite::new();
+        let mut fake = Vec::new();
         execute!(
             fake,
             Print("1"),
@@ -256,7 +254,7 @@ pub mod tests {
             MoveUp(4),
             Print("6"),
         )?;
-        let stripped = raw_format_ansi(&fake.buffer);
+        let stripped = raw_format_ansi(&String::from_utf8(fake).unwrap());
         assert_eq!(
             stripped,
             r#"1
@@ -271,21 +269,21 @@ pub mod tests {
 
     #[test]
     fn text_with_underline() -> io::Result<()> {
-        let mut fake = CapturedWrite::new();
+        let mut fake = Vec::new();
         execute!(
             fake,
             Print("1"),
             Print(style("2").attribute(Attribute::Underlined)),
             Print("3"),
         )?;
-        let stripped = raw_format_ansi(&fake.buffer);
+        let stripped = raw_format_ansi(&String::from_utf8(fake).unwrap());
         assert_eq!(stripped, "123");
         Ok(())
     }
 
     #[test]
     fn unicode() {
-        let mut writer = CapturedWrite::new();
+        let mut writer = Vec::new();
         execute!(
             writer,
             Print("╔╗╚╝"),
@@ -296,6 +294,9 @@ pub mod tests {
             Print('╿')
         )
         .unwrap();
-        assert_eq!(raw_format_ansi(&writer.buffer), "╔╗╚┉┼ ╿");
+        assert_eq!(
+            raw_format_ansi(&String::from_utf8(writer).unwrap()),
+            "╔╗╚┉┼ ╿"
+        );
     }
 }

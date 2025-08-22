@@ -514,8 +514,9 @@ pub fn render_scene_to_existing(
                         Ok(UpdateSignal::Continue)
                     }));
                 }
-                // TODO<samgqroberts> 2024-04-10 use actual error type
-                LocationEvent::PirateEncounter(_) => panic!("Cannot encounter pirates here"),
+                LocationEvent::PirateEncounter(_) => {
+                    return Err("Internal error: cannot encounter pirates here.".into())
+                }
                 LocationEvent::CanBuyHoldSpace { price, more_hold } => {
                     let price = *price;
                     let more_hold = *more_hold;

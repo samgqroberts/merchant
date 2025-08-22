@@ -7,13 +7,5 @@ macro_rules! comp {
                 writer.render(&$command)?;
                 Ok(writer)
             }))*.map(|_| ())
-        // #[cfg(feature = "crossterm")]
-        // {
-        //     $(crossterm::Command::write_ansi(&$command, $writer)?;)*
-        // }
-        // #[cfg(not(feature = "crossterm"))]
-        // {
-        //     todo!()
-        // }
     }};
 }

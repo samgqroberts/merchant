@@ -61,10 +61,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
-name = "captured_write"
-version = "0.1.0"
-
-[[package]]
 name = "cc"
 version = "1.1.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -304,7 +300,6 @@ checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 name = "merchant"
 version = "1.0.5"
 dependencies = [
- "captured_write",
  "chrono",
  "crossterm",
  "merchant-core",
@@ -519,7 +514,6 @@ name = "raw_format_ansi"
 version = "0.1.0"
 dependencies = [
  "ansi-parser",
- "captured_write",
  "crossterm",
  "regex",
 ]

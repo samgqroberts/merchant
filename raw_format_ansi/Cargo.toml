@@ -13,4 +13,3 @@ regex = "1.11.1"
 
 [dev-dependencies]
 crossterm = { workspace = true }
-captured_write = { path = "../captured_write" }
