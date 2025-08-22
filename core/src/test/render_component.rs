@@ -1,4 +1,4 @@
-use ansi_commands::{frame::Frame, Component};
+use terminal_commands::{frame::Frame, Component};
 
 pub fn render_component<T: Component>(x: T) -> String {
     let mut frame = Frame::new();

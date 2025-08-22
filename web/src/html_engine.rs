@@ -1,9 +1,9 @@
-use ansi_commands::frame::Renderer;
 use merchant_core::{
     components::{RequireResize, FRAME_HEIGHT, FRAME_WIDTH},
     engine::{render_scene, UpdateFn, UpdateSignal},
     state::GameState,
 };
+use terminal_commands::frame::Renderer;
 use wasm_bindgen::prelude::*;
 use web_sys::{HtmlDivElement, KeyboardEvent, Window};
 
@@ -88,7 +88,7 @@ impl HtmlEngine {
         current_width: u16,
         current_height: u16,
     ) -> Result<(), JsValue> {
-        let mut frame = ansi_commands::frame::Frame::new();
+        let mut frame = terminal_commands::frame::Frame::new();
         frame
             .render(&RequireResize {
                 current_x_cols: current_width,
@@ -124,7 +124,7 @@ impl HtmlEngine {
         // at this point, we handle the keypress, so prevent default browser behavior
         event.prevent_default();
 
-        // Convert web keyboard event to ansi_commands KeyEvent
+        // Convert web keyboard event to terminal_commands KeyEvent
         let key_event = convert_web_key_event(&event);
 
         // If we have an update function, call it
@@ -161,48 +161,48 @@ impl HtmlEngine {
     }
 }
 
-fn convert_web_key_event(event: &KeyboardEvent) -> ansi_commands::event::KeyEvent {
+fn convert_web_key_event(event: &KeyboardEvent) -> terminal_commands::event::KeyEvent {
     let key = event.key();
 
     let code = match key.as_str() {
-        "Enter" => ansi_commands::event::KeyCode::Enter,
-        "Backspace" => ansi_commands::event::KeyCode::Backspace,
-        "Tab" => ansi_commands::event::KeyCode::Tab,
-        "Escape" => ansi_commands::event::KeyCode::Esc,
-        "ArrowUp" => ansi_commands::event::KeyCode::Up,
-        "ArrowDown" => ansi_commands::event::KeyCode::Down,
-        "ArrowLeft" => ansi_commands::event::KeyCode::Left,
-        "ArrowRight" => ansi_commands::event::KeyCode::Right,
-        "Home" => ansi_commands::event::KeyCode::Home,
-        "End" => ansi_commands::event::KeyCode::End,
-        "PageUp" => ansi_commands::event::KeyCode::PageUp,
-        "PageDown" => ansi_commands::event::KeyCode::PageDown,
-        "Delete" => ansi_commands::event::KeyCode::Delete,
-        "Insert" => ansi_commands::event::KeyCode::Insert,
+        "Enter" => terminal_commands::event::KeyCode::Enter,
+        "Backspace" => terminal_commands::event::KeyCode::Backspace,
+        "Tab" => terminal_commands::event::KeyCode::Tab,
+        "Escape" => terminal_commands::event::KeyCode::Esc,
+        "ArrowUp" => terminal_commands::event::KeyCode::Up,
+        "ArrowDown" => terminal_commands::event::KeyCode::Down,
+        "ArrowLeft" => terminal_commands::event::KeyCode::Left,
+        "ArrowRight" => terminal_commands::event::KeyCode::Right,
+        "Home" => terminal_commands::event::KeyCode::Home,
+        "End" => terminal_commands::event::KeyCode::End,
+        "PageUp" => terminal_commands::event::KeyCode::PageUp,
+        "PageDown" => terminal_commands::event::KeyCode::PageDown,
+        "Delete" => terminal_commands::event::KeyCode::Delete,
+        "Insert" => terminal_commands::event::KeyCode::Insert,
         s if s.len() == 1 => {
             let ch = s.chars().next().unwrap();
-            ansi_commands::event::KeyCode::Char(ch)
+            terminal_commands::event::KeyCode::Char(ch)
         }
         s if s.starts_with("F") && s.len() <= 3 => {
             if let Ok(num) = s[1..].parse::<u8>() {
-                ansi_commands::event::KeyCode::F(num)
+                terminal_commands::event::KeyCode::F(num)
             } else {
-                ansi_commands::event::KeyCode::Null
+                terminal_commands::event::KeyCode::Null
             }
         }
-        _ => ansi_commands::event::KeyCode::Null,
+        _ => terminal_commands::event::KeyCode::Null,
     };
 
-    let mut modifiers = ansi_commands::event::KeyModifiers::empty();
+    let mut modifiers = terminal_commands::event::KeyModifiers::empty();
     if event.shift_key() {
-        modifiers.insert(ansi_commands::event::KeyModifiers::SHIFT);
+        modifiers.insert(terminal_commands::event::KeyModifiers::SHIFT);
     }
     if event.ctrl_key() {
-        modifiers.insert(ansi_commands::event::KeyModifiers::CONTROL);
+        modifiers.insert(terminal_commands::event::KeyModifiers::CONTROL);
     }
     if event.alt_key() {
-        modifiers.insert(ansi_commands::event::KeyModifiers::ALT);
+        modifiers.insert(terminal_commands::event::KeyModifiers::ALT);
     }
 
-    ansi_commands::event::KeyEvent::new(code, modifiers)
+    terminal_commands::event::KeyEvent::new(code, modifiers)
 }

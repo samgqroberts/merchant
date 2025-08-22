@@ -1,4 +1,4 @@
-use ansi_commands::{
+use terminal_commands::{
     comp,
     cursor::MoveTo,
     frame::Printable,
@@ -37,7 +37,7 @@ impl ScreenCenteredText {
 }
 
 impl Component for ScreenCenteredText {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let content_len = self.content_len as u16;
         let starting_index =
             ((FRAME_WIDTH as f64 / 2f64) - ((content_len as f64) / 2f64)).round() as u16;

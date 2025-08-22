@@ -8,7 +8,7 @@ name = "merchant_core"
 
 [dependencies]
 getrandom = { version = "0.2.15", features = ["js"] }
-ansi-commands = { path = "../ansi-commands" }
+terminal-commands = { path = "../terminal-commands" }
 chrono = "0.4.38"
 rand = "0.8.5"
 tracing = "0.1.40"

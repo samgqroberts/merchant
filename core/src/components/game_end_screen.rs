@@ -1,4 +1,4 @@
-use ansi_commands::{
+use terminal_commands::{
     comp,
     cursor::{Hide, MoveTo},
     style::{style, Attribute, Print},
@@ -12,12 +12,12 @@ use crate::{
 };
 
 const GAME_OVER: &str = r"
-  _____                         ____                 
- / ____|                       / __ \                
-| |  __  __ _ _ __ ___   ___  | |  | |_   _____ _ __ 
+  _____                         ____
+ / ____|                       / __ \
+| |  __  __ _ _ __ ___   ___  | |  | |_   _____ _ __
 | | |_ |/ _` | '_ ` _ \ / _ \ | |  | \ \ / / _ \ '__|
-| |__| | (_| | | | | | |  __/ | |__| |\ V /  __/ |   
- \_____|\__,_|_| |_| |_|\___|  \____/  \_/ \___|_|   
+| |__| | (_| | | | | | |  __/ | |__| |\ V /  __/ |
+ \_____|\__,_|_| |_| |_|\___|  \____/  \_/ \___|_|
 ";
 
 pub struct GameEndScreen<'a>(pub &'a GameState);
@@ -48,7 +48,7 @@ impl AchievementTier {
 }
 
 impl<'a> Component for GameEndScreen<'a> {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let state = self.0;
         let starting_net_worth = state.starting_debt.0 as i64 - state.starting_gold.0 as i64;
         // let starting_gold = state.starting_gold.0;
@@ -61,7 +61,7 @@ impl<'a> Component for GameEndScreen<'a> {
         // results
         comp!(
             f,
-            Clear(ansi_commands::terminal::ClearType::All),
+            Clear(terminal_commands::terminal::ClearType::All),
             Hide,
             SceneFrame(FrameType::SimpleEmptyInside),
             ScreenCenteredText::new(&["After three years, you went from being".to_owned()], 13),

@@ -1,7 +1,7 @@
-use ansi_commands::frame::{Frame, Printable, RenderOutput, RenderResult, Renderer};
-use ansi_commands::style::{Attribute, Attributes, Color, ContentStyle};
 use captured_write::CapturedWrite;
 use crossterm::queue;
+use terminal_commands::frame::{Frame, Printable, RenderOutput, RenderResult, Renderer};
+use terminal_commands::style::{Attribute, Attributes, Color, ContentStyle};
 
 pub struct CrosstermRenderer;
 
@@ -11,37 +11,37 @@ impl Renderer for CrosstermRenderer {
 
         for cmd in frame.commands().iter() {
             match cmd {
-                ansi_commands::frame::Cmd::ClearScreen => {
+                terminal_commands::frame::Cmd::ClearScreen => {
                     queue!(
                         writer,
                         crossterm::terminal::Clear(crossterm::terminal::ClearType::All)
                     )
                 }
-                ansi_commands::frame::Cmd::MoveTo(x, y) => {
+                terminal_commands::frame::Cmd::MoveTo(x, y) => {
                     queue!(writer, crossterm::cursor::MoveTo(*x as u16, *y as u16))
                 }
-                ansi_commands::frame::Cmd::MoveUp(y) => {
+                terminal_commands::frame::Cmd::MoveUp(y) => {
                     queue!(writer, crossterm::cursor::MoveUp(*y as u16))
                 }
-                ansi_commands::frame::Cmd::MoveDown(y) => {
+                terminal_commands::frame::Cmd::MoveDown(y) => {
                     queue!(writer, crossterm::cursor::MoveDown(*y as u16))
                 }
-                ansi_commands::frame::Cmd::MoveLeft(x) => {
+                terminal_commands::frame::Cmd::MoveLeft(x) => {
                     queue!(writer, crossterm::cursor::MoveLeft(*x as u16))
                 }
-                ansi_commands::frame::Cmd::MoveRight(x) => {
+                terminal_commands::frame::Cmd::MoveRight(x) => {
                     queue!(writer, crossterm::cursor::MoveRight(*x as u16))
                 }
-                ansi_commands::frame::Cmd::HideCursor => {
+                terminal_commands::frame::Cmd::HideCursor => {
                     queue!(writer, crossterm::cursor::Hide)
                 }
-                ansi_commands::frame::Cmd::ShowCursor => {
+                terminal_commands::frame::Cmd::ShowCursor => {
                     queue!(writer, crossterm::cursor::Show)
                 }
-                ansi_commands::frame::Cmd::MoveToNextLine(y) => {
+                terminal_commands::frame::Cmd::MoveToNextLine(y) => {
                     queue!(writer, crossterm::cursor::MoveToNextLine(*y as u16))
                 }
-                ansi_commands::frame::Cmd::Print(printable) => match printable {
+                terminal_commands::frame::Cmd::Print(printable) => match printable {
                     Printable::String(x) => queue!(writer, crossterm::style::Print(x)),
                     Printable::Char(x) => queue!(writer, crossterm::style::Print(x)),
                     Printable::StyledContent(styled_content) => {
@@ -112,7 +112,7 @@ pub fn convert_content_style(content_style: &ContentStyle) -> crossterm::style::
 
 #[cfg(test)]
 mod tests {
-    use ansi_commands::{
+    use terminal_commands::{
         comp,
         cursor::{MoveTo, MoveToNextLine},
         style::Print,

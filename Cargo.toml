@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "ansi-commands",
+    "terminal-commands",
     "core",
     "game",
     "captured_write",

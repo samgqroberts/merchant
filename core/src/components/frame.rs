@@ -1,4 +1,4 @@
-use ansi_commands::{
+use terminal_commands::{
     comp,
     cursor::{MoveDown, MoveLeft, MoveTo},
     style::Print,
@@ -22,7 +22,7 @@ struct VerticalSequence {
 }
 
 impl Component for VerticalSequence {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let mut iter = self.char_sequence.iter().cycle();
         for _ in 0..(self.len) {
             let Some(symbol) = iter.next() else {
@@ -70,7 +70,7 @@ pub const VENICE_HORIZONTAL_BOT: &str = "╲╳╱╳╲╳╱╳╲╳╱╳╲
 pub const VENICE_HORIZONTAL_MID: &str = "╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲╱╱╲╲";
 
 impl Component for SceneFrame {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let (top, bot, mid, left_char_seq, right_char_seq) = match self.0 {
             FrameType::SimpleEmptyInside => (
                 SIMPLE_HORIZONTAL_FULL,

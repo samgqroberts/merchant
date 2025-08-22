@@ -1,4 +1,3 @@
-use ansi_commands::frame::Renderer;
 use crossterm::{
     cursor::{MoveToNextLine, Show},
     event::{poll, read, Event, KeyCode, KeyEventKind, KeyModifiers},
@@ -14,6 +13,7 @@ use std::{
     io::{self, Write},
     time::Duration,
 };
+use terminal_commands::frame::Renderer;
 use tracing::{debug, error, info};
 
 use merchant_core::state::GameState;
@@ -109,7 +109,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
     pub fn draw_need_resize(&mut self, current_x_cols: u16, current_y_cols: u16) -> io::Result<()> {
         info!("Drawing screen requiring resize");
         let writer = &mut *self.writer.borrow_mut();
-        let mut frame = ansi_commands::frame::Frame::new();
+        let mut frame = terminal_commands::frame::Frame::new();
         frame
             .render(&RequireResize {
                 current_x_cols,
@@ -133,124 +133,124 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
     }
 }
 
-pub fn convert_key_event(event: crossterm::event::KeyEvent) -> ansi_commands::event::KeyEvent {
-    ansi_commands::event::KeyEvent::new(
+pub fn convert_key_event(event: crossterm::event::KeyEvent) -> terminal_commands::event::KeyEvent {
+    terminal_commands::event::KeyEvent::new(
         match event.code {
-            KeyCode::Char(c) => ansi_commands::event::KeyCode::Char(c),
-            KeyCode::Backspace => ansi_commands::event::KeyCode::Backspace,
-            KeyCode::Enter => ansi_commands::event::KeyCode::Enter,
-            KeyCode::Left => ansi_commands::event::KeyCode::Left,
-            KeyCode::Right => ansi_commands::event::KeyCode::Right,
-            KeyCode::Up => ansi_commands::event::KeyCode::Up,
-            KeyCode::Down => ansi_commands::event::KeyCode::Down,
-            KeyCode::Home => ansi_commands::event::KeyCode::Home,
-            KeyCode::End => ansi_commands::event::KeyCode::End,
-            KeyCode::PageUp => ansi_commands::event::KeyCode::PageUp,
-            KeyCode::PageDown => ansi_commands::event::KeyCode::PageDown,
-            KeyCode::Tab => ansi_commands::event::KeyCode::Tab,
-            KeyCode::BackTab => ansi_commands::event::KeyCode::BackTab,
-            KeyCode::Delete => ansi_commands::event::KeyCode::Delete,
-            KeyCode::Insert => ansi_commands::event::KeyCode::Insert,
-            KeyCode::F(x) => ansi_commands::event::KeyCode::F(x),
-            KeyCode::Null => ansi_commands::event::KeyCode::Null,
-            KeyCode::Esc => ansi_commands::event::KeyCode::Esc,
-            KeyCode::CapsLock => ansi_commands::event::KeyCode::CapsLock,
-            KeyCode::ScrollLock => ansi_commands::event::KeyCode::ScrollLock,
-            KeyCode::NumLock => ansi_commands::event::KeyCode::NumLock,
-            KeyCode::PrintScreen => ansi_commands::event::KeyCode::PrintScreen,
-            KeyCode::Pause => ansi_commands::event::KeyCode::Pause,
-            KeyCode::Menu => ansi_commands::event::KeyCode::Menu,
-            KeyCode::KeypadBegin => ansi_commands::event::KeyCode::KeypadBegin,
+            KeyCode::Char(c) => terminal_commands::event::KeyCode::Char(c),
+            KeyCode::Backspace => terminal_commands::event::KeyCode::Backspace,
+            KeyCode::Enter => terminal_commands::event::KeyCode::Enter,
+            KeyCode::Left => terminal_commands::event::KeyCode::Left,
+            KeyCode::Right => terminal_commands::event::KeyCode::Right,
+            KeyCode::Up => terminal_commands::event::KeyCode::Up,
+            KeyCode::Down => terminal_commands::event::KeyCode::Down,
+            KeyCode::Home => terminal_commands::event::KeyCode::Home,
+            KeyCode::End => terminal_commands::event::KeyCode::End,
+            KeyCode::PageUp => terminal_commands::event::KeyCode::PageUp,
+            KeyCode::PageDown => terminal_commands::event::KeyCode::PageDown,
+            KeyCode::Tab => terminal_commands::event::KeyCode::Tab,
+            KeyCode::BackTab => terminal_commands::event::KeyCode::BackTab,
+            KeyCode::Delete => terminal_commands::event::KeyCode::Delete,
+            KeyCode::Insert => terminal_commands::event::KeyCode::Insert,
+            KeyCode::F(x) => terminal_commands::event::KeyCode::F(x),
+            KeyCode::Null => terminal_commands::event::KeyCode::Null,
+            KeyCode::Esc => terminal_commands::event::KeyCode::Esc,
+            KeyCode::CapsLock => terminal_commands::event::KeyCode::CapsLock,
+            KeyCode::ScrollLock => terminal_commands::event::KeyCode::ScrollLock,
+            KeyCode::NumLock => terminal_commands::event::KeyCode::NumLock,
+            KeyCode::PrintScreen => terminal_commands::event::KeyCode::PrintScreen,
+            KeyCode::Pause => terminal_commands::event::KeyCode::Pause,
+            KeyCode::Menu => terminal_commands::event::KeyCode::Menu,
+            KeyCode::KeypadBegin => terminal_commands::event::KeyCode::KeypadBegin,
             KeyCode::Media(media_key_code) => {
-                ansi_commands::event::KeyCode::Media(match media_key_code {
+                terminal_commands::event::KeyCode::Media(match media_key_code {
                     crossterm::event::MediaKeyCode::Play => {
-                        ansi_commands::event::MediaKeyCode::Play
+                        terminal_commands::event::MediaKeyCode::Play
                     }
                     crossterm::event::MediaKeyCode::Pause => {
-                        ansi_commands::event::MediaKeyCode::Pause
+                        terminal_commands::event::MediaKeyCode::Pause
                     }
                     crossterm::event::MediaKeyCode::PlayPause => {
-                        ansi_commands::event::MediaKeyCode::PlayPause
+                        terminal_commands::event::MediaKeyCode::PlayPause
                     }
                     crossterm::event::MediaKeyCode::Reverse => {
-                        ansi_commands::event::MediaKeyCode::Reverse
+                        terminal_commands::event::MediaKeyCode::Reverse
                     }
                     crossterm::event::MediaKeyCode::Stop => {
-                        ansi_commands::event::MediaKeyCode::Stop
+                        terminal_commands::event::MediaKeyCode::Stop
                     }
                     crossterm::event::MediaKeyCode::FastForward => {
-                        ansi_commands::event::MediaKeyCode::FastForward
+                        terminal_commands::event::MediaKeyCode::FastForward
                     }
                     crossterm::event::MediaKeyCode::Rewind => {
-                        ansi_commands::event::MediaKeyCode::Rewind
+                        terminal_commands::event::MediaKeyCode::Rewind
                     }
                     crossterm::event::MediaKeyCode::TrackNext => {
-                        ansi_commands::event::MediaKeyCode::TrackNext
+                        terminal_commands::event::MediaKeyCode::TrackNext
                     }
                     crossterm::event::MediaKeyCode::TrackPrevious => {
-                        ansi_commands::event::MediaKeyCode::TrackPrevious
+                        terminal_commands::event::MediaKeyCode::TrackPrevious
                     }
                     crossterm::event::MediaKeyCode::Record => {
-                        ansi_commands::event::MediaKeyCode::Record
+                        terminal_commands::event::MediaKeyCode::Record
                     }
                     crossterm::event::MediaKeyCode::LowerVolume => {
-                        ansi_commands::event::MediaKeyCode::LowerVolume
+                        terminal_commands::event::MediaKeyCode::LowerVolume
                     }
                     crossterm::event::MediaKeyCode::RaiseVolume => {
-                        ansi_commands::event::MediaKeyCode::RaiseVolume
+                        terminal_commands::event::MediaKeyCode::RaiseVolume
                     }
                     crossterm::event::MediaKeyCode::MuteVolume => {
-                        ansi_commands::event::MediaKeyCode::MuteVolume
+                        terminal_commands::event::MediaKeyCode::MuteVolume
                     }
                 })
             }
             KeyCode::Modifier(modifier_key_code) => {
-                ansi_commands::event::KeyCode::Modifier(match modifier_key_code {
+                terminal_commands::event::KeyCode::Modifier(match modifier_key_code {
                     crossterm::event::ModifierKeyCode::LeftShift => {
-                        ansi_commands::event::ModifierKeyCode::LeftShift
+                        terminal_commands::event::ModifierKeyCode::LeftShift
                     }
                     crossterm::event::ModifierKeyCode::LeftControl => {
-                        ansi_commands::event::ModifierKeyCode::LeftControl
+                        terminal_commands::event::ModifierKeyCode::LeftControl
                     }
                     crossterm::event::ModifierKeyCode::LeftAlt => {
-                        ansi_commands::event::ModifierKeyCode::LeftAlt
+                        terminal_commands::event::ModifierKeyCode::LeftAlt
                     }
                     crossterm::event::ModifierKeyCode::LeftSuper => {
-                        ansi_commands::event::ModifierKeyCode::LeftSuper
+                        terminal_commands::event::ModifierKeyCode::LeftSuper
                     }
                     crossterm::event::ModifierKeyCode::LeftHyper => {
-                        ansi_commands::event::ModifierKeyCode::LeftHyper
+                        terminal_commands::event::ModifierKeyCode::LeftHyper
                     }
                     crossterm::event::ModifierKeyCode::LeftMeta => {
-                        ansi_commands::event::ModifierKeyCode::LeftMeta
+                        terminal_commands::event::ModifierKeyCode::LeftMeta
                     }
                     crossterm::event::ModifierKeyCode::RightShift => {
-                        ansi_commands::event::ModifierKeyCode::RightShift
+                        terminal_commands::event::ModifierKeyCode::RightShift
                     }
                     crossterm::event::ModifierKeyCode::RightControl => {
-                        ansi_commands::event::ModifierKeyCode::RightControl
+                        terminal_commands::event::ModifierKeyCode::RightControl
                     }
                     crossterm::event::ModifierKeyCode::RightAlt => {
-                        ansi_commands::event::ModifierKeyCode::RightAlt
+                        terminal_commands::event::ModifierKeyCode::RightAlt
                     }
                     crossterm::event::ModifierKeyCode::RightSuper => {
-                        ansi_commands::event::ModifierKeyCode::RightSuper
+                        terminal_commands::event::ModifierKeyCode::RightSuper
                     }
                     crossterm::event::ModifierKeyCode::RightHyper => {
-                        ansi_commands::event::ModifierKeyCode::RightHyper
+                        terminal_commands::event::ModifierKeyCode::RightHyper
                     }
                     crossterm::event::ModifierKeyCode::RightMeta => {
-                        ansi_commands::event::ModifierKeyCode::RightMeta
+                        terminal_commands::event::ModifierKeyCode::RightMeta
                     }
                     crossterm::event::ModifierKeyCode::IsoLevel3Shift => {
-                        ansi_commands::event::ModifierKeyCode::IsoLevel3Shift
+                        terminal_commands::event::ModifierKeyCode::IsoLevel3Shift
                     }
                     crossterm::event::ModifierKeyCode::IsoLevel5Shift => {
-                        ansi_commands::event::ModifierKeyCode::IsoLevel5Shift
+                        terminal_commands::event::ModifierKeyCode::IsoLevel5Shift
                     }
                 })
             }
         },
-        ansi_commands::event::KeyModifiers::empty(), // todo
+        terminal_commands::event::KeyModifiers::empty(), // todo
     )
 }

@@ -1,4 +1,4 @@
-use ansi_commands::{
+use terminal_commands::{
     comp,
     cursor::{Hide, MoveTo},
     style::{style, Attribute, Print},
@@ -11,19 +11,19 @@ use crate::components::{FrameType, SceneFrame, ScreenCenteredText};
 pub struct SplashScreen();
 
 const LOGO: &str = r#"
- __  __               _                 _   
-|  \/  |             | |               | |  
-| \  / | ___ _ __ ___| |__   __ _ _ __ | |_ 
+ __  __               _                 _
+|  \/  |             | |               | |
+| \  / | ___ _ __ ___| |__   __ _ _ __ | |_
 | |\/| |/ _ \ '__/ __| '_ \ / _` | '_ \| __|
-| |  | |  __/ | | (__| | | | (_| | | | | |_ 
+| |  | |  __/ | | (__| | | | (_| | | | | |_
 |_|  |_|\___|_|  \___|_| |_|\__,_|_| |_|\__|
 "#;
 
 impl Component for SplashScreen {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         comp!(
             f,
-            Clear(ansi_commands::terminal::ClearType::All),
+            Clear(terminal_commands::terminal::ClearType::All),
             SceneFrame(FrameType::SimpleEmptyInside),
             ScreenCenteredText::new(&["A tribute to Drug Wars by samgqroberts".to_owned()], 12),
             ScreenCenteredText::new(&["www.samgqroberts.com".to_owned()], 14),

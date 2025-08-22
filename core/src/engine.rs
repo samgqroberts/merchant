@@ -1,10 +1,10 @@
-use ansi_commands::{
-    comp,
-    event::{KeyCode, KeyEvent},
-};
 use std::{
     cmp::min,
     io::{self},
+};
+use terminal_commands::{
+    comp,
+    event::{KeyCode, KeyEvent},
 };
 
 use crate::{
@@ -92,7 +92,7 @@ impl FromKeyCode for Location {
 }
 
 pub fn render_scene_to_existing(
-    frame: &mut ansi_commands::frame::Frame,
+    frame: &mut terminal_commands::frame::Frame,
     state: &mut GameState,
 ) -> Result<Box<UpdateFn>, String> {
     if state.initialization == Initialization::SplashScreen {
@@ -545,8 +545,8 @@ pub fn render_scene_to_existing(
 
 pub fn render_scene(
     state: &mut GameState,
-) -> Result<(ansi_commands::frame::Frame, Box<UpdateFn>), String> {
-    let mut frame = ansi_commands::frame::Frame::new();
+) -> Result<(terminal_commands::frame::Frame, Box<UpdateFn>), String> {
+    let mut frame = terminal_commands::frame::Frame::new();
     let update = render_scene_to_existing(&mut frame, state)?;
     Ok((frame, update))
 }

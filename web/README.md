@@ -15,13 +15,13 @@ This crate provides the WebAssembly (WASM) version of the game, implementing:
 ### Components
 
 - **WASM Module** (`src/lib.rs`): Exposes core game functionality to JavaScript
-- **Renderer** (`src/renderer.rs`): Translates ansi-commands from core into HTML/DOM operations
+- **Renderer** (`src/renderer.rs`): Translates terminal-commands from core into HTML/DOM operations
 - **Input Handler**: Captures browser events and forwards them to the core engine
 - **Frontend** (`merchant-web/`): React-based web application that hosts the WASM module
 
 ### Rendering Pipeline
 
-1. Core engine produces screens with ansi-commands
+1. Core engine produces screens with terminal-commands
 2. WASM renderer interprets these commands
 3. Commands are translated to HTML/CSS styling
 4. Browser displays the game interface
@@ -53,7 +53,7 @@ npm run build
 ## Dependencies
 
 - `merchant-core`: Game logic and state management
-- `ansi-commands`: Terminal command abstractions
+- `terminal-commands`: Terminal command abstractions
 - `wasm-bindgen`: Rust/WASM interop
 - `web-sys`: Browser API bindings
 - React & TypeScript: Frontend framework

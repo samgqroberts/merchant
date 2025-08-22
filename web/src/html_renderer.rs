@@ -1,5 +1,5 @@
-use ansi_commands::frame::{Frame, Printable, RenderOutput, RenderResult, Renderer};
-use ansi_commands::style::{Attribute, Color, ContentStyle, StyledContent};
+use terminal_commands::frame::{Frame, Printable, RenderOutput, RenderResult, Renderer};
+use terminal_commands::style::{Attribute, Color, ContentStyle, StyledContent};
 
 pub struct HtmlRenderer;
 
@@ -12,13 +12,13 @@ impl Renderer for HtmlRenderer {
 
         for cmd in frame.commands().iter() {
             match cmd {
-                ansi_commands::frame::Cmd::ClearScreen => {
+                terminal_commands::frame::Cmd::ClearScreen => {
                     chars.clear();
                     chars.push(Vec::new());
                     cursor_x = 0;
                     cursor_y = 0;
                 }
-                ansi_commands::frame::Cmd::MoveTo(x, y) => {
+                terminal_commands::frame::Cmd::MoveTo(x, y) => {
                     cursor_x = 0;
                     while cursor_y < *y {
                         cursor_y += 1;
@@ -35,28 +35,28 @@ impl Renderer for HtmlRenderer {
                         }
                     }
                 }
-                ansi_commands::frame::Cmd::MoveUp(y) => {
+                terminal_commands::frame::Cmd::MoveUp(y) => {
                     cursor_y = cursor_y.saturating_sub(*y);
                 }
-                ansi_commands::frame::Cmd::MoveDown(y) => {
+                terminal_commands::frame::Cmd::MoveDown(y) => {
                     cursor_y += y;
                     while cursor_y >= chars.len() as u16 {
                         chars.push(Vec::new());
                     }
                 }
-                ansi_commands::frame::Cmd::MoveLeft(x) => {
+                terminal_commands::frame::Cmd::MoveLeft(x) => {
                     cursor_x = cursor_x.saturating_sub(*x);
                 }
-                ansi_commands::frame::Cmd::MoveRight(x) => {
+                terminal_commands::frame::Cmd::MoveRight(x) => {
                     cursor_x += x;
                 }
-                ansi_commands::frame::Cmd::HideCursor => {
+                terminal_commands::frame::Cmd::HideCursor => {
                     show_cursor = false;
                 }
-                ansi_commands::frame::Cmd::ShowCursor => {
+                terminal_commands::frame::Cmd::ShowCursor => {
                     show_cursor = true;
                 }
-                ansi_commands::frame::Cmd::MoveToNextLine(y) => {
+                terminal_commands::frame::Cmd::MoveToNextLine(y) => {
                     for _ in 0..*y {
                         if chars.len() <= cursor_y.into() {
                             chars.push(Vec::new());
@@ -65,7 +65,7 @@ impl Renderer for HtmlRenderer {
                     }
                     cursor_x = 0;
                 }
-                ansi_commands::frame::Cmd::Print(printable) => {
+                terminal_commands::frame::Cmd::Print(printable) => {
                     let content = printable.raw_text();
                     let style = match printable {
                         Printable::String(_) => ContentStyle::new(),
@@ -197,15 +197,15 @@ mod tests {
     use crate::test::raw_parse_html::parse_html_to_raw_text;
 
     use super::*;
-    use ansi_commands::comp;
-    use ansi_commands::cursor::MoveTo;
-    use ansi_commands::frame::Frame;
-    use ansi_commands::style::{Print, Stylize};
     use merchant_core::components::{FrameType, ScreenCenteredText};
     use merchant_core::engine::render_scene;
     use merchant_core::state::GameState;
     use merchant_core::test::rng::MockRng;
     use pretty_assertions::assert_eq;
+    use terminal_commands::comp;
+    use terminal_commands::cursor::MoveTo;
+    use terminal_commands::frame::Frame;
+    use terminal_commands::style::{Print, Stylize};
 
     #[test]
     fn empty_frame() {

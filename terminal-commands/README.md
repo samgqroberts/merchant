@@ -1,4 +1,4 @@
-# ansi-commands
+# terminal-commands
 
 A lightweight library providing crossterm-like terminal control commands without requiring the crossterm crate as a dependency.
 
@@ -25,7 +25,7 @@ This separation of concerns allows the core game engine to speak in abstract ter
 ## Example
 
 ```rust
-use ansi_commands::{Command, CursorCommand};
+use terminal_commands::{Command, CursorCommand};
 
 // Create commands without performing I/O
 let commands = vec![

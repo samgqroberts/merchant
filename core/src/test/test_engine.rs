@@ -1,8 +1,8 @@
-use ansi_commands::{
+use std::str;
+use terminal_commands::{
     event::{KeyCode, KeyEvent, KeyModifiers},
     frame::Frame,
 };
-use std::str;
 
 use crate::{
     engine::{render_scene, UpdateResult, UpdateSignal},

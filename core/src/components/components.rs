@@ -3,7 +3,8 @@ use std::{
     num::Saturating,
 };
 
-use ansi_commands::{
+use chrono::Month;
+use terminal_commands::{
     comp,
     cursor::{Hide, MoveTo, Show},
     frame::Printable,
@@ -11,7 +12,6 @@ use ansi_commands::{
     terminal::Clear,
     Component,
 };
-use chrono::Month;
 
 use crate::{
     components::{FrameType, SceneFrame},
@@ -24,7 +24,7 @@ use crate::{
 pub struct BankWithdrawInput<'a>(pub &'a Option<u32>);
 
 impl<'a> Component for BankWithdrawInput<'a> {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let amount = self.0;
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
         const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
@@ -80,7 +80,7 @@ impl std::fmt::Display for Numeric7Digits {
 pub struct InventoryList<'a>(pub &'a Inventory, pub u16, pub u16);
 
 impl<'a> Component for InventoryList<'a> {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let inventory = self.0;
         let offset_x = self.1;
         let offset_y = self.2;
@@ -111,7 +111,7 @@ impl<'a> Component for InventoryList<'a> {
 pub struct CurrentPrices<'a>(pub &'a Inventory);
 
 impl<'a> Component for CurrentPrices<'a> {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let prices = self.0;
         const OFFSET_X: u16 = 53;
         const OFFSET_Y: u16 = 23;
@@ -137,7 +137,7 @@ pub struct KeyInputAction {
 }
 
 impl Component for KeyInputAction {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let char_index = self
             .text
             .to_ascii_lowercase()
@@ -171,7 +171,7 @@ pub struct ViewingInventoryActions<'a> {
 }
 
 impl<'a> Component for ViewingInventoryActions<'a> {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let location = self.location;
         let home_port = self.home_port;
         let debt = self.debt;
@@ -251,7 +251,7 @@ impl<'a> Component for ViewingInventoryActions<'a> {
 pub struct BankDepositInput<'a>(pub &'a Option<u32>);
 
 impl<'a> Component for BankDepositInput<'a> {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let amount = self.0;
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
         const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
@@ -286,7 +286,7 @@ pub const FRAME_HEIGHT: u16 = 32;
 pub struct TopCenterFramed(String);
 
 impl Component for TopCenterFramed {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         comp!(
             f,
             MoveTo(40, 0),
@@ -308,7 +308,7 @@ impl Component for TopCenterFramed {
 pub struct Date<'a>(&'a (u16, Month));
 
 impl<'a> Component for Date<'a> {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let month_name = self.0 .1.name();
         let mut year = self.0 .0.to_string();
         const TOTAL_NUM_CHARS: u8 = 15;
@@ -353,7 +353,7 @@ impl<'a> From<&'a GameState> for HomeBase<'a> {
 }
 
 impl<'a> Component for HomeBase<'a> {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         const HOME: &str = r###"
   _____[LLL]______[LLL]____
  /     [LLL]      [LLL]    \
@@ -370,7 +370,7 @@ impl<'a> Component for HomeBase<'a> {
   |I |  | I               I|
   |I_|__|_I_______________I|
 ###(______)##################
- ##(________)   ~"^"^~   ## 
+ ##(________)   ~"^"^~   ##
 "###;
         const OFFSET_X: u16 = 4;
         const OFFSET_Y: u16 = 3;
@@ -453,7 +453,7 @@ impl<'a> From<&'a GameState> for CurrentLocation<'a> {
 }
 
 impl<'a> Component for CurrentLocation<'a> {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         comp!(
             f,
             MoveTo(42, 19),
@@ -475,12 +475,12 @@ impl<'a> Component for CurrentLocation<'a> {
 pub struct ViewingInventoryBase<'a>(pub &'a GameState);
 
 impl<'a> Component for ViewingInventoryBase<'a> {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let state = self.0;
         comp!(
             f,
-            Clear(ansi_commands::terminal::ClearType::All), // clear the terminal
-            Hide,                                           // hide the cursor
+            Clear(terminal_commands::terminal::ClearType::All), // clear the terminal
+            Hide,                                               // hide the cursor
             SceneFrame(FrameType::Location(state.location)),
             Date::from(state),
             HomeBase::from(state),
@@ -516,24 +516,24 @@ impl<'a> From<&'a GameState> for Ship<'a> {
 }
 
 impl<'a> Component for Ship<'a> {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         const SHIP: &str = r###"
-                             |                            
-                 |          )_)                           
-                )_)        )___)         |                
-               )___)       )____)       )_)\              
-               )____)     /)_____)      )__)\             
-              )_____)    /)______)\    )___) \            
-             )______)  //)_______) \\ )_____) \\          
+                             |
+                 |          )_)
+                )_)        )___)         |
+               )___)       )____)       )_)\
+               )____)     /)_____)      )__)\
+              )_____)    /)______)\    )___) \
+             )______)  //)_______) \\ )_____) \\
        _____//___|___///_____|______\\\__|_____\\\__=====
-       \                                           /     
-        \                                         /      
-         \                                       /____   
+       \                                           /
+        \                                         /
+         \                                       /____
 --------- \                                     //.../---
-   ^^^^^ ^^^^^^^^^^^^^^^^^^^^^   ^^^^^^^^^^  ^^^/.../    
-         ^^^^      ^^^    ^^^^^^^^^    ^^^^^  /..../     
-                  ^^^      ^^^^             /...../      
-                                          /....../       
+   ^^^^^ ^^^^^^^^^^^^^^^^^^^^^   ^^^^^^^^^^  ^^^/.../
+         ^^^^      ^^^    ^^^^^^^^^    ^^^^^  /..../
+                  ^^^      ^^^^             /...../
+                                          /....../
 "###;
         const OFFSET_X: u16 = 39;
         const OFFSET_Y: u16 = 3;
@@ -601,7 +601,7 @@ pub struct BuyInput<'a> {
 }
 
 impl<'a> Component for BuyInput<'a> {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let info = self.info;
         let state = self.state;
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
@@ -656,7 +656,7 @@ const PROMPT_OFFSET_Y: u16 = 23;
 pub struct BuyPrompt;
 
 impl Component for BuyPrompt {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
         const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         comp!(
@@ -677,7 +677,7 @@ impl Component for BuyPrompt {
 pub struct GoodOptions(pub u16, pub u16);
 
 impl Component for GoodOptions {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let offset_x = self.0;
         let offset_y = self.1;
         comp!(
@@ -733,7 +733,7 @@ impl Component for GoodOptions {
 pub struct SellInput<'a>(pub &'a Transaction, pub &'a u32);
 
 impl<'a> Component for SellInput<'a> {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let info = self.0;
         let current_amount = self.1;
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
@@ -771,7 +771,7 @@ impl<'a> Component for SellInput<'a> {
 pub struct SellPrompt;
 
 impl Component for SellPrompt {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
         const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         comp!(
@@ -792,7 +792,7 @@ impl Component for SellPrompt {
 pub struct SailPrompt;
 
 impl Component for SailPrompt {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
         const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         comp!(
@@ -850,7 +850,7 @@ impl Component for SailPrompt {
 pub struct StashDepositInput<'a>(pub &'a Transaction, pub &'a u32);
 
 impl<'a> Component for StashDepositInput<'a> {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let info = self.0;
         let current_amount = self.1;
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
@@ -888,7 +888,7 @@ impl<'a> Component for StashDepositInput<'a> {
 pub struct StashDepositPrompt;
 
 impl Component for StashDepositPrompt {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let offset_x: u16 = PROMPT_OFFSET_X;
         let offset_y: u16 = PROMPT_OFFSET_Y;
         comp!(
@@ -909,7 +909,7 @@ impl Component for StashDepositPrompt {
 pub struct StashWithdrawInput<'a>(pub &'a Transaction, pub &'a u32);
 
 impl<'a> Component for StashWithdrawInput<'a> {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let info = self.0;
         let current_amount = self.1;
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
@@ -947,7 +947,7 @@ impl<'a> Component for StashWithdrawInput<'a> {
 pub struct StashWithdrawPrompt;
 
 impl Component for StashWithdrawPrompt {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
         const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
         comp!(
@@ -968,7 +968,7 @@ impl Component for StashWithdrawPrompt {
 pub struct PayDebtInput<'a>(pub &'a Option<u32>);
 
 impl<'a> Component for PayDebtInput<'a> {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let amount = self.0;
         const OFFSET_X: u16 = PROMPT_OFFSET_X;
         const OFFSET_Y: u16 = PROMPT_OFFSET_Y;
@@ -1000,7 +1000,7 @@ impl<'a> Component for PayDebtInput<'a> {
 pub struct CheapGoodDialog<'a>(pub &'a Good);
 
 impl<'a> Component for CheapGoodDialog<'a> {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let good = self.0;
         comp!(
             f,
@@ -1025,7 +1025,7 @@ impl<'a> Component for CheapGoodDialog<'a> {
 pub struct ExpensiveGoodDialog<'a>(pub &'a Good);
 
 impl<'a> Component for ExpensiveGoodDialog<'a> {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let good = self.0;
         comp!(
             f,
@@ -1052,7 +1052,7 @@ impl<'a> Component for ExpensiveGoodDialog<'a> {
 pub struct FindGoodsDialog<'a>(pub &'a Good, pub &'a u32, pub &'a GameState);
 
 impl<'a> Component for FindGoodsDialog<'a> {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let good = self.0;
         let amount = self.1;
         let state = self.2;
@@ -1088,7 +1088,7 @@ impl<'a> Component for FindGoodsDialog<'a> {
 pub struct GoodsStolenDialog(pub GoodsStolenResult);
 
 impl Component for GoodsStolenDialog {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         match self.0 {
             GoodsStolenResult::NothingStolen => comp!(
                 f,
@@ -1117,7 +1117,7 @@ impl Component for GoodsStolenDialog {
 pub struct CanBuyCannon;
 
 impl Component for CanBuyCannon {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         comp!(
             f,
             MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y),
@@ -1144,7 +1144,7 @@ pub struct CanBuyHoldSpace {
 }
 
 impl Component for CanBuyHoldSpace {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         comp!(
             f,
             MoveTo(PROMPT_OFFSET_X, PROMPT_OFFSET_Y),
@@ -1187,10 +1187,10 @@ impl From<(PirateEncounterState, &mut GameState)> for PirateEncounter {
 }
 
 impl Component for PirateEncounter {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         comp!(
             f,
-            Clear(ansi_commands::terminal::ClearType::All), // clear the terminal
+            Clear(terminal_commands::terminal::ClearType::All), // clear the terminal
             SceneFrame(FrameType::SimpleEmptyInside),
             Date(&self.date),
         )?;
@@ -1380,7 +1380,7 @@ pub struct NoEffect {
 }
 
 impl Component for NoEffect {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         match self.variant {
             NoEffectEvent::SunnyDay => {
                 comp!(

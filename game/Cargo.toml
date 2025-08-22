@@ -25,7 +25,7 @@ raw_format_ansi = { path = "../raw_format_ansi" }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ['env-filter'] }
 tracing-appender = "0.2.3"
-ansi-commands = { path = "../ansi-commands" }
+terminal-commands = { path = "../terminal-commands" }
 merchant-core = { path = "../core" }
 
 [dev-dependencies]

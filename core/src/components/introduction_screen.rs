@@ -1,4 +1,4 @@
-use ansi_commands::{
+use terminal_commands::{
     comp,
     cursor::Hide,
     style::{style, Attribute},
@@ -17,14 +17,14 @@ pub struct IntroductionScreen {
 }
 
 impl Component for IntroductionScreen {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let IntroductionScreen {
             home,
             starting_year,
         } = self;
         comp!(
             f,
-            Clear(ansi_commands::terminal::ClearType::All),
+            Clear(terminal_commands::terminal::ClearType::All),
             SceneFrame(FrameType::Location(self.home)),
             ScreenCenteredText::new_styleds(
                 &[

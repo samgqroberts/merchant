@@ -16,12 +16,12 @@ This crate provides the executable terminal game application, implementing:
 
 - **Main Loop** (`src/main.rs`): Entry point and game initialization
 - **Engine** (`src/engine.rs`): Terminal-specific game loop implementation
-- **Renderer** (`src/renderer.rs`): Translates ansi-commands from core into actual terminal output via crossterm
+- **Renderer** (`src/renderer.rs`): Translates terminal-commands from core into actual terminal output via crossterm
 - **Input Handler**: Captures keyboard events and forwards them to the core engine
 
 ### Rendering Pipeline
 
-1. Core engine produces screens with ansi-commands
+1. Core engine produces screens with terminal-commands
 2. Renderer interprets these commands
 3. Crossterm executes terminal operations
 4. Terminal displays the game interface
@@ -47,7 +47,7 @@ cargo run -p merchant --release
 ## Dependencies
 
 - `merchant-core`: Game logic and state management
-- `ansi-commands`: Terminal command abstractions
+- `terminal-commands`: Terminal command abstractions
 - `crossterm`: Terminal manipulation and input handling
 - `tracing`: Structured logging
 

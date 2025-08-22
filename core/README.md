@@ -23,11 +23,11 @@ The game state (`src/state/`) contains all runtime data:
 The rendering system (`src/components/`) produces screen representations:
 1. Takes current game state as input
 2. Generates screen layouts and UI components
-3. Outputs commands using the `ansi-commands` crate
+3. Outputs commands using the `terminal-commands` crate
 4. Renderers interpret these commands for their target platform
 
 ### Platform Independence
-By expressing all display operations through `ansi-commands`, the core remains decoupled from specific rendering backends. This allows:
+By expressing all display operations through `terminal-commands`, the core remains decoupled from specific rendering backends. This allows:
 - Terminal rendering via crossterm (in the `game` crate)
 - Web rendering via HTML/CSS (in the `web` crate)
 - Potential future renderers without core logic changes
@@ -46,7 +46,7 @@ let control_signal = Engine::process_event(&mut state, event);
 
 // Generate screen for current state
 let screen = Engine::render(&state);
-// Screen contains ansi-commands that renderers interpret
+// Screen contains terminal-commands that renderers interpret
 ```
 
 ## Design Principles

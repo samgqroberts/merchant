@@ -1,4 +1,4 @@
-use ansi_commands::{
+use terminal_commands::{
     comp,
     cursor::{Hide, MoveTo},
     style::Print,
@@ -14,7 +14,7 @@ pub struct RequireResize {
 }
 
 impl Component for RequireResize {
-    fn render(&self, f: &mut ansi_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
         let RequireResize {
             current_x_cols,
             current_y_cols,
@@ -30,7 +30,7 @@ impl Component for RequireResize {
         };
         comp!(
             f,
-            Clear(ansi_commands::terminal::ClearType::All),
+            Clear(terminal_commands::terminal::ClearType::All),
             MoveTo(0, 0),
             Print(msg),
             Hide
