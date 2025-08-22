@@ -1,5 +1,5 @@
 [workspace]
-members = ["terminal-commands", "core", "game", "raw_format_ansi", "web"]
+members = ["terminal-commands", "core", "terminal", "raw_format_ansi", "web"]
 resolver = "2"
 
 [profile.release]

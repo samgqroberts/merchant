@@ -10,7 +10,7 @@ Merchant is a terminal UI game - a clone of the classic Drug Wars game, reimagin
 
 The codebase is organized as a Rust workspace with the following crates:
 
-- **game/** - Main terminal game application with the game loop and renderer
+- **terminal/** - Main terminal game application with the game loop and renderer
 - **core/** - Core game logic including state management, components, and game engine
 - **terminal-commands/** - Terminal control and ANSI escape sequence handling
 - **web/** - WebAssembly/WASM version of the game for browser deployment
