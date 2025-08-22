@@ -3,7 +3,7 @@ use terminal_commands::{
     cursor::{Hide, MoveTo},
     style::{style, Attribute, Print},
     terminal::Clear,
-    Component,
+    Commands, Component,
 };
 
 use crate::components::{FrameType, SceneFrame, ScreenCenteredText};
@@ -20,7 +20,7 @@ const LOGO: &str = r#"
 "#;
 
 impl Component for SplashScreen {
-    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut Commands) -> Result<(), String> {
         comp!(
             f,
             Clear(terminal_commands::terminal::ClearType::All),

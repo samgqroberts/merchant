@@ -14,7 +14,7 @@ pub struct RequireResize {
 }
 
 impl Component for RequireResize {
-    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut terminal_commands::Commands) -> Result<(), String> {
         let RequireResize {
             current_x_cols,
             current_y_cols,

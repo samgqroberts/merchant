@@ -3,7 +3,7 @@ use terminal_commands::{
     cursor::{Hide, MoveTo},
     style::{style, Attribute, Print},
     terminal::Clear,
-    Component,
+    Commands, Component,
 };
 
 use crate::{
@@ -48,7 +48,7 @@ impl AchievementTier {
 }
 
 impl<'a> Component for GameEndScreen<'a> {
-    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut Commands) -> Result<(), String> {
         let state = self.0;
         let starting_net_worth = state.starting_debt.0 as i64 - state.starting_gold.0 as i64;
         // let starting_gold = state.starting_gold.0;

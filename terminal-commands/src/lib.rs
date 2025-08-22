@@ -1,21 +1,28 @@
-use crate::frame::Frame;
-
 pub mod cursor;
 pub mod style;
 pub mod terminal;
 #[macro_use]
-pub mod macros;
+mod macros;
+mod cmd;
+mod commands;
 pub mod event;
-pub mod frame;
+mod printable;
+mod render_raw;
+
+pub use cmd::Cmd;
+pub use commands::Commands;
+pub use printable::Printable;
+pub use render_raw::{render_raw, RawRenderOutput};
 
 pub trait Component {
-    fn render(&self, frame: &mut Frame) -> Result<(), String>;
+    fn render(&self, commands: &mut Commands) -> Result<(), String>;
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
         cursor::MoveTo,
+        render_raw::render_raw,
         style::{Attribute, Print, Stylize},
     };
 
@@ -23,22 +30,22 @@ mod tests {
 
     #[test]
     fn test_frame() -> Result<(), String> {
-        let mut frame = Frame::new();
-        comp!(frame, MoveTo(1, 1), Print("Hello, world!"))?;
-        assert_eq!(frame.render_raw().unwrap().result, "\n Hello, world!");
+        let mut commands = Commands::new();
+        comp!(commands, MoveTo(1, 1), Print("Hello, world!"))?;
+        assert_eq!(render_raw(&commands).result, "\n Hello, world!");
         Ok(())
     }
 
     #[test]
     fn test_underline() -> Result<(), String> {
-        let mut frame = Frame::new();
+        let mut commands = Commands::new();
         comp!(
-            frame,
+            commands,
             MoveTo(1, 1),
             Print("H".attribute(Attribute::Underlined)),
             Print("ello, world!")
         )?;
-        assert_eq!(frame.render_raw().unwrap().result, "\n Hello, world!");
+        assert_eq!(render_raw(&commands).result, "\n Hello, world!");
         Ok(())
     }
 }

@@ -5,6 +5,7 @@ use std::{
 use terminal_commands::{
     comp,
     event::{KeyCode, KeyEvent},
+    Commands,
 };
 
 use crate::{
@@ -92,18 +93,18 @@ impl FromKeyCode for Location {
 }
 
 pub fn render_scene_to_existing(
-    frame: &mut terminal_commands::frame::Frame,
+    commands: &mut terminal_commands::Commands,
     state: &mut GameState,
 ) -> Result<Box<UpdateFn>, String> {
     if state.initialization == Initialization::SplashScreen {
         // initial splash screen
-        comp!(frame, SplashScreen())?;
+        comp!(commands, SplashScreen())?;
         Ok(Box::new(|_: KeyEvent, state: &mut GameState| {
             state.splash_to_introduction();
             Ok(UpdateSignal::Continue)
         }))
     } else if state.game_end {
-        comp!(frame, GameEndScreen(state))?;
+        comp!(commands, GameEndScreen(state))?;
         Ok(Box::new(|event: KeyEvent, _: &mut GameState| {
             match event.code {
                 KeyCode::Char('q') => Ok(UpdateSignal::Quit),
@@ -116,7 +117,7 @@ pub fn render_scene_to_existing(
     {
         let pirate_encounter_state = *pirate_encounter_state;
         comp!(
-            frame,
+            commands,
             PirateEncounter::from((pirate_encounter_state, state))
         )?;
         return Ok(Box::new(move |event: KeyEvent, state: &mut GameState| {
@@ -161,7 +162,7 @@ pub fn render_scene_to_existing(
     } else if state.initialization == Initialization::Introduction {
         // introduction screen
         comp!(
-            frame,
+            commands,
             IntroductionScreen {
                 home: state.location_config.home_port,
                 starting_year: state.starting_date.0
@@ -172,11 +173,11 @@ pub fn render_scene_to_existing(
             Ok(UpdateSignal::Continue)
         }))
     } else {
-        comp!(frame, ViewingInventoryBase(state))?;
+        comp!(commands, ViewingInventoryBase(state))?;
         match &state.mode {
             Mode::ViewingInventory => {
                 comp!(
-                    frame,
+                    commands,
                     ViewingInventoryActions {
                         location: &state.location,
                         home_port: &state.location_config.home_port,
@@ -212,7 +213,7 @@ pub fn render_scene_to_existing(
             }
             Mode::Buying(info) => {
                 if let Some(info) = info {
-                    comp!(frame, BuyInput { info, state })?;
+                    comp!(commands, BuyInput { info, state })?;
                     return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char(c) = event.code {
                             if c == 'b' {
@@ -235,7 +236,7 @@ pub fn render_scene_to_existing(
                         Ok(UpdateSignal::Continue)
                     }));
                 } else {
-                    comp!(frame, BuyPrompt)?;
+                    comp!(commands, BuyPrompt)?;
                     return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char('b') = event.code {
                             state.back()?;
@@ -252,7 +253,7 @@ pub fn render_scene_to_existing(
                 if let Some(info) = info {
                     // user has indicated which good they want to sell
                     let current_amount = state.inventory.get_good(&info.good);
-                    comp!(frame, SellInput(info, current_amount))?;
+                    comp!(commands, SellInput(info, current_amount))?;
                     return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char(c) = event.code {
                             if c == 'b' {
@@ -274,7 +275,7 @@ pub fn render_scene_to_existing(
                     }));
                 } else {
                     // user is choosing which good to sell
-                    comp!(frame, SellPrompt)?;
+                    comp!(commands, SellPrompt)?;
                     return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char('b') = event.code {
                             state.back()?;
@@ -289,7 +290,7 @@ pub fn render_scene_to_existing(
             }
             Mode::Sailing => {
                 // user is choosing where to sail
-                comp!(frame, SailPrompt)?;
+                comp!(commands, SailPrompt)?;
                 return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                     if let KeyCode::Char('b') = event.code {
                         state.back()?;
@@ -312,7 +313,7 @@ pub fn render_scene_to_existing(
                     // user has indicated which good they want to stash
                     let good = &info.good;
                     let current_amount = state.inventory.get_good(good);
-                    comp!(frame, StashDepositInput(info, current_amount))?;
+                    comp!(commands, StashDepositInput(info, current_amount))?;
                     return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char(c) = event.code {
                             if c == 'b' {
@@ -337,7 +338,7 @@ pub fn render_scene_to_existing(
                     }));
                 } else {
                     // user is choosing which good to stash
-                    comp!(frame, StashDepositPrompt)?;
+                    comp!(commands, StashDepositPrompt)?;
                     return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char('b') = event.code {
                             state.back()?;
@@ -355,7 +356,7 @@ pub fn render_scene_to_existing(
                     // user has indicated which good they want to withdraw from stash
                     let good = &info.good;
                     let current_amount = state.stash.get_good(good);
-                    comp!(frame, StashWithdrawInput(info, current_amount))?;
+                    comp!(commands, StashWithdrawInput(info, current_amount))?;
                     return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char(c) = event.code {
                             if c == 'b' {
@@ -378,7 +379,7 @@ pub fn render_scene_to_existing(
                     }));
                 } else {
                     // user is choosing which good to withdraw from stash
-                    comp!(frame, StashWithdrawPrompt)?;
+                    comp!(commands, StashWithdrawPrompt)?;
                     return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char('b') = event.code {
                             state.back()?;
@@ -392,7 +393,7 @@ pub fn render_scene_to_existing(
                 }
             }
             Mode::PayDebt(amount) => {
-                comp!(frame, PayDebtInput(amount))?;
+                comp!(commands, PayDebtInput(amount))?;
                 return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                     if let KeyCode::Char(c) = event.code {
                         if c == 'b' {
@@ -418,7 +419,7 @@ pub fn render_scene_to_existing(
                 }));
             }
             Mode::BankDeposit(amount) => {
-                comp!(frame, BankDepositInput(amount))?;
+                comp!(commands, BankDepositInput(amount))?;
                 return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                     if let KeyCode::Char(c) = event.code {
                         if c == 'b' {
@@ -441,7 +442,7 @@ pub fn render_scene_to_existing(
                 }));
             }
             Mode::BankWithdraw(amount) => {
-                comp!(frame, BankWithdrawInput(amount))?;
+                comp!(commands, BankWithdrawInput(amount))?;
                 return Ok(Box::new(|event: KeyEvent, state: &mut GameState| {
                     if let KeyCode::Char(c) = event.code {
                         if c == 'b' {
@@ -465,21 +466,21 @@ pub fn render_scene_to_existing(
             }
             Mode::GameEvent(event) => match event {
                 LocationEvent::CheapGood(good) => {
-                    comp!(frame, CheapGoodDialog(good))?;
+                    comp!(commands, CheapGoodDialog(good))?;
                     return Ok(Box::new(|_: KeyEvent, state: &mut GameState| {
                         state.acknowledge_event()?;
                         Ok(UpdateSignal::Continue)
                     }));
                 }
                 LocationEvent::ExpensiveGood(good) => {
-                    comp!(frame, ExpensiveGoodDialog(good))?;
+                    comp!(commands, ExpensiveGoodDialog(good))?;
                     return Ok(Box::new(|_: KeyEvent, state: &mut GameState| {
                         state.acknowledge_event()?;
                         Ok(UpdateSignal::Continue)
                     }));
                 }
                 LocationEvent::FindGoods(good, amount) => {
-                    comp!(frame, FindGoodsDialog(good, amount, state))?;
+                    comp!(commands, FindGoodsDialog(good, amount, state))?;
                     let good = *good;
                     let amount = *amount;
                     return Ok(Box::new(move |_: KeyEvent, state: &mut GameState| {
@@ -494,7 +495,7 @@ pub fn render_scene_to_existing(
                 }
                 LocationEvent::GoodsStolen(info) => {
                     let info = info.unwrap_or_else(|| state.compute_goods_stolen());
-                    comp!(frame, GoodsStolenDialog(info))?;
+                    comp!(commands, GoodsStolenDialog(info))?;
                     return Ok(Box::new(move |_: KeyEvent, state: &mut GameState| {
                         state.remove_stolen_goods(info);
                         state.acknowledge_event()?;
@@ -502,7 +503,7 @@ pub fn render_scene_to_existing(
                     }));
                 }
                 LocationEvent::CanBuyCannon => {
-                    comp!(frame, CanBuyCannon)?;
+                    comp!(commands, CanBuyCannon)?;
                     return Ok(Box::new(move |event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char(c) = event.code {
                             if c == 'y' {
@@ -520,7 +521,7 @@ pub fn render_scene_to_existing(
                 LocationEvent::CanBuyHoldSpace { price, more_hold } => {
                     let price = *price;
                     let more_hold = *more_hold;
-                    comp!(frame, CanBuyHoldSpace { price, more_hold })?;
+                    comp!(commands, CanBuyHoldSpace { price, more_hold })?;
                     return Ok(Box::new(move |event: KeyEvent, state: &mut GameState| {
                         if let KeyCode::Char(c) = event.code {
                             if c == 'y' {
@@ -533,7 +534,7 @@ pub fn render_scene_to_existing(
                     }));
                 }
                 LocationEvent::NoEffect(variant) => {
-                    comp!(frame, NoEffect { variant: *variant })?;
+                    comp!(commands, NoEffect { variant: *variant })?;
                     return Ok(Box::new(move |_: KeyEvent, state: &mut GameState| {
                         state.acknowledge_event()?;
                         Ok(UpdateSignal::Continue)
@@ -544,10 +545,8 @@ pub fn render_scene_to_existing(
     }
 }
 
-pub fn render_scene(
-    state: &mut GameState,
-) -> Result<(terminal_commands::frame::Frame, Box<UpdateFn>), String> {
-    let mut frame = terminal_commands::frame::Frame::new();
+pub fn render_scene(state: &mut GameState) -> Result<(Commands, Box<UpdateFn>), String> {
+    let mut frame = Commands::new();
     let update = render_scene_to_existing(&mut frame, state)?;
     Ok((frame, update))
 }

@@ -13,12 +13,12 @@ use std::{
     io::{self, Write},
     time::Duration,
 };
-use terminal_commands::frame::Renderer;
+use terminal_commands::{comp, Commands};
 use tracing::{debug, error, info};
 
 use merchant_core::state::GameState;
 
-use crate::renderer::CrosstermRenderer;
+use crate::renderer::execute_commands;
 
 pub struct Engine<'a, Writer: Write> {
     pub writer: &'a RefCell<Writer>,
@@ -94,7 +94,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
     pub fn draw_scene(&mut self, state: &mut GameState) -> io::Result<Box<UpdateFn>> {
         info!("Drawing scene: {:?}", state.mode);
         let writer = &mut *self.writer.borrow_mut();
-        let (frame, update) = match render_scene(state) {
+        let (commands, update) = match render_scene(state) {
             Ok(result) => result,
             Err(e) => {
                 return Err(io::Error::new(
@@ -103,29 +103,23 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                 ))
             }
         };
-        let render_result = CrosstermRenderer
-            .render(&frame)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.0))?;
-        writer.write_all(render_result.result.as_bytes())?;
-        writer.flush()?;
+        execute_commands(&commands, writer)?;
         Ok(update)
     }
 
     pub fn draw_need_resize(&mut self, current_x_cols: u16, current_y_cols: u16) -> io::Result<()> {
         info!("Drawing screen requiring resize");
         let writer = &mut *self.writer.borrow_mut();
-        let mut frame = terminal_commands::frame::Frame::new();
-        frame
-            .render(&RequireResize {
+        let mut commands = Commands::new();
+        comp!(
+            commands,
+            RequireResize {
                 current_x_cols,
                 current_y_cols,
-            })
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-        let render_result = CrosstermRenderer
-            .render(&frame)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
-        writer.write_all(render_result.result.as_bytes())?;
-        writer.flush()?;
+            }
+        )
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        execute_commands(&commands, writer)?;
         Ok(())
     }
 

@@ -3,7 +3,7 @@ use terminal_commands::{
     cursor::Hide,
     style::{style, Attribute},
     terminal::Clear,
-    Component,
+    Commands, Component,
 };
 
 use crate::{
@@ -17,7 +17,7 @@ pub struct IntroductionScreen {
 }
 
 impl Component for IntroductionScreen {
-    fn render(&self, f: &mut terminal_commands::frame::Frame) -> Result<(), String> {
+    fn render(&self, f: &mut Commands) -> Result<(), String> {
         let IntroductionScreen {
             home,
             starting_year,

@@ -3,11 +3,11 @@ use merchant_core::{
     engine::{render_scene, UpdateFn, UpdateSignal},
     state::GameState,
 };
-use terminal_commands::frame::Renderer;
+use terminal_commands::{comp, Commands};
 use wasm_bindgen::prelude::*;
 use web_sys::{HtmlDivElement, KeyboardEvent, Window};
 
-use crate::html_renderer::HtmlRenderer;
+use crate::html_renderer::render_to_html;
 
 pub struct HtmlEngine {
     window: Window,
@@ -56,12 +56,12 @@ impl HtmlEngine {
     }
 
     pub fn draw_scene(&mut self, state: &mut GameState) -> Result<(), JsValue> {
-        let (frame, update) = render_scene(state)
+        let (commands, update) = render_scene(state)
             .map_err(|e| JsValue::from_str(&format!("Error rendering scene: {:?}", e)))?;
 
-        let render_result = HtmlRenderer.render(&frame).unwrap() /* todo */;
+        let render_result = render_to_html(&commands);
 
-        let mut inner_html = render_result.result;
+        let mut inner_html = render_result.html;
 
         if render_result.show_cursor {
             let height = self.container_element.client_height();
@@ -88,20 +88,18 @@ impl HtmlEngine {
         current_width: u16,
         current_height: u16,
     ) -> Result<(), JsValue> {
-        let mut frame = terminal_commands::frame::Frame::new();
-        frame
-            .render(&RequireResize {
+        let mut commands = Commands::new();
+        comp!(
+            commands,
+            RequireResize {
                 current_x_cols: current_width,
                 current_y_cols: current_height,
-            })
-            .map_err(|e| JsValue::from_str(&format!("Error rendering resize: {:?}", e)))?;
+            }
+        )
+        .map_err(|e| JsValue::from_str(&format!("Error rendering resize: {:?}", e)))?;
 
-        let render_result = HtmlRenderer.render(&frame);
-        self.container_element.set_inner_html(
-            &render_result
-                .unwrap() /* todo */
-                .result,
-        );
+        let render_result = render_to_html(&commands);
+        self.container_element.set_inner_html(&render_result.html);
 
         Ok(())
     }

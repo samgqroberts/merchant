@@ -1,107 +1,111 @@
-use terminal_commands::frame::{Frame, Printable, RenderOutput, RenderResult, Renderer};
 use terminal_commands::style::{Attribute, Color, ContentStyle, StyledContent};
+use terminal_commands::Printable;
+use terminal_commands::{Cmd, Commands};
 
-pub struct HtmlRenderer;
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct HtmlRenderOutput {
+    pub html: String,
+    pub cursor: (u16, u16),
+    pub show_cursor: bool,
+}
 
-impl Renderer for HtmlRenderer {
-    fn render(&self, frame: &Frame) -> RenderResult {
-        let mut chars: Vec<Vec<StyledContent<char>>> = vec![vec![]];
-        let mut cursor_x = 0;
-        let mut cursor_y = 0;
-        let mut show_cursor = false;
+pub fn render_to_html(commands: &Commands) -> HtmlRenderOutput {
+    let mut chars: Vec<Vec<StyledContent<char>>> = vec![vec![]];
+    let mut cursor_x = 0;
+    let mut cursor_y = 0;
+    let mut show_cursor = false;
 
-        for cmd in frame.commands().iter() {
-            match cmd {
-                terminal_commands::frame::Cmd::ClearScreen => {
-                    chars.clear();
-                    chars.push(Vec::new());
-                    cursor_x = 0;
-                    cursor_y = 0;
-                }
-                terminal_commands::frame::Cmd::MoveTo(x, y) => {
-                    cursor_x = 0;
-                    while cursor_y < *y {
-                        cursor_y += 1;
-                        while chars.len() <= cursor_y.into() {
-                            chars.push(Vec::new());
-                        }
-                    }
-                    cursor_y = *y;
-                    while cursor_x < *x {
-                        cursor_x += 1;
-                        let line = &mut chars[Into::<usize>::into(cursor_y)];
-                        while line.len() < cursor_x.into() {
-                            line.push(StyledContent::new(ContentStyle::new(), ' '));
-                        }
-                    }
-                }
-                terminal_commands::frame::Cmd::MoveUp(y) => {
-                    cursor_y = cursor_y.saturating_sub(*y);
-                }
-                terminal_commands::frame::Cmd::MoveDown(y) => {
-                    cursor_y += y;
-                    while cursor_y >= chars.len() as u16 {
+    for cmd in commands.iter() {
+        match cmd {
+            Cmd::ClearScreen => {
+                chars.clear();
+                chars.push(Vec::new());
+                cursor_x = 0;
+                cursor_y = 0;
+            }
+            Cmd::MoveTo(x, y) => {
+                cursor_x = 0;
+                while cursor_y < *y {
+                    cursor_y += 1;
+                    while chars.len() <= cursor_y.into() {
                         chars.push(Vec::new());
                     }
                 }
-                terminal_commands::frame::Cmd::MoveLeft(x) => {
-                    cursor_x = cursor_x.saturating_sub(*x);
-                }
-                terminal_commands::frame::Cmd::MoveRight(x) => {
-                    cursor_x += x;
-                }
-                terminal_commands::frame::Cmd::HideCursor => {
-                    show_cursor = false;
-                }
-                terminal_commands::frame::Cmd::ShowCursor => {
-                    show_cursor = true;
-                }
-                terminal_commands::frame::Cmd::MoveToNextLine(y) => {
-                    for _ in 0..*y {
-                        if chars.len() <= cursor_y.into() {
-                            chars.push(Vec::new());
-                        }
-                        cursor_y += 1;
-                    }
-                    cursor_x = 0;
-                }
-                terminal_commands::frame::Cmd::Print(printable) => {
-                    let content = printable.raw_text();
-                    let style = match printable {
-                        Printable::String(_) => ContentStyle::new(),
-                        Printable::Char(_) => ContentStyle::new(),
-                        Printable::StyledContent(styled_content) => styled_content.style().clone(),
-                    };
-                    for char in content.chars() {
-                        let line = &mut chars[Into::<usize>::into(cursor_y)];
-                        while line.len() <= cursor_x.into() {
-                            line.push(StyledContent::new(ContentStyle::new(), ' '));
-                        }
-                        chars[Into::<usize>::into(cursor_y)][Into::<usize>::into(cursor_x)] =
-                            StyledContent::new(style, char);
-                        cursor_x += 1;
+                cursor_y = *y;
+                while cursor_x < *x {
+                    cursor_x += 1;
+                    let line = &mut chars[Into::<usize>::into(cursor_y)];
+                    while line.len() < cursor_x.into() {
+                        line.push(StyledContent::new(ContentStyle::new(), ' '));
                     }
                 }
             }
-        }
-
-        let mut html = String::new();
-        for (line_num, line) in chars.iter().enumerate() {
-            for char in line {
-                html.push_str(&render_printable_to_html(&Printable::StyledContent(
-                    (*char).into(),
-                )));
+            Cmd::MoveUp(y) => {
+                cursor_y = cursor_y.saturating_sub(*y);
             }
-            if line_num < chars.len() - 1 {
-                html.push_str("<br />");
+            Cmd::MoveDown(y) => {
+                cursor_y += y;
+                while cursor_y >= chars.len() as u16 {
+                    chars.push(Vec::new());
+                }
+            }
+            Cmd::MoveLeft(x) => {
+                cursor_x = cursor_x.saturating_sub(*x);
+            }
+            Cmd::MoveRight(x) => {
+                cursor_x += x;
+            }
+            Cmd::HideCursor => {
+                show_cursor = false;
+            }
+            Cmd::ShowCursor => {
+                show_cursor = true;
+            }
+            Cmd::MoveToNextLine(y) => {
+                for _ in 0..*y {
+                    if chars.len() <= cursor_y.into() {
+                        chars.push(Vec::new());
+                    }
+                    cursor_y += 1;
+                }
+                cursor_x = 0;
+            }
+            Cmd::Print(printable) => {
+                let content = printable.raw_text();
+                let style = match printable {
+                    Printable::String(_) => ContentStyle::new(),
+                    Printable::Char(_) => ContentStyle::new(),
+                    Printable::StyledContent(styled_content) => styled_content.style().clone(),
+                };
+                for char in content.chars() {
+                    let line = &mut chars[Into::<usize>::into(cursor_y)];
+                    while line.len() <= cursor_x.into() {
+                        line.push(StyledContent::new(ContentStyle::new(), ' '));
+                    }
+                    chars[Into::<usize>::into(cursor_y)][Into::<usize>::into(cursor_x)] =
+                        StyledContent::new(style, char);
+                    cursor_x += 1;
+                }
             }
         }
+    }
 
-        Ok(RenderOutput {
-            result: html,
-            cursor: (cursor_x, cursor_y),
-            show_cursor,
-        })
+    let mut html = String::new();
+    for (line_num, line) in chars.iter().enumerate() {
+        for char in line {
+            html.push_str(&render_printable_to_html(&Printable::StyledContent(
+                (*char).into(),
+            )));
+        }
+        if line_num < chars.len() - 1 {
+            html.push_str("<br />");
+        }
+    }
+
+    HtmlRenderOutput {
+        html,
+        cursor: (cursor_x, cursor_y),
+        show_cursor,
     }
 }
 
@@ -204,18 +208,16 @@ mod tests {
     use pretty_assertions::assert_eq;
     use terminal_commands::comp;
     use terminal_commands::cursor::MoveTo;
-    use terminal_commands::frame::Frame;
     use terminal_commands::style::{Print, Stylize};
 
     #[test]
     fn empty_frame() {
-        let renderer = HtmlRenderer;
-        let frame = Frame::new();
-        let result = renderer.render(&frame);
+        let commands = Commands::new();
+        let result = render_to_html(&commands);
         assert_eq!(
-            result.unwrap(),
-            RenderOutput {
-                result: "".to_string(),
+            result,
+            HtmlRenderOutput {
+                html: "".to_string(),
                 cursor: (0, 0),
                 show_cursor: false,
             }
@@ -224,14 +226,13 @@ mod tests {
 
     #[test]
     fn hello_world() {
-        let renderer = HtmlRenderer;
-        let mut frame = Frame::new();
-        comp!(frame, Print("Hello, World!")).unwrap();
-        let result = renderer.render(&frame);
+        let mut commands = Commands::new();
+        comp!(commands, Print("Hello, World!")).unwrap();
+        let result = render_to_html(&commands);
         assert_eq!(
-            result.unwrap(),
-            RenderOutput {
-                result: "Hello,&nbsp;World!".to_string(),
+            result,
+            HtmlRenderOutput {
+                html: "Hello,&nbsp;World!".to_string(),
                 cursor: (13, 0),
                 show_cursor: false,
             }
@@ -240,10 +241,9 @@ mod tests {
 
     #[test]
     fn test_move_to() {
-        let renderer = HtmlRenderer;
-        let mut frame = Frame::new();
+        let mut commands = Commands::new();
         comp!(
-            frame,
+            commands,
             MoveTo(5, 2),
             Print("X"),
             MoveTo(4, 1),
@@ -252,12 +252,11 @@ mod tests {
             Print("Z")
         )
         .unwrap();
-        let result = renderer.render(&frame);
+        let result = render_to_html(&commands);
         assert_eq!(
-            result.unwrap(),
-            RenderOutput {
-                result: "<br />&nbsp;&nbsp;&nbsp;&nbsp;Y<br />&nbsp;&nbsp;Z&nbsp;&nbsp;X"
-                    .to_string(),
+            result,
+            HtmlRenderOutput {
+                html: "<br />&nbsp;&nbsp;&nbsp;&nbsp;Y<br />&nbsp;&nbsp;Z&nbsp;&nbsp;X".to_string(),
                 cursor: (3, 2),
                 show_cursor: false,
             }
@@ -266,10 +265,9 @@ mod tests {
 
     #[test]
     fn test_styled_text() {
-        let renderer = HtmlRenderer;
-        let mut frame = Frame::new();
+        let mut commands = Commands::new();
         comp!(
-            frame,
+            commands,
             Print("AB".to_string()),
             Print(" ".to_string()),
             Print("CD".to_string().bold()),
@@ -277,11 +275,11 @@ mod tests {
             Print("EF".to_string().underlined())
         )
         .unwrap();
-        let result = renderer.render(&frame);
+        let result = render_to_html(&commands);
         assert_eq!(
-            result.unwrap(),
-            RenderOutput {
-                result: "AB&nbsp;<span class=\"bold\">C</span><span class=\"bold\">D</span>&nbsp;<span class=\"underline\">E</span><span class=\"underline\">F</span>".to_string(),
+            result,
+            HtmlRenderOutput {
+                html: "AB&nbsp;<span class=\"bold\">C</span><span class=\"bold\">D</span>&nbsp;<span class=\"underline\">E</span><span class=\"underline\">F</span>".to_string(),
                 cursor: (8, 0),
                 show_cursor: false,
             }
@@ -290,20 +288,19 @@ mod tests {
 
     #[test]
     fn test_colored_text() {
-        let renderer = HtmlRenderer;
-        let mut frame = Frame::new();
+        let mut commands = Commands::new();
         comp!(
-            frame,
+            commands,
             Print("AB".to_string().red()),
             Print(" ".to_string()),
             Print("CD".to_string().blue())
         )
         .unwrap();
-        let result = renderer.render(&frame);
+        let result = render_to_html(&commands);
         assert_eq!(
-            result.unwrap(),
-            RenderOutput {
-                result: "<span style=\"color: red\">A</span><span style=\"color: red\">B</span>&nbsp;<span style=\"color: #00f\">C</span><span style=\"color: #00f\">D</span>".to_string(),
+            result,
+            HtmlRenderOutput {
+                html: "<span style=\"color: red\">A</span><span style=\"color: red\">B</span>&nbsp;<span style=\"color: #00f\">C</span><span style=\"color: #00f\">D</span>".to_string(),
                 cursor: (5, 0),
                 show_cursor: false,
             }
@@ -312,14 +309,13 @@ mod tests {
 
     #[test]
     fn test_styled_and_colored_text() {
-        let renderer = HtmlRenderer;
-        let mut frame = Frame::new();
-        comp!(frame, Print("AB".to_string().bold().red().underlined())).unwrap();
-        let result = renderer.render(&frame);
+        let mut commands = Commands::new();
+        comp!(commands, Print("AB".to_string().bold().red().underlined())).unwrap();
+        let result = render_to_html(&commands);
         assert_eq!(
-            result.unwrap(),
-            RenderOutput {
-                result: "<span class=\"bold underline\" style=\"color: red\">A</span><span class=\"bold underline\" style=\"color: red\">B</span>"
+            result,
+            HtmlRenderOutput {
+                html: "<span class=\"bold underline\" style=\"color: red\">A</span><span class=\"bold underline\" style=\"color: red\">B</span>"
                     .to_string(),
                 cursor: (2, 0),
                 show_cursor: false,
@@ -329,14 +325,13 @@ mod tests {
 
     #[test]
     fn test_html_escaping() {
-        let renderer = HtmlRenderer;
-        let mut frame = Frame::new();
-        comp!(frame, Print("<script>alert('xss')</script>")).unwrap();
-        let result = renderer.render(&frame);
+        let mut commands = Commands::new();
+        comp!(commands, Print("<script>alert('xss')</script>")).unwrap();
+        let result = render_to_html(&commands);
         assert_eq!(
-            result.unwrap(),
-            RenderOutput {
-                result: "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;".to_string(),
+            result,
+            HtmlRenderOutput {
+                html: "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;".to_string(),
                 cursor: (29, 0),
                 show_cursor: false,
             }
@@ -345,12 +340,12 @@ mod tests {
 
     #[test]
     fn component_test_frame() {
-        let mut frame = Frame::new();
+        let mut commands = Commands::new();
         let component = merchant_core::components::SceneFrame(FrameType::SimpleEmptyInside);
-        comp!(frame, component).unwrap();
-        let result = HtmlRenderer.render(&frame).unwrap();
+        comp!(commands, component).unwrap();
+        let result = render_to_html(&commands);
         assert_eq!(
-            parse_html_to_raw_text(&result.result),
+            parse_html_to_raw_text(&result.html),
             r#"---------------------------------------------------------------------------------------------------
 |                                                                                                 |
 |                                                                                                 |
@@ -389,9 +384,9 @@ mod tests {
 
     #[test]
     fn component_test_screen_centered_text() {
-        let mut frame = Frame::new();
+        let mut commands = Commands::new();
         comp!(
-            frame,
+            commands,
             ScreenCenteredText::new(
                 &[
                     "1---------2---------3---------4--------5--------6---------7---------"
@@ -402,9 +397,9 @@ mod tests {
             ScreenCenteredText::new(&["A tribute to Drug Wars by samgqroberts".to_owned()], 1)
         )
         .unwrap();
-        let result = HtmlRenderer.render(&frame).unwrap();
+        let result = render_to_html(&commands);
         assert_eq!(
-            parse_html_to_raw_text(&result.result),
+            parse_html_to_raw_text(&result.html),
             r#"
                 1---------2----A tribute to Drug Wars by samgqroberts-----7---------"#,
         );
@@ -412,13 +407,13 @@ mod tests {
 
     #[test]
     fn component_test_frame_plus_text() {
-        let mut frame = Frame::new();
+        let mut commands = Commands::new();
         let component = merchant_core::components::SceneFrame(FrameType::SimpleEmptyInside);
         let x = ScreenCenteredText::new(&["A tribute to Drug Wars by samgqroberts".to_owned()], 12);
-        comp!(frame, component, x).unwrap();
-        let result = HtmlRenderer.render(&frame).unwrap();
+        comp!(commands, component, x).unwrap();
+        let result = render_to_html(&commands);
         assert_eq!(
-            parse_html_to_raw_text(&result.result),
+            parse_html_to_raw_text(&result.html),
             r#"---------------------------------------------------------------------------------------------------
 |                                                                                                 |
 |                                                                                                 |
@@ -457,13 +452,13 @@ mod tests {
 
     #[test]
     fn integration_test_splash_screen() {
-        let (frame, _) = render_scene(&mut GameState::new(
+        let (commands, _) = render_scene(&mut GameState::new(
             MockRng::new_with_default_locations().into(),
         ))
         .unwrap();
-        let result = HtmlRenderer.render(&frame).unwrap();
+        let result = render_to_html(&commands);
         assert_eq!(
-            parse_html_to_raw_text(&result.result),
+            parse_html_to_raw_text(&result.html),
             r"---------------------------------------------------------------------------------------------------
 |                                                                                                 |
 |                                                                                                 |

@@ -1,7 +1,7 @@
 use std::str;
 use terminal_commands::{
     event::{KeyCode, KeyEvent, KeyModifiers},
-    frame::Frame,
+    render_raw, Commands,
 };
 
 use crate::{
@@ -10,7 +10,7 @@ use crate::{
 };
 
 pub struct TestEngine {
-    frame: Frame,
+    commands: Commands,
     game_state: GameState,
 }
 
@@ -18,11 +18,14 @@ impl TestEngine {
     #[allow(unused_must_use)]
     pub fn from_game_state(mut game_state: GameState) -> UpdateResult<Self> {
         let (frame, _) = render_scene(&mut game_state).unwrap();
-        Ok(Self { frame, game_state })
+        Ok(Self {
+            commands: frame,
+            game_state,
+        })
     }
 
     pub fn get_current_formatted(&self) -> String {
-        self.frame.render_raw().unwrap().result
+        render_raw(&self.commands).result
     }
 
     pub fn expect(&self, expectation: &str) -> bool {
@@ -63,7 +66,7 @@ impl TestEngine {
             &mut self.game_state,
         )?;
         let (frame, _) = render_scene(&mut self.game_state).unwrap();
-        self.frame = frame;
+        self.commands = frame;
         Ok(signal)
     }
 

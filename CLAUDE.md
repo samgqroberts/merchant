@@ -20,8 +20,8 @@ The codebase is organized as a Rust workspace with the following crates:
 
 - **Game State** (`core/src/state/`) - Manages the game's state including locations, goods, inventory, and RNG
 - **Engine** (`game/src/engine.rs` and `core/src/engine.rs`) - Handles the main game loop, input processing, and state updates
-- **Components** (`core/src/components/`) - UI components like screens, frames, and text rendering
 - **Renderer** (`game/src/renderer.rs`) - Handles terminal rendering using crossterm
+- **Components** (`core/src/components/`) - UI components like screens, frames, and text rendering
 
 The game follows a classic game loop pattern:
 1. Draw current state to terminal

@@ -1,64 +1,60 @@
+use std::io::{self, Write};
+
 use crossterm::queue;
-use terminal_commands::frame::{Frame, Printable, RenderOutput, RenderResult, Renderer};
 use terminal_commands::style::{Attribute, Attributes, Color, ContentStyle};
+use terminal_commands::Printable;
+use terminal_commands::{Cmd, Commands};
 
-pub struct CrosstermRenderer;
-
-impl Renderer for CrosstermRenderer {
-    fn render(&self, frame: &Frame) -> RenderResult {
-        let mut writer = Vec::<u8>::new();
-
-        for cmd in frame.commands().iter() {
-            match cmd {
-                terminal_commands::frame::Cmd::ClearScreen => {
-                    queue!(
-                        writer,
-                        crossterm::terminal::Clear(crossterm::terminal::ClearType::All)
-                    )
-                }
-                terminal_commands::frame::Cmd::MoveTo(x, y) => {
-                    queue!(writer, crossterm::cursor::MoveTo(*x as u16, *y as u16))
-                }
-                terminal_commands::frame::Cmd::MoveUp(y) => {
-                    queue!(writer, crossterm::cursor::MoveUp(*y as u16))
-                }
-                terminal_commands::frame::Cmd::MoveDown(y) => {
-                    queue!(writer, crossterm::cursor::MoveDown(*y as u16))
-                }
-                terminal_commands::frame::Cmd::MoveLeft(x) => {
-                    queue!(writer, crossterm::cursor::MoveLeft(*x as u16))
-                }
-                terminal_commands::frame::Cmd::MoveRight(x) => {
-                    queue!(writer, crossterm::cursor::MoveRight(*x as u16))
-                }
-                terminal_commands::frame::Cmd::HideCursor => {
-                    queue!(writer, crossterm::cursor::Hide)
-                }
-                terminal_commands::frame::Cmd::ShowCursor => {
-                    queue!(writer, crossterm::cursor::Show)
-                }
-                terminal_commands::frame::Cmd::MoveToNextLine(y) => {
-                    queue!(writer, crossterm::cursor::MoveToNextLine(*y as u16))
-                }
-                terminal_commands::frame::Cmd::Print(printable) => match printable {
-                    Printable::String(x) => queue!(writer, crossterm::style::Print(x)),
-                    Printable::Char(x) => queue!(writer, crossterm::style::Print(x)),
-                    Printable::StyledContent(styled_content) => {
-                        let style = convert_content_style(&styled_content.style);
-                        let content = styled_content.content();
-                        let styled_content = crossterm::style::StyledContent::new(style, content);
-                        queue!(writer, crossterm::style::Print(styled_content))
-                    }
-                },
+/// Parses a series of [Cmd]s and translates them into
+/// crossterm commands, which are written to the provided writer.
+/// The writer is flushed after all commands have been executed.
+pub fn execute_commands(commands: &Commands, writer: &mut impl Write) -> io::Result<()> {
+    for cmd in commands.iter() {
+        match cmd {
+            Cmd::ClearScreen => queue!(
+                writer,
+                crossterm::terminal::Clear(crossterm::terminal::ClearType::All)
+            ),
+            Cmd::MoveTo(x, y) => {
+                queue!(writer, crossterm::cursor::MoveTo(*x as u16, *y as u16))
             }
-            .map_err(|e| e.to_string())?;
-        }
-        Ok(RenderOutput {
-            result: String::from_utf8(writer).map_err(|e| e.to_string())?,
-            cursor: (0, 0),
-            show_cursor: true,
-        })
+            Cmd::MoveUp(y) => {
+                queue!(writer, crossterm::cursor::MoveUp(*y as u16))
+            }
+            Cmd::MoveDown(y) => {
+                queue!(writer, crossterm::cursor::MoveDown(*y as u16))
+            }
+            Cmd::MoveLeft(x) => {
+                queue!(writer, crossterm::cursor::MoveLeft(*x as u16))
+            }
+            Cmd::MoveRight(x) => {
+                queue!(writer, crossterm::cursor::MoveRight(*x as u16))
+            }
+            Cmd::HideCursor => {
+                queue!(writer, crossterm::cursor::Hide)
+            }
+            Cmd::ShowCursor => {
+                queue!(writer, crossterm::cursor::Show)
+            }
+            Cmd::MoveToNextLine(y) => {
+                queue!(writer, crossterm::cursor::MoveToNextLine(*y as u16))
+            }
+            Cmd::Print(printable) => match printable {
+                Printable::String(x) => queue!(writer, crossterm::style::Print(x)),
+                Printable::Char(x) => queue!(writer, crossterm::style::Print(x)),
+                Printable::StyledContent(styled_content) => {
+                    let style = convert_content_style(&styled_content.style);
+                    let content = styled_content.content();
+                    let styled_content = crossterm::style::StyledContent::new(style, content);
+                    queue!(writer, crossterm::style::Print(styled_content))
+                }
+            },
+        }?
     }
+
+    writer.flush()?;
+
+    Ok(())
 }
 
 fn convert_color(color: Color) -> crossterm::style::Color {
@@ -121,18 +117,19 @@ mod tests {
 
     #[test]
     fn basic() {
-        let mut frame = Frame::new();
+        let mut commands = Commands::new();
         comp!(
-            frame,
+            commands,
             MoveTo(2, 1),
             Print("Hello,"),
             MoveToNextLine(1),
             Print("world!")
         )
         .unwrap();
-        let result = CrosstermRenderer.render(&frame);
+        let mut writer = Vec::new();
+        execute_commands(&commands, &mut writer).unwrap();
         assert_eq!(
-            raw_format_ansi::raw_format_ansi(&result.unwrap().result),
+            raw_format_ansi::raw_format_ansi(&String::from_utf8(writer).unwrap()),
             "\n  Hello,\nworld!"
         );
     }

@@ -1,8 +1,8 @@
 use std::fmt::Display;
 use std::ops::{BitAnd, BitOr, BitXor};
 
-use crate::frame::{Cmd, Printable};
-use crate::{Component, Frame};
+use crate::Cmd;
+use crate::{Commands, Component, Printable};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub enum Color {
@@ -385,8 +385,8 @@ impl Attribute {
 pub struct Print<T>(pub T);
 
 impl<T: Into<Printable> + Clone> Component for Print<T> {
-    fn render(&self, frame: &mut Frame) -> Result<(), String> {
-        frame.commands.push(Cmd::Print(self.0.clone().into()));
+    fn render(&self, commands: &mut Commands) -> Result<(), String> {
+        commands.push(Cmd::Print(self.0.clone().into()));
         Ok(())
     }
 }

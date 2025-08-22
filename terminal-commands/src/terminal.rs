@@ -1,4 +1,4 @@
-use crate::{frame::Cmd, Component};
+use crate::{commands::Commands, Cmd, Component};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub enum ClearType {
@@ -20,10 +20,10 @@ pub enum ClearType {
 pub struct Clear(pub ClearType);
 
 impl Component for Clear {
-    fn render(&self, frame: &mut crate::frame::Frame) -> Result<(), String> {
+    fn render(&self, commands: &mut Commands) -> Result<(), String> {
         match self.0 {
             ClearType::All => {
-                frame.commands.push(Cmd::ClearScreen);
+                commands.push(Cmd::ClearScreen);
             }
             ClearType::Purge => todo!(),
             ClearType::FromCursorDown => todo!(),
