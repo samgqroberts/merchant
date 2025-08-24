@@ -105,12 +105,10 @@ pub fn render_scene_to_existing(
         }))
     } else if state.game_end {
         comp!(commands, GameEndScreen(state))?;
-        Ok(Box::new(|event: KeyEvent, _: &mut GameState| {
-            match event.code {
-                KeyCode::Char('q') => Ok(UpdateSignal::Quit),
-                KeyCode::Enter => Ok(UpdateSignal::Restart),
-                _ => Ok(UpdateSignal::Continue),
-            }
+        Ok(Box::new(|_: KeyEvent, _: &mut GameState| {
+            // core logic does not handle game quitting / restarting
+            // do nothing here
+            Ok(UpdateSignal::Continue)
         }))
     } else if let Mode::GameEvent(LocationEvent::PirateEncounter(pirate_encounter_state)) =
         &state.mode

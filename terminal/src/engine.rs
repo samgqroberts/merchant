@@ -5,15 +5,16 @@ use crossterm::{
     style::Print,
 };
 use merchant_core::{
-    components::{RequireResize, FRAME_HEIGHT, FRAME_WIDTH},
+    components::{RequireResize, ScreenCenteredText, FRAME_HEIGHT, FRAME_WIDTH},
     engine::{render_scene, UpdateError, UpdateFn, UpdateSignal},
+    state::Initialization,
 };
 use std::{
     cell::RefCell,
     io::{self, Write},
     time::Duration,
 };
-use terminal_commands::{comp, Commands};
+use terminal_commands::{comp, event::KeyEvent, Commands};
 use tracing::{debug, error, info};
 
 use merchant_core::state::GameState;
@@ -94,15 +95,36 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
     pub fn draw_scene(&mut self, state: &GameState) -> io::Result<Box<UpdateFn>> {
         info!("Drawing scene: {:?}", state.mode);
         let writer = &mut *self.writer.borrow_mut();
-        let (commands, update) = match render_scene(state) {
-            Ok(result) => result,
-            Err(e) => {
-                return Err(io::Error::new(
+        let (commands, update) = render_scene(state)
+            .and_then(|(mut commands, mut update)| {
+                // add message / handlers special for terminal version
+                if state.initialization == Initialization::SplashScreen {
+                    comp!(
+                        commands,
+                        ScreenCenteredText::new(&["ctrl-c to quit at any time".to_owned()], 29),
+                    )?;
+                } else if state.game_end {
+                    comp!(
+                        commands,
+                        ScreenCenteredText::new(
+                            &["(q) to quit, (Enter) to play again".to_owned()],
+                            29
+                        ),
+                    )?;
+                    update = Box::new(|event: KeyEvent, _: &mut GameState| match event.code {
+                        terminal_commands::event::KeyCode::Char('q') => Ok(UpdateSignal::Quit),
+                        terminal_commands::event::KeyCode::Enter => Ok(UpdateSignal::Restart),
+                        _ => Ok(UpdateSignal::Continue),
+                    });
+                }
+                Ok((commands, update))
+            })
+            .map_err(|e| {
+                io::Error::new(
                     io::ErrorKind::Other,
                     format!("Error rendering scene: {:?}", e),
-                ))
-            }
-        };
+                )
+            })?;
         execute_commands(&commands, writer)?;
         Ok(update)
     }

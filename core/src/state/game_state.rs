@@ -164,6 +164,34 @@ impl GameState {
         }
     }
 
+    // TODO reconcile duplicated code with new()
+    pub fn restart(&mut self) {
+        let starting_gold = Saturating(500);
+        let starting_debt = starting_gold * Saturating(3u32);
+        let location_config = self.rng.gen_location_config(starting_gold.0);
+        debug!("location_config: {:#?}", location_config);
+        let locations = LocationInfos::new(
+            &mut self.rng,
+            &location_config,
+            starting_gold.0 as i32 - starting_debt.0 as i32,
+        );
+        let starting_date = (1782, Month::March);
+        self.initialization = Initialization::SplashScreen;
+        self.date = starting_date;
+        self.hold_size = Saturating(100);
+        self.cannons = Saturating(1);
+        self.gold = starting_gold;
+        self.bank = Saturating(0);
+        self.location = location_config.home_port;
+        self.stash = Inventory::default();
+        self.inventory = Inventory::default();
+        self.location_config = location_config;
+        self.locations = locations;
+        self.debt = starting_debt;
+        self.mode = Mode::ViewingInventory;
+        self.game_end = false;
+    }
+
     pub fn new_std_rng(rng: StdRng) -> GameState {
         GameState::new(Box::new(rng))
     }

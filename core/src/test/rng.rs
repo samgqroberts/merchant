@@ -94,54 +94,8 @@ impl MockRng {
     }
 
     pub fn new_with_default_locations() -> Self {
-        let overall_price_ranges = PriceRanges::from_start_price_and_spreads(
-            500,
-            [5.0, 3.0, 2.0, 1.5, 1.0, 0.75],
-            [5.0, 4.2, 3.4, 2.6, 1.8],
-        );
-        let basic_event_weights = EventWeights {
-            no_event: 6,
-            cheap_good: 1,
-            expensive_good: 1,
-            find_goods: 1,
-            stolen_goods: 1,
-            can_buy_cannon: 1,
-            pirate_encounter: 1,
-            can_buy_more_hold_space: 1,
-            no_effect: 1,
-        };
-        let personalities = LocationMap {
-            london: LocationPersonality {
-                price_ranges: overall_price_ranges.clone(),
-                event_weights: basic_event_weights.clone(),
-            },
-            savannah: LocationPersonality {
-                price_ranges: overall_price_ranges.clone(),
-                event_weights: basic_event_weights.clone(),
-            },
-            lisbon: LocationPersonality {
-                price_ranges: overall_price_ranges.clone(),
-                event_weights: basic_event_weights.clone(),
-            },
-            amsterdam: LocationPersonality {
-                price_ranges: overall_price_ranges.clone(),
-                event_weights: basic_event_weights.clone(),
-            },
-            capetown: LocationPersonality {
-                price_ranges: overall_price_ranges.clone(),
-                event_weights: basic_event_weights.clone(),
-            },
-            venice: LocationPersonality {
-                price_ranges: overall_price_ranges.clone(),
-                event_weights: basic_event_weights.clone(),
-            },
-        };
         Self::new()
-            .push_location_config(LocationConfig {
-                home_port: Location::London,
-                overall_price_ranges,
-                personalities,
-            })
+            .push_location_config(default_location_config())
             .push_location_infos(&default_location_infos())
     }
 
@@ -216,6 +170,56 @@ pub fn default_location_info() -> LocationInfo {
             cotton: 1,
         },
         event: None,
+    }
+}
+
+pub fn default_location_config() -> LocationConfig {
+    let overall_price_ranges = PriceRanges::from_start_price_and_spreads(
+        500,
+        [5.0, 3.0, 2.0, 1.5, 1.0, 0.75],
+        [5.0, 4.2, 3.4, 2.6, 1.8],
+    );
+    let basic_event_weights = EventWeights {
+        no_event: 6,
+        cheap_good: 1,
+        expensive_good: 1,
+        find_goods: 1,
+        stolen_goods: 1,
+        can_buy_cannon: 1,
+        pirate_encounter: 1,
+        can_buy_more_hold_space: 1,
+        no_effect: 1,
+    };
+    let personalities = LocationMap {
+        london: LocationPersonality {
+            price_ranges: overall_price_ranges.clone(),
+            event_weights: basic_event_weights.clone(),
+        },
+        savannah: LocationPersonality {
+            price_ranges: overall_price_ranges.clone(),
+            event_weights: basic_event_weights.clone(),
+        },
+        lisbon: LocationPersonality {
+            price_ranges: overall_price_ranges.clone(),
+            event_weights: basic_event_weights.clone(),
+        },
+        amsterdam: LocationPersonality {
+            price_ranges: overall_price_ranges.clone(),
+            event_weights: basic_event_weights.clone(),
+        },
+        capetown: LocationPersonality {
+            price_ranges: overall_price_ranges.clone(),
+            event_weights: basic_event_weights.clone(),
+        },
+        venice: LocationPersonality {
+            price_ranges: overall_price_ranges.clone(),
+            event_weights: basic_event_weights.clone(),
+        },
+    };
+    LocationConfig {
+        home_port: Location::London,
+        overall_price_ranges,
+        personalities,
     }
 }
 

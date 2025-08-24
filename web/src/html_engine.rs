@@ -1,17 +1,17 @@
 use merchant_core::{
-    components::{RequireResize, FRAME_HEIGHT, FRAME_WIDTH},
+    components::{RequireResize, ScreenCenteredText, FRAME_HEIGHT, FRAME_WIDTH},
     engine::{render_scene, UpdateFn, UpdateSignal},
     state::GameState,
 };
-use terminal_commands::{comp, Commands};
+use terminal_commands::{comp, event::KeyEvent, Commands};
 use wasm_bindgen::prelude::*;
 use web_sys::{HtmlDivElement, KeyboardEvent, Window};
 
-use crate::html_renderer::render_to_html;
+use crate::html_renderer::{render_to_html, HtmlRenderOutput};
 
 pub struct HtmlEngine {
     window: Window,
-    container_element: HtmlDivElement,
+    game_display_el: HtmlDivElement,
     update_fn: Option<Box<UpdateFn>>,
 }
 
@@ -21,51 +21,38 @@ impl HtmlEngine {
         let document = window.document().ok_or("no document")?;
 
         // Find or create the pre element for displaying the game
-        let pre_element = match document.get_element_by_id("game-display") {
+        let game_display_el = match document.get_element_by_id("game-display") {
             Some(element) => element
                 .dyn_into::<HtmlDivElement>()
                 .map_err(|_| "element is not a pre element")?,
             None => {
-                let pre = document
+                let game_display_el = document
                     .create_element("pre")?
                     .dyn_into::<HtmlDivElement>()?;
-                pre.set_id("game-display");
-
-                // Set monospace font and styling
-                let style = pre.style();
-                style.set_property("font-family", "monospace")?;
-                style.set_property("font-size", "14px")?;
-                style.set_property("line-height", "1.2")?;
-                style.set_property("background-color", "black")?;
-                style.set_property("color", "white")?;
-                style.set_property("padding", "10px")?;
-                style.set_property("margin", "0")?;
-                style.set_property("white-space", "pre")?;
+                game_display_el.set_id("game-display");
 
                 let body = document.body().ok_or("no body")?;
-                body.append_child(&pre)?;
-                pre
+                body.append_child(&game_display_el)?;
+                game_display_el
             }
         };
 
         Ok(Self {
             window,
-            container_element: pre_element,
+            game_display_el,
             update_fn: None,
         })
     }
 
     pub fn draw_scene(&mut self, state: &GameState) -> Result<(), JsValue> {
-        let (commands, update) = render_scene(state)
+        let (render_result, update) = html_render_scene(state)
             .map_err(|e| JsValue::from_str(&format!("Error rendering scene: {:?}", e)))?;
-
-        let render_result = render_to_html(&commands);
 
         let mut inner_html = render_result.html;
 
         if render_result.show_cursor {
-            let height = self.container_element.client_height();
-            let width = self.container_element.client_width();
+            let height = self.game_display_el.client_height();
+            let width = self.game_display_el.client_width();
             let char_height = height / FRAME_HEIGHT as i32;
             let char_width = width / FRAME_WIDTH as i32;
             let (cursor_x, cursor_y) = render_result.cursor;
@@ -77,7 +64,7 @@ impl HtmlEngine {
         }
 
         // Convert the rendered text to HTML
-        self.container_element.set_inner_html(&inner_html);
+        self.game_display_el.set_inner_html(&inner_html);
 
         self.update_fn = Some(update);
         Ok(())
@@ -95,7 +82,7 @@ impl HtmlEngine {
         .map_err(|e| JsValue::from_str(&format!("Error rendering resize: {:?}", e)))?;
 
         let render_result = render_to_html(&commands);
-        self.container_element.set_inner_html(&render_result.html);
+        self.game_display_el.set_inner_html(&render_result.html);
 
         Ok(())
     }
@@ -105,12 +92,7 @@ impl HtmlEngine {
         event: KeyboardEvent,
         game_state: &mut GameState,
     ) -> Result<UpdateSignal, JsValue> {
-        // first, see if use wants to quit (restart)
-        if event.ctrl_key() && event.key() == "c" {
-            return Ok(UpdateSignal::Quit);
-        }
-
-        // otherwise, don't intervene if meta or ctrl key is pressed
+        // don't intervene if meta or ctrl key is pressed
         if event.meta_key() || event.ctrl_key() {
             return Ok(UpdateSignal::Continue);
         }
@@ -155,7 +137,25 @@ impl HtmlEngine {
     }
 }
 
-fn convert_web_key_event(event: &KeyboardEvent) -> terminal_commands::event::KeyEvent {
+pub fn html_render_scene(state: &GameState) -> Result<(HtmlRenderOutput, Box<UpdateFn>), String> {
+    let (mut commands, mut update) = render_scene(state)?;
+    if state.game_end {
+        comp!(
+            commands,
+            ScreenCenteredText::new(&["(Enter) to play again".to_owned()], 29),
+        )?;
+        update = Box::new(|event: KeyEvent, state: &mut GameState| match event.code {
+            terminal_commands::event::KeyCode::Enter => {
+                state.restart();
+                Ok(UpdateSignal::Continue)
+            }
+            _ => Ok(UpdateSignal::Continue),
+        });
+    }
+    Ok((render_to_html(&commands), update))
+}
+
+pub fn convert_web_key_event(event: &KeyboardEvent) -> terminal_commands::event::KeyEvent {
     let key = event.key();
 
     let code = match key.as_str() {

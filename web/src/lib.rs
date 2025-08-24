@@ -100,32 +100,10 @@ fn setup_keyboard_listener() -> Result<(), JsValue> {
                                     }
                                 }
                                 UpdateSignal::Quit => {
-                                    console_log!("Game quit requested");
-                                    // Could show exit message
-                                    if let Some(window) = web_sys::window() {
-                                        if let Some(document) = window.document() {
-                                            if let Some(display_element) =
-                                                document.get_element_by_id("game-display")
-                                            {
-                                                if let Ok(pre_element) = display_element
-                                                    .dyn_into::<web_sys::HtmlDivElement>(
-                                                ) {
-                                                    pre_element
-                                                        .set_inner_html("Thank you for playing!");
-                                                }
-                                            }
-                                        }
-                                    }
+                                    log_error("Game quit requested, but web version does not handle this.");
                                 }
                                 UpdateSignal::Restart => {
-                                    console_log!("Game restart requested");
-                                    // Create new game state
-                                    let rng = StdRng::from_entropy();
-                                    *state = GameState::new_std_rng(rng);
-                                    // Redraw
-                                    if let Err(e) = draw_game(engine, state) {
-                                        log_error(&format!("Error drawing game: {:?}", e));
-                                    }
+                                    log_error("Game restart requested, but web version does not handle this.");
                                 }
                             }
                         }

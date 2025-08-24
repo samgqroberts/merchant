@@ -2,16 +2,13 @@ use std::num::Saturating;
 
 use pretty_assertions::assert_eq;
 
-use crate::{
-    engine::UpdateResult,
-    state::{
-        GameState, Good, Inventory, Location, LocationEvent, LocationInfo, Mode, NoEffectEvent,
-        PirateEncounterInfo, Transaction,
-    },
-    test::{
-        rng::{default_location_info, MockRng},
-        test_engine::TestEngine,
-    },
+use crate::test::test_engine::TestEngine;
+use merchant_core::engine::UpdateResult;
+use merchant_core::state::{
+    GameState, Good, LocationEvent, Mode, NoEffectEvent, PirateEncounterInfo, Transaction,
+};
+use merchant_core::test::rng::{
+    default_location_config, default_location_info, default_location_infos, MockRng,
 };
 
 #[test]
@@ -187,7 +184,7 @@ fn end_game_positive() -> UpdateResult<()> {
 |                                                                                                 |
 |                                                                                                 |
 |                                                                                                 |
-|                                                                                                 |
+|                                      (Enter) to play again                                      |
 |                                                                                                 |
 |                                                                                                 |
 ---------------------------------------------------------------------------------------------------
@@ -240,13 +237,48 @@ fn end_game_negative() -> UpdateResult<()> {
 |                                                                                                 |
 |                                                                                                 |
 |                                                                                                 |
-|                                                                                                 |
+|                                      (Enter) to play again                                      |
 |                                                                                                 |
 |                                                                                                 |
 ---------------------------------------------------------------------------------------------------
 ",
         )
     );
+    Ok(())
+}
+
+#[test]
+fn end_game_quit() -> UpdateResult<()> {
+    let e = TestEngine::from_game_state({
+        let mut state = GameState::new(MockRng::new_with_default_locations().into());
+        state.introduction_to_game();
+        state.gold = Saturating(100);
+        state.debt = Saturating(40000);
+        state.game_end = true;
+        state
+    })?;
+    assert!(e.expect("(Enter) to play again"));
+    Ok(())
+}
+
+#[test]
+fn end_game_restart() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        let mut state = GameState::new(
+            MockRng::new_with_default_locations()
+                .push_location_config(default_location_config())
+                .push_location_infos(&default_location_infos())
+                .into(),
+        );
+        state.introduction_to_game();
+        state.gold = Saturating(100);
+        state.debt = Saturating(40000);
+        state.game_end = true;
+        state
+    })?;
+    assert!(e.expect("(Enter) to play again"));
+    e.enterpress()?;
+    assert!(e.expect("Press any key to begin"));
     Ok(())
 }
 
@@ -730,79 +762,6 @@ fn arrive_at_find_goods_event_not_enough_hold() -> UpdateResult<()> {
 }
 
 #[test]
-fn sail_to_stolen_goods_event_some_stolen() -> UpdateResult<()> {
-    let mut e = TestEngine::from_game_state({
-        let mut state = GameState::new(
-            MockRng::new_with_default_locations()
-                .push_location_info(LocationInfo {
-                    prices: Inventory {
-                        tea: 1,
-                        coffee: 2,
-                        sugar: 3,
-                        tobacco: 4,
-                        rum: 5,
-                        cotton: 6,
-                    },
-                    event: None,
-                })
-                .push_good_stolen((Good::Coffee, 4))
-                .into(),
-        );
-        state.introduction_to_game();
-        state.inventory.coffee = 10;
-        state.location = Location::London;
-        state.locations.lisbon.event = Some(LocationEvent::GoodsStolen(None));
-        state
-    })?;
-    assert!(e.expect("(3) Sail"));
-    e.charpress('3')?;
-    assert!(e.expect("(3) Lisbon"));
-    e.charpress('3')?;
-    assert!(e.expect("Prowling harbor thieves stole"));
-    assert!(e.expect("4 Coffee from you!"));
-    assert!(e.expect("Coffee:   10"));
-    e.charpress('a')?;
-    assert!(e.expect("Coffee:    6"));
-    Ok(())
-}
-
-#[test]
-fn sail_to_stolen_goods_event_nothing_stolen() -> UpdateResult<()> {
-    let mut e = TestEngine::from_game_state({
-        let mut state = GameState::new(
-            MockRng::new_with_default_locations()
-                .push_location_info(LocationInfo {
-                    prices: Inventory {
-                        tea: 1,
-                        coffee: 2,
-                        sugar: 3,
-                        tobacco: 4,
-                        rum: 5,
-                        cotton: 6,
-                    },
-                    event: None,
-                })
-                .push_good_stolen((Good::Coffee, 4))
-                .into(),
-        );
-        state.introduction_to_game();
-        state.inventory.coffee = 0;
-        state.location = Location::London;
-        state.locations.lisbon.event = Some(LocationEvent::GoodsStolen(None));
-        state
-    })?;
-    assert!(e.expect("(3) Sail"));
-    e.charpress('3')?;
-    assert!(e.expect("(3) Lisbon"));
-    e.charpress('3')?;
-    assert!(e.expect("Thieves were on the prowl, but they"));
-    assert!(e.expect("couldn't find anything to steal"));
-    e.charpress('a')?;
-    assert!(e.expect("(1) Buy"));
-    Ok(())
-}
-
-#[test]
 fn arrive_at_can_buy_cannon_accept() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
         let mut state = GameState::new(MockRng::new_with_default_locations().into());
@@ -874,7 +833,7 @@ fn pirate_encounter_initial() -> UpdateResult<()> {
         state.introduction_to_game();
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
-            crate::state::PirateEncounterState::Initial,
+            merchant_core::state::PirateEncounterState::Initial,
         ));
         state
     })?;
@@ -973,7 +932,7 @@ fn pirate_encounter_run_success() -> UpdateResult<()> {
         state.introduction_to_game();
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
-            crate::state::PirateEncounterState::Prompt {
+            merchant_core::state::PirateEncounterState::Prompt {
                 info: PirateEncounterInfo::new(2),
             },
         ));
@@ -1077,7 +1036,7 @@ fn pirate_encounter_run_failure() -> UpdateResult<()> {
         state.introduction_to_game();
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
-            crate::state::PirateEncounterState::Prompt {
+            merchant_core::state::PirateEncounterState::Prompt {
                 info: PirateEncounterInfo::new(2),
             },
         ));
@@ -1176,7 +1135,7 @@ fn pirate_encounter_pirates_attack_not_destroyed() -> UpdateResult<()> {
         state.introduction_to_game();
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
-            crate::state::PirateEncounterState::PiratesAttack {
+            merchant_core::state::PirateEncounterState::PiratesAttack {
                 info: PirateEncounterInfo::new(2),
                 damage_this_attack: 2,
             },
@@ -1276,7 +1235,7 @@ fn pirate_encounter_pirates_attack_is_destroyed() -> UpdateResult<()> {
         state.gold = Saturating(500);
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
-            crate::state::PirateEncounterState::PiratesAttack {
+            merchant_core::state::PirateEncounterState::PiratesAttack {
                 info: PirateEncounterInfo {
                     health: 2,
                     cur_pirates: 2,
@@ -1386,7 +1345,7 @@ fn pirate_encounter_fight_did_sink_pirate_and_did_not_win() -> UpdateResult<()> 
         state.introduction_to_game();
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
-            crate::state::PirateEncounterState::Prompt {
+            merchant_core::state::PirateEncounterState::Prompt {
                 info: PirateEncounterInfo::new(2),
             },
         ));
@@ -1491,7 +1450,7 @@ fn pirate_encounter_fight_did_sink_pirate_and_did_win() -> UpdateResult<()> {
         state.gold = Saturating(500);
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
-            crate::state::PirateEncounterState::Prompt {
+            merchant_core::state::PirateEncounterState::Prompt {
                 info: PirateEncounterInfo::new(1),
             },
         ));
@@ -1638,7 +1597,7 @@ fn pirate_encounter_fight_did_not_sink_pirate() -> UpdateResult<()> {
         state.gold = Saturating(500);
         state.cannons = Saturating(2);
         state.mode = Mode::GameEvent(LocationEvent::PirateEncounter(
-            crate::state::PirateEncounterState::Prompt {
+            merchant_core::state::PirateEncounterState::Prompt {
                 info: PirateEncounterInfo::new(1),
             },
         ));

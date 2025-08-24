@@ -151,10 +151,6 @@ impl<'a> Component for GameEndScreen<'a> {
                 )
             ),
         }?;
-        comp!(
-            f,
-            ScreenCenteredText::new(&["(q) to quit, (Enter) to play again".to_owned()], 29),
-        )?;
         // "game over" ascii art terxt
         const OFFSET_X: u16 = 23;
         const OFFSET_Y: u16 = 4;
