@@ -38,7 +38,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
         let mut require_resize = false;
         if let Ok((current_x_cols, current_y_cols)) = crossterm::terminal::size() {
             debug!("Terminal size: {{x: {current_x_cols}, y: {current_y_cols}}}");
-            if current_x_cols < FRAME_WIDTH || current_y_cols < FRAME_HEIGHT {
+            if current_x_cols <= FRAME_WIDTH || current_y_cols <= FRAME_HEIGHT {
                 require_resize = true;
                 self.draw_need_resize(current_x_cols, current_y_cols)?;
             }
