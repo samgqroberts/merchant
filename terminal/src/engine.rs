@@ -21,6 +21,8 @@ use merchant_core::state::GameState;
 
 use crate::renderer::execute_commands;
 
+pub type TerminalUpdateFn = dyn FnOnce(KeyEvent, &mut GameState) -> UpdateResult<UpdateSignal>;
+
 #[derive(Debug, PartialEq)]
 pub enum UpdateSignal {
     Continue,
@@ -96,57 +98,10 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
     pub fn render_scene_terminal(
         &mut self,
         state: &GameState,
-    ) -> io::Result<Box<dyn FnOnce(KeyEvent, &mut GameState) -> UpdateResult<UpdateSignal>>> {
+    ) -> io::Result<Box<TerminalUpdateFn>> {
         info!("Drawing scene: {:?}", state.mode);
         let writer = &mut *self.writer.borrow_mut();
-        let (commands, update) = render_scene(state)
-            .and_then(|(mut commands, update)| {
-                // wrap core update function with a ctrl+c listener
-                let mut update: Box<
-                    dyn FnOnce(KeyEvent, &mut GameState) -> UpdateResult<UpdateSignal>,
-                > = Box::new(|event: KeyEvent, state: &mut GameState| {
-                    if event.modifiers == terminal_commands::event::KeyModifiers::CONTROL
-                        && event.code == terminal_commands::event::KeyCode::Char('c')
-                    {
-                        return Ok(UpdateSignal::Quit);
-                    }
-                    update(event, state)?;
-                    Ok(UpdateSignal::Continue)
-                });
-                // add message / handlers special for terminal version
-                if state.initialization == Initialization::SplashScreen {
-                    comp!(
-                        commands,
-                        ScreenCenteredText::new(&["ctrl-c to quit at any time".to_owned()], 29),
-                    )?;
-                } else if state.game_end {
-                    comp!(
-                        commands,
-                        ScreenCenteredText::new(
-                            &["(q) to quit, (Enter) to play again".to_owned()],
-                            29
-                        ),
-                    )?;
-                    // in game end case, fully customize update function
-                    update = Box::new(|event: KeyEvent, state: &mut GameState| match event.code {
-                        terminal_commands::event::KeyCode::Char('q') => Ok(UpdateSignal::Quit),
-                        terminal_commands::event::KeyCode::Enter => {
-                            state.restart();
-                            Ok(UpdateSignal::Continue)
-                        }
-                        _ => Ok(UpdateSignal::Continue),
-                    });
-                }
-                Ok((commands, update))
-            })
-            .map_err(|e| {
-                io::Error::new(
-                    io::ErrorKind::Other,
-                    format!("Error rendering scene: {:?}", e),
-                )
-            })?;
-        execute_commands(&commands, writer)?;
-        Ok(update)
+        render_scene_to_writer(writer, state)
     }
 
     pub fn draw_need_resize(&mut self, current_x_cols: u16, current_y_cols: u16) -> io::Result<()> {
@@ -297,4 +252,55 @@ pub fn convert_key_event(event: crossterm::event::KeyEvent) -> terminal_commands
         terminal_commands::event::KeyModifiers::from_bits(event.modifiers.bits())
             .unwrap_or(terminal_commands::event::KeyModifiers::empty()),
     )
+}
+
+pub fn render_scene_to_writer(
+    writer: &mut impl io::Write,
+    state: &GameState,
+) -> io::Result<Box<TerminalUpdateFn>> {
+    let (commands, update) = render_scene(state)
+        .and_then(|(mut commands, update)| {
+            // wrap core update function with a ctrl+c listener
+            let mut update: Box<
+                dyn FnOnce(KeyEvent, &mut GameState) -> UpdateResult<UpdateSignal>,
+            > = Box::new(|event: KeyEvent, state: &mut GameState| {
+                if event.modifiers == terminal_commands::event::KeyModifiers::CONTROL
+                    && event.code == terminal_commands::event::KeyCode::Char('c')
+                {
+                    return Ok(UpdateSignal::Quit);
+                }
+                update(event, state)?;
+                Ok(UpdateSignal::Continue)
+            });
+            // add message / handlers special for terminal version
+            if state.initialization == Initialization::SplashScreen {
+                comp!(
+                    commands,
+                    ScreenCenteredText::new(&["ctrl-c to quit at any time".to_owned()], 29),
+                )?;
+            } else if state.game_end {
+                comp!(
+                    commands,
+                    ScreenCenteredText::new(&["(q) to quit, (Enter) to play again".to_owned()], 29),
+                )?;
+                // in game end case, fully customize update function
+                update = Box::new(|event: KeyEvent, state: &mut GameState| match event.code {
+                    terminal_commands::event::KeyCode::Char('q') => Ok(UpdateSignal::Quit),
+                    terminal_commands::event::KeyCode::Enter => {
+                        state.restart();
+                        Ok(UpdateSignal::Continue)
+                    }
+                    _ => Ok(UpdateSignal::Continue),
+                });
+            }
+            Ok((commands, update))
+        })
+        .map_err(|e| {
+            io::Error::new(
+                io::ErrorKind::Other,
+                format!("Error rendering scene: {:?}", e),
+            )
+        })?;
+    execute_commands(&commands, writer)?;
+    Ok(update)
 }

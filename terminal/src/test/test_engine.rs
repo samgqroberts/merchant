@@ -1,8 +1,7 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::{cell::RefCell, str};
 
-use crate::engine::{convert_key_event, UpdateSignal};
-use crate::Engine;
+use crate::engine::{convert_key_event, render_scene_to_writer, TerminalUpdateFn, UpdateSignal};
 use merchant_core::engine::UpdateResult;
 use merchant_core::state::GameState;
 use raw_format_ansi::raw_format_ansi;
@@ -10,18 +9,18 @@ use raw_format_ansi::raw_format_ansi;
 pub struct TestEngine {
     writer_ref: RefCell<Vec<u8>>,
     game_state: GameState,
+    update: Box<TerminalUpdateFn>,
 }
 
 impl TestEngine {
-    #[allow(unused_must_use)]
-    pub fn from_game_state(mut game_state: GameState) -> UpdateResult<Self> {
+    pub fn from_game_state(game_state: GameState) -> UpdateResult<Self> {
         let writer = Vec::new();
         let writer_box: RefCell<Vec<u8>> = RefCell::from(writer);
-        let mut engine = Engine::new(&writer_box);
-        engine.render_scene_terminal(&mut game_state)?;
+        let update = render_scene_to_writer(&mut *writer_box.borrow_mut(), &game_state).unwrap();
         Ok(Self {
             writer_ref: writer_box,
             game_state,
+            update,
         })
     }
 
@@ -50,14 +49,15 @@ impl TestEngine {
         expectation.to_string()
     }
 
-    #[allow(unused_must_use)]
     pub fn key_event(&mut self, key_event: KeyEvent) -> UpdateResult<UpdateSignal> {
         self.writer_ref.borrow_mut().clear();
-        let mut engine = Engine::new(&self.writer_ref);
-        let update = engine.render_scene_terminal(&mut self.game_state)?;
-        let signal = update(convert_key_event(key_event), &mut self.game_state)?;
-        self.writer_ref.borrow_mut().clear();
-        engine.render_scene_terminal(&mut self.game_state)?;
+        let update = std::mem::replace(
+            &mut self.update,
+            Box::new(|_, _| Ok(UpdateSignal::Continue)),
+        );
+        let signal = update(convert_key_event(key_event), &mut self.game_state).unwrap();
+        self.update =
+            render_scene_to_writer(&mut *self.writer_ref.borrow_mut(), &self.game_state).unwrap();
         Ok(signal)
     }
 
