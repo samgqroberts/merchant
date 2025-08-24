@@ -40,16 +40,6 @@ impl TestEngine {
         result
     }
 
-    pub fn nexpect(&self, expectation: &str) -> bool {
-        let expectation = expectation.trim_matches('\n');
-        let formatted = self.get_current_formatted();
-        let result = !formatted.contains(expectation);
-        if !result {
-            println!("----------------\n{}\n----------------", formatted);
-        }
-        result
-    }
-
     pub fn expect_full(&self, expectation: &str) -> String {
         let expectation = expectation.trim_matches('\n');
         let formatted = self.get_current_formatted();
