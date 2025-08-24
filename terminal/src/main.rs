@@ -5,7 +5,6 @@ mod renderer;
 mod test;
 
 use logging::initialize_logging;
-use merchant_core::engine::UpdateSignal;
 use rand::{rngs::StdRng, SeedableRng};
 use std::cell::RefCell;
 use std::io::Stdout;
@@ -15,7 +14,7 @@ use tracing::{error, info, span, Level};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use merchant_core::state::GameState;
 
-use crate::engine::Engine;
+use crate::engine::{Engine, UpdateSignal};
 
 fn main() -> io::Result<()> {
     initialize_logging();
@@ -53,10 +52,6 @@ fn main() -> io::Result<()> {
                         info!("should_exit indicated, exiting");
                         engine.exit_message(&["Thank you for playing!"])?;
                         break;
-                    }
-                    UpdateSignal::Restart => {
-                        let rng = StdRng::from_entropy();
-                        game_state = GameState::new_std_rng(rng);
                     }
                 }
             }

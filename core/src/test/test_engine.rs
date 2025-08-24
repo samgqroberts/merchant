@@ -5,7 +5,7 @@ use terminal_commands::{
 };
 
 use crate::{
-    engine::{render_scene, UpdateResult, UpdateSignal},
+    engine::{render_scene, UpdateResult},
     state::GameState,
 };
 
@@ -59,7 +59,7 @@ impl TestEngine {
     }
 
     #[allow(unused_must_use)]
-    pub fn keypress(&mut self, key_code: KeyCode) -> UpdateResult<UpdateSignal> {
+    pub fn keypress(&mut self, key_code: KeyCode) -> UpdateResult<()> {
         let (_, update) = render_scene(&self.game_state).unwrap();
         let signal = update(
             KeyEvent::new(key_code, KeyModifiers::empty()),
@@ -70,11 +70,11 @@ impl TestEngine {
         Ok(signal)
     }
 
-    pub fn charpress(&mut self, char: char) -> UpdateResult<UpdateSignal> {
+    pub fn charpress(&mut self, char: char) -> UpdateResult<()> {
         self.keypress(KeyCode::Char(char))
     }
 
-    pub fn enterpress(&mut self) -> UpdateResult<UpdateSignal> {
+    pub fn enterpress(&mut self) -> UpdateResult<()> {
         self.keypress(KeyCode::Enter)
     }
 }

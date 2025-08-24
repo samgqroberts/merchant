@@ -1,6 +1,6 @@
 use merchant_core::{
     components::{RequireResize, ScreenCenteredText, FRAME_HEIGHT, FRAME_WIDTH},
-    engine::{render_scene, UpdateFn, UpdateSignal},
+    engine::{render_scene, UpdateFn},
     state::GameState,
 };
 use terminal_commands::{comp, event::KeyEvent, Commands};
@@ -91,10 +91,10 @@ impl HtmlEngine {
         &mut self,
         event: KeyboardEvent,
         game_state: &mut GameState,
-    ) -> Result<UpdateSignal, JsValue> {
+    ) -> Result<(), JsValue> {
         // don't intervene if meta or ctrl key is pressed
         if event.meta_key() || event.ctrl_key() {
-            return Ok(UpdateSignal::Continue);
+            return Ok(());
         }
 
         // at this point, we handle the keypress, so prevent default browser behavior
@@ -110,7 +110,7 @@ impl HtmlEngine {
                 Err(e) => Err(JsValue::from_str(&format!("Update error: {:?}", e))),
             }
         } else {
-            Ok(UpdateSignal::Continue)
+            Ok(())
         }
     }
 
@@ -147,9 +147,9 @@ pub fn html_render_scene(state: &GameState) -> Result<(HtmlRenderOutput, Box<Upd
         update = Box::new(|event: KeyEvent, state: &mut GameState| match event.code {
             terminal_commands::event::KeyCode::Enter => {
                 state.restart();
-                Ok(UpdateSignal::Continue)
+                Ok(())
             }
-            _ => Ok(UpdateSignal::Continue),
+            _ => Ok(()),
         });
     }
     Ok((render_to_html(&commands), update))

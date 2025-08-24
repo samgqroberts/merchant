@@ -1,12 +1,12 @@
 use crossterm::{
     cursor::{MoveToNextLine, Show},
-    event::{poll, read, Event, KeyCode, KeyEventKind, KeyModifiers},
+    event::{poll, read, Event, KeyCode, KeyEventKind},
     execute,
     style::Print,
 };
 use merchant_core::{
     components::{RequireResize, ScreenCenteredText, FRAME_HEIGHT, FRAME_WIDTH},
-    engine::{render_scene, UpdateError, UpdateFn, UpdateSignal},
+    engine::{render_scene, UpdateError, UpdateResult},
     state::Initialization,
 };
 use std::{
@@ -20,6 +20,12 @@ use tracing::{debug, error, info};
 use merchant_core::state::GameState;
 
 use crate::renderer::execute_commands;
+
+#[derive(Debug, PartialEq)]
+pub enum UpdateSignal {
+    Continue,
+    Quit,
+}
 
 pub struct Engine<'a, Writer: Write> {
     pub writer: &'a RefCell<Writer>,
@@ -49,7 +55,7 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
         // if terminal does not need to be resized draw the game state
         let mut update_fn: Option<_> = None;
         if !require_resize {
-            update_fn = Some(self.draw_scene(game_state)?);
+            update_fn = Some(self.render_scene_terminal(game_state)?);
         }
         // Wait for any user event
         loop {
@@ -65,11 +71,6 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                         if event.kind == KeyEventKind::Press {
                             info!("User Key Press: {:?} {:?}", event.code, event.modifiers);
                             // detect exit request
-                            if event.modifiers == KeyModifiers::CONTROL
-                                && event.code == KeyCode::Char('c')
-                            {
-                                return Ok(UpdateSignal::Quit);
-                            }
                             // update game state (if we have an update_fn, we may not if
                             // terminal needs to be resized)
                             if let Some(update_fn) = update_fn {
@@ -92,11 +93,26 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
         }
     }
 
-    pub fn draw_scene(&mut self, state: &GameState) -> io::Result<Box<UpdateFn>> {
+    pub fn render_scene_terminal(
+        &mut self,
+        state: &GameState,
+    ) -> io::Result<Box<dyn FnOnce(KeyEvent, &mut GameState) -> UpdateResult<UpdateSignal>>> {
         info!("Drawing scene: {:?}", state.mode);
         let writer = &mut *self.writer.borrow_mut();
         let (commands, update) = render_scene(state)
-            .and_then(|(mut commands, mut update)| {
+            .and_then(|(mut commands, update)| {
+                // wrap core update function with a ctrl+c listener
+                let mut update: Box<
+                    dyn FnOnce(KeyEvent, &mut GameState) -> UpdateResult<UpdateSignal>,
+                > = Box::new(|event: KeyEvent, state: &mut GameState| {
+                    if event.modifiers == terminal_commands::event::KeyModifiers::CONTROL
+                        && event.code == terminal_commands::event::KeyCode::Char('c')
+                    {
+                        return Ok(UpdateSignal::Quit);
+                    }
+                    update(event, state)?;
+                    Ok(UpdateSignal::Continue)
+                });
                 // add message / handlers special for terminal version
                 if state.initialization == Initialization::SplashScreen {
                     comp!(
@@ -111,9 +127,13 @@ impl<'a, Writer: Write> Engine<'a, Writer> {
                             29
                         ),
                     )?;
-                    update = Box::new(|event: KeyEvent, _: &mut GameState| match event.code {
+                    // in game end case, fully customize update function
+                    update = Box::new(|event: KeyEvent, state: &mut GameState| match event.code {
                         terminal_commands::event::KeyCode::Char('q') => Ok(UpdateSignal::Quit),
-                        terminal_commands::event::KeyCode::Enter => Ok(UpdateSignal::Restart),
+                        terminal_commands::event::KeyCode::Enter => {
+                            state.restart();
+                            Ok(UpdateSignal::Continue)
+                        }
                         _ => Ok(UpdateSignal::Continue),
                     });
                 }
@@ -274,6 +294,7 @@ pub fn convert_key_event(event: crossterm::event::KeyEvent) -> terminal_commands
                 })
             }
         },
-        terminal_commands::event::KeyModifiers::empty(), // todo
+        terminal_commands::event::KeyModifiers::from_bits(event.modifiers.bits())
+            .unwrap_or(terminal_commands::event::KeyModifiers::empty()),
     )
 }

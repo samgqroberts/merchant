@@ -1,9 +1,9 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::{cell::RefCell, str};
 
-use crate::engine::convert_key_event;
+use crate::engine::{convert_key_event, UpdateSignal};
 use crate::Engine;
-use merchant_core::engine::{UpdateResult, UpdateSignal};
+use merchant_core::engine::UpdateResult;
 use merchant_core::state::GameState;
 use raw_format_ansi::raw_format_ansi;
 
@@ -18,7 +18,7 @@ impl TestEngine {
         let writer = Vec::new();
         let writer_box: RefCell<Vec<u8>> = RefCell::from(writer);
         let mut engine = Engine::new(&writer_box);
-        engine.draw_scene(&mut game_state)?;
+        engine.render_scene_terminal(&mut game_state)?;
         Ok(Self {
             writer_ref: writer_box,
             game_state,
@@ -61,24 +61,21 @@ impl TestEngine {
     }
 
     #[allow(unused_must_use)]
-    pub fn keypress(&mut self, key_code: KeyCode) -> UpdateResult<UpdateSignal> {
+    pub fn key_event(&mut self, key_event: KeyEvent) -> UpdateResult<UpdateSignal> {
         self.writer_ref.borrow_mut().clear();
         let mut engine = Engine::new(&self.writer_ref);
-        let update = engine.draw_scene(&mut self.game_state)?;
-        let signal = update(
-            convert_key_event(KeyEvent::new(key_code, KeyModifiers::empty())),
-            &mut self.game_state,
-        )?;
+        let update = engine.render_scene_terminal(&mut self.game_state)?;
+        let signal = update(convert_key_event(key_event), &mut self.game_state)?;
         self.writer_ref.borrow_mut().clear();
-        engine.draw_scene(&mut self.game_state)?;
+        engine.render_scene_terminal(&mut self.game_state)?;
         Ok(signal)
     }
 
     pub fn charpress(&mut self, char: char) -> UpdateResult<UpdateSignal> {
-        self.keypress(KeyCode::Char(char))
+        self.key_event(KeyEvent::new(KeyCode::Char(char), KeyModifiers::empty()))
     }
 
     pub fn enterpress(&mut self) -> UpdateResult<UpdateSignal> {
-        self.keypress(KeyCode::Enter)
+        self.key_event(KeyEvent::new(KeyCode::Enter, KeyModifiers::empty()))
     }
 }

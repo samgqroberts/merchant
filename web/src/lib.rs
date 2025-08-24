@@ -1,4 +1,3 @@
-use merchant_core::engine::UpdateSignal;
 use merchant_core::state::GameState;
 use rand::{rngs::StdRng, SeedableRng};
 use std::cell::RefCell;
@@ -91,20 +90,10 @@ fn setup_keyboard_listener() -> Result<(), JsValue> {
 
                 if let (Some(engine), Some(state)) = (engine_opt.as_mut(), state_opt.as_mut()) {
                     match engine.handle_key_event(event, state) {
-                        Ok(signal) => {
-                            match signal {
-                                UpdateSignal::Continue => {
-                                    // Redraw the scene
-                                    if let Err(e) = draw_game(engine, state) {
-                                        log_error(&format!("Error drawing game: {:?}", e));
-                                    }
-                                }
-                                UpdateSignal::Quit => {
-                                    log_error("Game quit requested, but web version does not handle this.");
-                                }
-                                UpdateSignal::Restart => {
-                                    log_error("Game restart requested, but web version does not handle this.");
-                                }
+                        Ok(()) => {
+                            // Redraw the scene
+                            if let Err(e) = draw_game(engine, state) {
+                                log_error(&format!("Error drawing game: {:?}", e));
                             }
                         }
                         Err(e) => {

@@ -1,13 +1,17 @@
 use std::num::Saturating;
 
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use pretty_assertions::assert_eq;
 
+use crate::engine::UpdateSignal;
 use crate::test::test_engine::TestEngine;
-use merchant_core::engine::{UpdateResult, UpdateSignal};
+use merchant_core::engine::UpdateResult;
 use merchant_core::state::{
     GameState, Good, LocationEvent, Mode, NoEffectEvent, PirateEncounterInfo, Transaction,
 };
-use merchant_core::test::rng::{default_location_info, MockRng};
+use merchant_core::test::rng::{
+    default_location_config, default_location_info, default_location_infos, MockRng,
+};
 
 #[test]
 fn splash_screen_into_inventory() -> UpdateResult<()> {
@@ -135,6 +139,19 @@ fn splash_screen_into_inventory() -> UpdateResult<()> {
 .~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'~.~'
 "###,
         )
+    );
+    Ok(())
+}
+
+#[test]
+fn splash_screen_ctrl_c() -> UpdateResult<()> {
+    let mut e = TestEngine::from_game_state({
+        GameState::new(MockRng::new_with_default_locations().into())
+    })?;
+    assert!(e.expect("Press any key to begin"));
+    assert_eq!(
+        e.key_event(KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL))?,
+        UpdateSignal::Quit
     );
     Ok(())
 }
@@ -268,7 +285,12 @@ fn end_game_quit() -> UpdateResult<()> {
 #[test]
 fn end_game_restart() -> UpdateResult<()> {
     let mut e = TestEngine::from_game_state({
-        let mut state = GameState::new(MockRng::new_with_default_locations().into());
+        let mut state = GameState::new(
+            MockRng::new_with_default_locations()
+                .push_location_config(default_location_config())
+                .push_location_infos(&default_location_infos())
+                .into(),
+        );
         state.introduction_to_game();
         state.gold = Saturating(100);
         state.debt = Saturating(40000);
@@ -276,7 +298,8 @@ fn end_game_restart() -> UpdateResult<()> {
         state
     })?;
     assert!(e.expect("(Enter) to play again"));
-    assert_eq!(e.enterpress()?, UpdateSignal::Restart,);
+    assert_eq!(e.enterpress()?, UpdateSignal::Continue);
+    assert!(e.expect("Press any key to begin"));
     Ok(())
 }
 

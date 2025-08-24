@@ -4,7 +4,7 @@ use terminal_commands::event::{KeyCode, KeyEvent, KeyModifiers};
 use crate::html_engine::html_render_scene;
 use crate::html_renderer::HtmlRenderOutput;
 use crate::test::raw_parse_html::parse_html_to_raw_text;
-use merchant_core::engine::{UpdateFn, UpdateResult, UpdateSignal};
+use merchant_core::engine::{UpdateFn, UpdateResult};
 use merchant_core::state::GameState;
 
 pub struct TestEngine {
@@ -62,10 +62,7 @@ impl TestEngine {
     pub fn keypress(&mut self, key_code: KeyCode) -> UpdateResult<()> {
         // replace this engine's update with a dummy update function
         // so we can use (consume) the actual update function
-        let update = std::mem::replace(
-            &mut self.update,
-            Box::new(|_, _| Ok(UpdateSignal::Continue)),
-        );
+        let update = std::mem::replace(&mut self.update, Box::new(|_, _| Ok(())));
         let _ = update(
             KeyEvent::new(key_code, KeyModifiers::empty()),
             &mut self.game_state,

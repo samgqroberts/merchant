@@ -38,16 +38,9 @@ impl From<StateError> for UpdateError {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub enum UpdateSignal {
-    Continue,
-    Quit,
-    Restart,
-}
-
 pub type UpdateResult<T> = Result<T, UpdateError>;
 
-pub type UpdateFn = dyn FnOnce(KeyEvent, &mut GameState) -> UpdateResult<UpdateSignal>;
+pub type UpdateFn = dyn FnOnce(KeyEvent, &mut GameState) -> UpdateResult<()>;
 
 trait FromKeyCode
 where
@@ -101,14 +94,14 @@ pub fn render_scene_to_existing(
         comp!(commands, SplashScreen())?;
         Ok(Box::new(|_: KeyEvent, state: &mut GameState| {
             state.splash_to_introduction();
-            Ok(UpdateSignal::Continue)
+            Ok(())
         }))
     } else if state.game_end {
         comp!(commands, GameEndScreen(state))?;
         Ok(Box::new(|_: KeyEvent, _: &mut GameState| {
             // core logic does not handle game quitting / restarting
             // do nothing here
-            Ok(UpdateSignal::Continue)
+            Ok(())
         }))
     } else if let Mode::GameEvent(LocationEvent::PirateEncounter(pirate_encounter_state)) =
         &state.mode
@@ -155,7 +148,7 @@ pub fn render_scene_to_existing(
                     state.proceed_pirate_encounter_victory()?;
                 }
             }
-            Ok(UpdateSignal::Continue)
+            Ok(())
         }));
     } else if state.initialization == Initialization::Introduction {
         // introduction screen
@@ -168,7 +161,7 @@ pub fn render_scene_to_existing(
         )?;
         Ok(Box::new(|_: KeyEvent, state: &mut GameState| {
             state.introduction_to_game();
-            Ok(UpdateSignal::Continue)
+            Ok(())
         }))
     } else {
         comp!(commands, ViewingInventoryBase(state))?;
@@ -206,7 +199,7 @@ pub fn render_scene_to_existing(
                             }
                         }
                     }
-                    Ok(UpdateSignal::Continue)
+                    Ok(())
                 }));
             }
             Mode::Buying(info) => {
@@ -222,16 +215,12 @@ pub fn render_scene_to_existing(
                         } else if event.code == KeyCode::Backspace {
                             state.user_typed_backspace()?;
                         } else if event.code == KeyCode::Enter {
-                            return state.commit_buy().map(|_| UpdateSignal::Continue).or_else(
-                                |e| match e {
-                                    StateError::CannotAfford | StateError::InsufficientHold => {
-                                        Ok(UpdateSignal::Continue)
-                                    }
-                                    x => Err(x.into()),
-                                },
-                            );
+                            return state.commit_buy().map(|_| ()).or_else(|e| match e {
+                                StateError::CannotAfford | StateError::InsufficientHold => Ok(()),
+                                x => Err(x.into()),
+                            });
                         }
-                        Ok(UpdateSignal::Continue)
+                        Ok(())
                     }));
                 } else {
                     comp!(commands, BuyPrompt)?;
@@ -243,7 +232,7 @@ pub fn render_scene_to_existing(
                         } else if event.code == KeyCode::Backspace {
                             state.cancel_buy()?;
                         }
-                        Ok(UpdateSignal::Continue)
+                        Ok(())
                     }));
                 }
             }
@@ -262,14 +251,12 @@ pub fn render_scene_to_existing(
                         } else if event.code == KeyCode::Backspace {
                             state.user_typed_backspace()?;
                         } else if event.code == KeyCode::Enter {
-                            return state.commit_sell().map(|_| UpdateSignal::Continue).or_else(
-                                |e| match e {
-                                    StateError::InsufficientInventory => Ok(UpdateSignal::Continue),
-                                    x => Err(x.into()),
-                                },
-                            );
+                            return state.commit_sell().map(|_| ()).or_else(|e| match e {
+                                StateError::InsufficientInventory => Ok(()),
+                                x => Err(x.into()),
+                            });
                         }
-                        Ok(UpdateSignal::Continue)
+                        Ok(())
                     }));
                 } else {
                     // user is choosing which good to sell
@@ -282,7 +269,7 @@ pub fn render_scene_to_existing(
                         } else if event.code == KeyCode::Backspace {
                             state.cancel_sell()?;
                         }
-                        Ok(UpdateSignal::Continue)
+                        Ok(())
                     }));
                 }
             }
@@ -295,15 +282,15 @@ pub fn render_scene_to_existing(
                     } else if let Some(destination) = Location::from_key_code(&event.code) {
                         return state
                             .sail_to(&destination)
-                            .map(|_| UpdateSignal::Continue)
+                            .map(|_| ())
                             .or_else(|e| match e {
-                                StateError::AlreadyInLocation => Ok(UpdateSignal::Continue),
+                                StateError::AlreadyInLocation => Ok(()),
                                 x => Err(x.into()),
                             });
                     } else if event.code == KeyCode::Backspace {
                         state.cancel_sail_to()?;
                     }
-                    Ok(UpdateSignal::Continue)
+                    Ok(())
                 }));
             }
             Mode::StashDeposit(info) => {
@@ -326,13 +313,13 @@ pub fn render_scene_to_existing(
                         if event.code == KeyCode::Enter {
                             return state
                                 .commit_stash_deposit()
-                                .map(|_| UpdateSignal::Continue)
+                                .map(|_| ())
                                 .or_else(|e| match e {
-                                    StateError::InsufficientInventory => Ok(UpdateSignal::Continue),
+                                    StateError::InsufficientInventory => Ok(()),
                                     x => Err(x.into()),
                                 });
                         }
-                        Ok(UpdateSignal::Continue)
+                        Ok(())
                     }));
                 } else {
                     // user is choosing which good to stash
@@ -345,7 +332,7 @@ pub fn render_scene_to_existing(
                         } else if event.code == KeyCode::Backspace {
                             state.cancel_stash_deposit()?;
                         }
-                        Ok(UpdateSignal::Continue)
+                        Ok(())
                     }));
                 }
             }
@@ -365,15 +352,14 @@ pub fn render_scene_to_existing(
                         } else if event.code == KeyCode::Backspace {
                             state.user_typed_backspace()?;
                         } else if event.code == KeyCode::Enter {
-                            return state
-                                .commit_stash_withdraw()
-                                .map(|_| UpdateSignal::Continue)
-                                .or_else(|e| match e {
-                                    StateError::InsufficientStash => Ok(UpdateSignal::Continue),
+                            return state.commit_stash_withdraw().map(|_| ()).or_else(
+                                |e| match e {
+                                    StateError::InsufficientStash => Ok(()),
                                     x => Err(x.into()),
-                                });
+                                },
+                            );
                         }
-                        Ok(UpdateSignal::Continue)
+                        Ok(())
                     }));
                 } else {
                     // user is choosing which good to withdraw from stash
@@ -386,7 +372,7 @@ pub fn render_scene_to_existing(
                         } else if event.code == KeyCode::Backspace {
                             state.cancel_stash_withdraw()?;
                         }
-                        Ok(UpdateSignal::Continue)
+                        Ok(())
                     }));
                 }
             }
@@ -402,18 +388,13 @@ pub fn render_scene_to_existing(
                     } else if event.code == KeyCode::Backspace {
                         state.user_typed_backspace()?;
                     } else if event.code == KeyCode::Enter {
-                        return state
-                            .commit_pay_debt()
-                            .map(|_| UpdateSignal::Continue)
-                            .or_else(|e| match e {
-                                StateError::PayDownAmountHigherThanDebt => {
-                                    Ok(UpdateSignal::Continue)
-                                }
-                                StateError::CannotAfford => Ok(UpdateSignal::Continue),
-                                x => Err(x.into()),
-                            });
+                        return state.commit_pay_debt().map(|_| ()).or_else(|e| match e {
+                            StateError::PayDownAmountHigherThanDebt => Ok(()),
+                            StateError::CannotAfford => Ok(()),
+                            x => Err(x.into()),
+                        });
                     }
-                    Ok(UpdateSignal::Continue)
+                    Ok(())
                 }));
             }
             Mode::BankDeposit(amount) => {
@@ -430,13 +411,13 @@ pub fn render_scene_to_existing(
                     } else if event.code == KeyCode::Enter {
                         return state
                             .commit_bank_deposit()
-                            .map(|_| UpdateSignal::Continue)
+                            .map(|_| ())
                             .or_else(|e| match e {
-                                StateError::CannotAfford => Ok(UpdateSignal::Continue),
+                                StateError::CannotAfford => Ok(()),
                                 x => Err(x.into()),
                             });
                     }
-                    Ok(UpdateSignal::Continue)
+                    Ok(())
                 }));
             }
             Mode::BankWithdraw(amount) => {
@@ -453,13 +434,13 @@ pub fn render_scene_to_existing(
                     } else if event.code == KeyCode::Enter {
                         return state
                             .commit_bank_withdraw()
-                            .map(|_| UpdateSignal::Continue)
+                            .map(|_| ())
                             .or_else(|e| match e {
-                                StateError::InsufficientBank => Ok(UpdateSignal::Continue),
+                                StateError::InsufficientBank => Ok(()),
                                 x => Err(x.into()),
                             });
                     }
-                    Ok(UpdateSignal::Continue)
+                    Ok(())
                 }));
             }
             Mode::GameEvent(event) => match event {
@@ -467,14 +448,14 @@ pub fn render_scene_to_existing(
                     comp!(commands, CheapGoodDialog(good))?;
                     return Ok(Box::new(|_: KeyEvent, state: &mut GameState| {
                         state.acknowledge_event()?;
-                        Ok(UpdateSignal::Continue)
+                        Ok(())
                     }));
                 }
                 LocationEvent::ExpensiveGood(good) => {
                     comp!(commands, ExpensiveGoodDialog(good))?;
                     return Ok(Box::new(|_: KeyEvent, state: &mut GameState| {
                         state.acknowledge_event()?;
-                        Ok(UpdateSignal::Continue)
+                        Ok(())
                     }));
                 }
                 LocationEvent::FindGoods(good, amount) => {
@@ -488,7 +469,7 @@ pub fn render_scene_to_existing(
                             state.inventory.add_good(&good, amount_to_add);
                         }
                         state.acknowledge_event()?;
-                        Ok(UpdateSignal::Continue)
+                        Ok(())
                     }));
                 }
                 LocationEvent::GoodsStolen(info) => {
@@ -500,7 +481,7 @@ pub fn render_scene_to_existing(
                     return Ok(Box::new(move |_: KeyEvent, state: &mut GameState| {
                         state.remove_stolen_goods(info);
                         state.acknowledge_event()?;
-                        Ok(UpdateSignal::Continue)
+                        Ok(())
                     }));
                 }
                 LocationEvent::CanBuyCannon => {
@@ -513,7 +494,7 @@ pub fn render_scene_to_existing(
                                 state.acknowledge_event()?;
                             }
                         }
-                        Ok(UpdateSignal::Continue)
+                        Ok(())
                     }));
                 }
                 LocationEvent::PirateEncounter(_) => {
@@ -531,14 +512,14 @@ pub fn render_scene_to_existing(
                                 state.acknowledge_event()?;
                             }
                         }
-                        Ok(UpdateSignal::Continue)
+                        Ok(())
                     }));
                 }
                 LocationEvent::NoEffect(variant) => {
                     comp!(commands, NoEffect { variant: *variant })?;
                     return Ok(Box::new(move |_: KeyEvent, state: &mut GameState| {
                         state.acknowledge_event()?;
-                        Ok(UpdateSignal::Continue)
+                        Ok(())
                     }));
                 }
             },
