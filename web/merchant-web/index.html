@@ -17,23 +17,21 @@
                 justify-content: center;
                 align-items: center;
                 min-height: 100vh;
+                width: 100%;
             }
             #game-container {
-                text-align: center;
-                max-width: 100%;
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                overflow: auto;
             }
             #game-display {
                 position: relative;
                 font-family: "Courier New", monospace;
-                font-size: 14px;
-                line-height: 1.2;
-                margin: 0 auto;
                 white-space: pre;
                 text-align: left;
-                min-width: 80ch;
-                min-height: 40em;
-                max-width: 100%;
-                overflow: hidden;
+                display: inline-block;
+                width: auto;
             }
             #cursor {
                 position: absolute;

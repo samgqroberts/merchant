@@ -64,16 +64,7 @@ pub fn start() -> Result<(), JsValue> {
 }
 
 fn draw_game(engine: &mut HtmlEngine, state: &mut GameState) -> Result<(), JsValue> {
-    // Check if terminal needs resizing
-    let (needs_resize, width, height) = engine.check_terminal_size();
-
-    if needs_resize {
-        engine.draw_need_resize(width, height)?;
-    } else {
-        engine.draw_scene(state)?;
-    }
-
-    Ok(())
+    engine.draw_scene(state)
 }
 
 fn setup_keyboard_listener() -> Result<(), JsValue> {

@@ -1,24 +1,37 @@
+use std::cell::RefCell;
+
 use merchant_core::{
-    components::{RequireResize, ScreenCenteredText, FRAME_HEIGHT, FRAME_WIDTH},
+    components::{ScreenCenteredText, FRAME_HEIGHT, FRAME_WIDTH},
     engine::{render_scene, UpdateFn},
     state::GameState,
 };
-use terminal_commands::{comp, event::KeyEvent, Commands};
+use terminal_commands::{comp, event::KeyEvent};
 use wasm_bindgen::prelude::*;
+use wasm_bindgen::{closure::Closure, JsCast};
 use web_sys::{HtmlDivElement, KeyboardEvent, Window};
 
-use crate::html_renderer::{render_to_html, HtmlRenderOutput};
+use crate::{
+    html_renderer::{render_to_html, HtmlRenderOutput},
+    log, log_error,
+};
+
+const MIN_FONT_SIZE: u16 = 6;
+const MAX_FONT_SIZE: u16 = 16;
+const DEFAULT_FONT_SIZE: u16 = 14;
 
 pub struct HtmlEngine {
-    window: Window,
-    game_display_el: HtmlDivElement,
+    window: RefCell<Window>,
+    game_display_el: RefCell<HtmlDivElement>,
+    font_size: RefCell<u16>,
     update_fn: Option<Box<UpdateFn>>,
+    checked_window_size_after_initial_draw: bool,
 }
 
 impl HtmlEngine {
     pub fn new() -> Result<Self, JsValue> {
         let window = web_sys::window().ok_or("no global window")?;
         let document = window.document().ok_or("no document")?;
+        let font_size = RefCell::new(DEFAULT_FONT_SIZE);
 
         // Find or create the pre element for displaying the game
         let game_display_el = match document.get_element_by_id("game-display") {
@@ -30,17 +43,44 @@ impl HtmlEngine {
                     .create_element("pre")?
                     .dyn_into::<HtmlDivElement>()?;
                 game_display_el.set_id("game-display");
+                game_display_el
+                    .set_attribute("style", &format!("font-size: {}px", *font_size.borrow()))?;
 
                 let body = document.body().ok_or("no body")?;
                 body.append_child(&game_display_el)?;
                 game_display_el
             }
         };
+        let game_display_el = RefCell::new(game_display_el);
+        let window = RefCell::new(window);
+
+        // Set up window resize listener
+        let window_clone = window.clone();
+        let game_display_el_clone = game_display_el.clone();
+        let font_size_clone = font_size.clone();
+        let resize_callback = Closure::wrap(Box::new(move || {
+            if let Err(e) = update_font_size(
+                &*window_clone.borrow(),
+                &*game_display_el_clone.borrow(),
+                &mut *font_size_clone.borrow_mut(),
+            ) {
+                log_error(&format!("Error updating font size: {:?}", e));
+            }
+        }) as Box<dyn Fn()>);
+
+        window
+            .borrow()
+            .add_event_listener_with_callback("resize", resize_callback.as_ref().unchecked_ref())?;
+
+        // Keep the closure alive
+        resize_callback.forget();
 
         Ok(Self {
             window,
             game_display_el,
+            font_size,
             update_fn: None,
+            checked_window_size_after_initial_draw: false,
         })
     }
 
@@ -50,9 +90,11 @@ impl HtmlEngine {
 
         let mut inner_html = render_result.html;
 
+        let game_display_el = self.game_display_el.borrow();
+
         if render_result.show_cursor {
-            let height = self.game_display_el.client_height();
-            let width = self.game_display_el.client_width();
+            let height = game_display_el.client_height();
+            let width = game_display_el.client_width();
             let char_height = height / FRAME_HEIGHT as i32;
             let char_width = width / FRAME_WIDTH as i32;
             let (cursor_x, cursor_y) = render_result.cursor;
@@ -64,26 +106,18 @@ impl HtmlEngine {
         }
 
         // Convert the rendered text to HTML
-        self.game_display_el.set_inner_html(&inner_html);
+        game_display_el.set_inner_html(&inner_html);
+
+        if !self.checked_window_size_after_initial_draw {
+            self.checked_window_size_after_initial_draw = true;
+            update_font_size(
+                &*self.window.borrow(),
+                &*game_display_el,
+                &mut *self.font_size.borrow_mut(),
+            )?;
+        }
 
         self.update_fn = Some(update);
-        Ok(())
-    }
-
-    pub fn draw_need_resize(&self, current_width: u16, current_height: u16) -> Result<(), JsValue> {
-        let mut commands = Commands::new();
-        comp!(
-            commands,
-            RequireResize {
-                current_x_cols: current_width,
-                current_y_cols: current_height,
-            }
-        )
-        .map_err(|e| JsValue::from_str(&format!("Error rendering resize: {:?}", e)))?;
-
-        let render_result = render_to_html(&commands);
-        self.game_display_el.set_inner_html(&render_result.html);
-
         Ok(())
     }
 
@@ -112,28 +146,6 @@ impl HtmlEngine {
         } else {
             Ok(())
         }
-    }
-
-    pub fn check_terminal_size(&self) -> (bool, u16, u16) {
-        // For web, we can estimate based on viewport size
-        // Assuming each character is about 8px wide and 16px tall
-        let width = (self
-            .window
-            .inner_width()
-            .ok()
-            .and_then(|v| v.as_f64())
-            .unwrap_or(800.0)
-            / 8.0) as u16;
-        let height = (self
-            .window
-            .inner_height()
-            .ok()
-            .and_then(|v| v.as_f64())
-            .unwrap_or(600.0)
-            / 16.0) as u16;
-
-        let needs_resize = width < FRAME_WIDTH || height < FRAME_HEIGHT;
-        (needs_resize, width, height)
     }
 }
 
@@ -199,4 +211,40 @@ pub fn convert_web_key_event(event: &KeyboardEvent) -> terminal_commands::event:
     }
 
     terminal_commands::event::KeyEvent::new(code, modifiers)
+}
+
+pub fn update_font_size(
+    window: impl AsRef<Window>,
+    game_display_el: impl AsRef<HtmlDivElement>,
+    font_size: &mut u16,
+) -> Result<(), JsValue> {
+    let window = window.as_ref();
+    let game_display_el = game_display_el.as_ref();
+    let mut tried_down = false;
+    loop {
+        let game_display_width = game_display_el.client_width() as f64;
+        let window_display_width: f64 = window
+            .inner_width()?
+            .as_f64()
+            .ok_or(JsValue::from_str("Failed to get window width"))?;
+        if game_display_width > window_display_width {
+            if *font_size <= MIN_FONT_SIZE {
+                break;
+            }
+            tried_down = true;
+            *font_size -= 1;
+            log(&format!("Decreasing font size to {}", font_size));
+            game_display_el.set_attribute("style", &format!("font-size: {}px", font_size))?;
+        } else if (game_display_width + 80f64) < window_display_width {
+            if tried_down || *font_size >= MAX_FONT_SIZE {
+                break;
+            }
+            *font_size += 1;
+            log(&format!("Increasing font size to {}", font_size));
+            game_display_el.set_attribute("style", &format!("font-size: {}px", font_size))?;
+        } else {
+            break;
+        }
+    }
+    Ok(())
 }
