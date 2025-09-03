@@ -92,10 +92,13 @@ pub fn render_to_html(commands: &Commands) -> HtmlRenderOutput {
 
     let mut html = String::new();
     for (line_num, line) in chars.iter().enumerate() {
-        for char in line {
-            html.push_str(&render_printable_to_html(&Printable::StyledContent(
-                (*char).into(),
-            )));
+        for (col_num, char) in line.iter().enumerate() {
+            let is_shown_cursor =
+                col_num == cursor_x.into() && line_num == cursor_y.into() && show_cursor;
+            html.push_str(&render_printable_to_html(
+                &Printable::StyledContent((*char).into()),
+                is_shown_cursor,
+            ));
         }
         if line_num < chars.len() - 1 {
             html.push_str("<br />");
@@ -109,7 +112,7 @@ pub fn render_to_html(commands: &Commands) -> HtmlRenderOutput {
     }
 }
 
-fn render_printable_to_html(printable: &Printable) -> String {
+fn render_printable_to_html(printable: &Printable, is_shown_cursor: bool) -> String {
     let (content, style) = match printable {
         Printable::String(s) => (escape_html(s), ContentStyle::default()),
         Printable::Char(c) => (escape_html(&c.to_string()), ContentStyle::default()),
@@ -117,6 +120,10 @@ fn render_printable_to_html(printable: &Printable) -> String {
     };
     let mut classes = Vec::new();
     let mut inline_styles = Vec::new();
+
+    if is_shown_cursor {
+        classes.push("cursor-after");
+    }
 
     // Handle text attributes
     if style.attributes.has(Attribute::Bold) {

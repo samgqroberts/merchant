@@ -46,14 +46,7 @@
                 line-height: 1ch;
                 text-align: center;
                 vertical-align: middle;
-            }
-            #cursor {
-                position: absolute;
-                width: 0.5em;
-                height: 1em;
-                background-color: #fff;
-                pointer-events: none;
-                animation: blink 1s infinite;
+                text-decoration: inherit;
             }
             @keyframes blink {
                 0% { opacity: 1; }
@@ -65,6 +58,20 @@
             }
             .bold {
                 font-weight: bold;
+            }
+            .cursor-after {
+                position: relative;
+            }
+            .cursor-after::after {
+                content: '';
+                display: inline-block;
+                position: absolute;
+                left: 0;
+                bottom: 1px;
+                width: 0.5em;
+                height: 1em;
+                background-color: #fff;
+                animation: blink 1s infinite;
             }
             #footer {
                 margin-top: 40px;

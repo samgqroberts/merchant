@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 
 use merchant_core::{
-    components::{ScreenCenteredText, FRAME_HEIGHT, FRAME_WIDTH},
+    components::ScreenCenteredText,
     engine::{render_scene, UpdateFn},
     state::GameState,
 };
@@ -88,22 +88,9 @@ impl HtmlEngine {
         let (render_result, update) = html_render_scene(state)
             .map_err(|e| JsValue::from_str(&format!("Error rendering scene: {:?}", e)))?;
 
-        let mut inner_html = render_result.html;
+        let inner_html = render_result.html;
 
         let game_display_el = self.game_display_el.borrow();
-
-        if render_result.show_cursor {
-            let height = game_display_el.client_height();
-            let width = game_display_el.client_width();
-            let char_height = height / FRAME_HEIGHT as i32;
-            let char_width = width / FRAME_WIDTH as i32;
-            let (cursor_x, cursor_y) = render_result.cursor;
-            inner_html.push_str(&format!(
-                "<div id=\"cursor\" style=\"top: {}px; left: {}px;\"></div>",
-                cursor_y as i32 * char_height - 4,
-                (cursor_x as i32 + 2) * char_width
-            ));
-        }
 
         // Convert the rendered text to HTML
         game_display_el.set_inner_html(&inner_html);
