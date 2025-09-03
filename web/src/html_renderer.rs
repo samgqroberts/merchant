@@ -110,50 +110,47 @@ pub fn render_to_html(commands: &Commands) -> HtmlRenderOutput {
 }
 
 fn render_printable_to_html(printable: &Printable) -> String {
-    match printable {
-        Printable::String(s) => escape_html(s),
-        Printable::Char(c) => escape_html(&c.to_string()),
-        Printable::StyledContent(styled) => {
-            let mut classes = Vec::new();
-            let mut inline_styles = Vec::new();
+    let (content, style) = match printable {
+        Printable::String(s) => (escape_html(s), ContentStyle::default()),
+        Printable::Char(c) => (escape_html(&c.to_string()), ContentStyle::default()),
+        Printable::StyledContent(styled) => (escape_html(&styled.content), styled.style),
+    };
+    let mut classes = Vec::new();
+    let mut inline_styles = Vec::new();
 
-            // Handle text attributes
-            if styled.style.attributes.has(Attribute::Bold) {
-                classes.push("bold");
-            }
-            if styled.style.attributes.has(Attribute::Underlined) {
-                classes.push("underline");
-            }
+    // Handle text attributes
+    if style.attributes.has(Attribute::Bold) {
+        classes.push("bold");
+    }
+    if style.attributes.has(Attribute::Underlined) {
+        classes.push("underline");
+    }
 
-            // Handle colors
-            if let Some(fg) = &styled.style.foreground_color {
-                inline_styles.push(format!("color: {}", color_to_css(*fg)));
-            }
-            if let Some(bg) = &styled.style.background_color {
-                inline_styles.push(format!("background-color: {}", color_to_css(*bg)));
-            }
-            if let Some(ul) = &styled.style.underline_color {
-                inline_styles.push(format!("text-decoration-color: {}", color_to_css(*ul)));
-            }
+    // Handle colors
+    if let Some(fg) = &style.foreground_color {
+        inline_styles.push(format!("color: {}", color_to_css(*fg)));
+    }
+    if let Some(bg) = &style.background_color {
+        inline_styles.push(format!("background-color: {}", color_to_css(*bg)));
+    }
+    if let Some(ul) = &style.underline_color {
+        inline_styles.push(format!("text-decoration-color: {}", color_to_css(*ul)));
+    }
 
-            let escaped_content = escape_html(styled.content());
+    if classes.is_empty() && inline_styles.is_empty() {
+        content
+    } else {
+        let mut span_attrs = Vec::new();
 
-            if classes.is_empty() && inline_styles.is_empty() {
-                escaped_content
-            } else {
-                let mut span_attrs = Vec::new();
-
-                if !classes.is_empty() {
-                    span_attrs.push(format!("class=\"{}\"", classes.join(" ")));
-                }
-
-                if !inline_styles.is_empty() {
-                    span_attrs.push(format!("style=\"{}\"", inline_styles.join("; ")));
-                }
-
-                format!("<span {}>{}</span>", span_attrs.join(" "), escaped_content)
-            }
+        if !classes.is_empty() {
+            span_attrs.push(format!("class=\"{}\"", classes.join(" ")));
         }
+
+        if !inline_styles.is_empty() {
+            span_attrs.push(format!("style=\"{}\"", inline_styles.join("; ")));
+        }
+
+        format!("<span {}>{}</span>", span_attrs.join(" "), content)
     }
 }
 
@@ -169,6 +166,9 @@ fn escape_html(text: &str) -> String {
             '\n' => "<br />".to_string(),
             c => c.to_string(),
         })
+        // wrap every individual character in a span element
+        // with a class that enforces that complex unicode characters should still be 1 character wide
+        .map(|x| format!("<span class=\"char\">{}</span>", x))
         .collect()
 }
 
@@ -232,7 +232,7 @@ mod tests {
         assert_eq!(
             result,
             HtmlRenderOutput {
-                html: "Hello,&nbsp;World!".to_string(),
+                html: "<span class=\"char\">H</span><span class=\"char\">e</span><span class=\"char\">l</span><span class=\"char\">l</span><span class=\"char\">o</span><span class=\"char\">,</span><span class=\"char\">&nbsp;</span><span class=\"char\">W</span><span class=\"char\">o</span><span class=\"char\">r</span><span class=\"char\">l</span><span class=\"char\">d</span><span class=\"char\">!</span>".to_string(),
                 cursor: (13, 0),
                 show_cursor: false,
             }
@@ -256,7 +256,7 @@ mod tests {
         assert_eq!(
             result,
             HtmlRenderOutput {
-                html: "<br />&nbsp;&nbsp;&nbsp;&nbsp;Y<br />&nbsp;&nbsp;Z&nbsp;&nbsp;X".to_string(),
+                html: "<br /><span class=\"char\">&nbsp;</span><span class=\"char\">&nbsp;</span><span class=\"char\">&nbsp;</span><span class=\"char\">&nbsp;</span><span class=\"char\">Y</span><br /><span class=\"char\">&nbsp;</span><span class=\"char\">&nbsp;</span><span class=\"char\">Z</span><span class=\"char\">&nbsp;</span><span class=\"char\">&nbsp;</span><span class=\"char\">X</span>".to_string(),
                 cursor: (3, 2),
                 show_cursor: false,
             }
@@ -279,7 +279,7 @@ mod tests {
         assert_eq!(
             result,
             HtmlRenderOutput {
-                html: "AB&nbsp;<span class=\"bold\">C</span><span class=\"bold\">D</span>&nbsp;<span class=\"underline\">E</span><span class=\"underline\">F</span>".to_string(),
+                html: "<span class=\"char\">A</span><span class=\"char\">B</span><span class=\"char\">&nbsp;</span><span class=\"bold\"><span class=\"char\">C</span></span><span class=\"bold\"><span class=\"char\">D</span></span><span class=\"char\">&nbsp;</span><span class=\"underline\"><span class=\"char\">E</span></span><span class=\"underline\"><span class=\"char\">F</span></span>".to_string(),
                 cursor: (8, 0),
                 show_cursor: false,
             }
@@ -300,7 +300,7 @@ mod tests {
         assert_eq!(
             result,
             HtmlRenderOutput {
-                html: "<span style=\"color: red\">A</span><span style=\"color: red\">B</span>&nbsp;<span style=\"color: #00f\">C</span><span style=\"color: #00f\">D</span>".to_string(),
+                html: "<span style=\"color: red\"><span class=\"char\">A</span></span><span style=\"color: red\"><span class=\"char\">B</span></span><span class=\"char\">&nbsp;</span><span style=\"color: #00f\"><span class=\"char\">C</span></span><span style=\"color: #00f\"><span class=\"char\">D</span></span>".to_string(),
                 cursor: (5, 0),
                 show_cursor: false,
             }
@@ -315,7 +315,7 @@ mod tests {
         assert_eq!(
             result,
             HtmlRenderOutput {
-                html: "<span class=\"bold underline\" style=\"color: red\">A</span><span class=\"bold underline\" style=\"color: red\">B</span>"
+                html: "<span class=\"bold underline\" style=\"color: red\"><span class=\"char\">A</span></span><span class=\"bold underline\" style=\"color: red\"><span class=\"char\">B</span></span>"
                     .to_string(),
                 cursor: (2, 0),
                 show_cursor: false,
@@ -331,7 +331,7 @@ mod tests {
         assert_eq!(
             result,
             HtmlRenderOutput {
-                html: "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;".to_string(),
+                html: "<span class=\"char\">&lt;</span><span class=\"char\">s</span><span class=\"char\">c</span><span class=\"char\">r</span><span class=\"char\">i</span><span class=\"char\">p</span><span class=\"char\">t</span><span class=\"char\">&gt;</span><span class=\"char\">a</span><span class=\"char\">l</span><span class=\"char\">e</span><span class=\"char\">r</span><span class=\"char\">t</span><span class=\"char\">(</span><span class=\"char\">&#39;</span><span class=\"char\">x</span><span class=\"char\">s</span><span class=\"char\">s</span><span class=\"char\">&#39;</span><span class=\"char\">)</span><span class=\"char\">&lt;</span><span class=\"char\">/</span><span class=\"char\">s</span><span class=\"char\">c</span><span class=\"char\">r</span><span class=\"char\">i</span><span class=\"char\">p</span><span class=\"char\">t</span><span class=\"char\">&gt;</span>".to_string(),
                 cursor: (29, 0),
                 show_cursor: false,
             }

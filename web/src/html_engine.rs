@@ -222,7 +222,7 @@ pub fn update_font_size(
     let game_display_el = game_display_el.as_ref();
     let mut tried_down = false;
     loop {
-        let game_display_width = game_display_el.client_width() as f64;
+        let game_display_width = game_display_el.client_width() as f64 + 20f64 /* padding */;
         let window_display_width: f64 = window
             .inner_width()?
             .as_f64()
@@ -235,7 +235,7 @@ pub fn update_font_size(
             *font_size -= 1;
             log(&format!("Decreasing font size to {}", font_size));
             game_display_el.set_attribute("style", &format!("font-size: {}px", font_size))?;
-        } else if (game_display_width + 80f64) < window_display_width {
+        } else if (game_display_width) < window_display_width {
             if tried_down || *font_size >= MAX_FONT_SIZE {
                 break;
             }

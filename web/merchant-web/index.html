@@ -19,6 +19,12 @@
                 min-height: 100vh;
                 width: 100%;
             }
+            @media (max-width: 800px) {
+                body {
+                    justify-content: flex-start;
+                    padding-top: 20px;
+                }
+            }
             #game-container {
                 width: 100%;
                 display: flex;
@@ -27,11 +33,19 @@
             }
             #game-display {
                 position: relative;
-                font-family: "Courier New", monospace;
+                font-family: monospace;
                 white-space: pre;
                 text-align: left;
                 display: inline-block;
                 width: auto;
+            }
+            .char {
+                display: inline-block;
+                width: 1ch;
+                height: 1ch;
+                line-height: 1ch;
+                text-align: center;
+                vertical-align: middle;
             }
             #cursor {
                 position: absolute;
@@ -60,6 +74,17 @@
         </style>
     </head>
     <body>
+        <!-- Hidden input field to trigger mobile keyboard -->
+        <input
+            id="mobile-keyboard-trigger"
+            type="text"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            style="position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; pointer-events: none;"
+            aria-hidden="true"
+        />
         <div id="game-container">
             <div id="game-display">Loading Merchant...</div>
         </div>
